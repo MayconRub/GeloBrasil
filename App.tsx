@@ -28,8 +28,7 @@ import {
   Wallet,
   Snowflake,
   Box,
-  Phone,
-  Sparkles
+  Phone
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, fetchSettings, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction } from './store';
@@ -41,7 +40,6 @@ import ExpensesView from './components/ExpensesView';
 import TeamView from './components/TeamView';
 import FleetView from './components/FleetView';
 import AdminView from './components/AdminView';
-import AIInsightsView from './components/AIInsightsView';
 
 const LOGO_COMPONENTS: Record<string, any> = {
   LayoutGrid, Zap, Rocket, Target, Award, Briefcase, Building, Gem, Globe, Smile, Heart, Store, Wallet, Snowflake, Box
@@ -238,7 +236,6 @@ const App: React.FC = () => {
     { id: 'production', label: 'Produção', icon: Snowflake },
     { id: 'sales', label: 'Vendas', icon: CircleDollarSign },
     { id: 'expenses', label: 'Despesas', icon: Receipt },
-    { id: 'insights', label: 'Consultoria AI', icon: Sparkles },
     { id: 'team', label: 'Equipe', icon: Users },
     { id: 'fleet', label: 'Frota', icon: Truck },
   ];
@@ -335,7 +332,6 @@ const App: React.FC = () => {
           {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={handleUpdateExpenses} onUpdateCategories={handleUpdateCategories} />}
           {view === 'team' && <TeamView employees={data.employees} onUpdate={handleUpdateEmployees} />}
           {view === 'fleet' && <FleetView vehicles={data.vehicles} onUpdate={handleUpdateVehicles} />}
-          {view === 'insights' && <AIInsightsView data={{ sales: data.sales, expenses: data.expenses }} />}
           {view === 'admin' && isUserAdmin && <AdminView settings={data.settings} onUpdateSettings={handleUpdateSettings} />}
         </div>
       </main>
