@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
@@ -29,7 +30,8 @@ import {
   Snowflake,
   Box,
   Phone,
-  MessageCircle
+  MessageCircle,
+  Code2
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, fetchSettings, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction } from './store';
@@ -105,7 +107,11 @@ const App: React.FC = () => {
     }
 
     const handleResize = () => {
-      setIsSidebarOpen(window.innerWidth >= 1024);
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
     };
     
     handleResize();
@@ -197,6 +203,7 @@ const App: React.FC = () => {
       if (deleted) await syncEmployee(deleted, true);
     } else {
       const changed = updatedEmployees.find(ue => {
+        // Fix: Changed 'us.id' to 'ue.id' to match the callback argument name and avoid "Cannot find name 'us'" error.
         const pe = prevEmployees.find(p => p.id === ue.id);
         return !pe || JSON.stringify(pe) !== JSON.stringify(ue);
       });
@@ -254,84 +261,117 @@ const App: React.FC = () => {
 
   if (isLoading || !isSettingsLoaded) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-indigo-500" size={40} />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+        <Loader2 className="animate-spin text-sky-500 mb-4" size={48} />
+        <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px]">Iniciando Motores...</p>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-20" style={{ backgroundImage: `linear-gradient(to right, transparent, ${data.settings.primaryColor}, transparent)` }}></div>
-        
-        <div className="max-w-md w-full bg-white p-10 rounded-[3rem] border border-slate-200 shadow-2xl relative z-10">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] text-white shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500" style={{ backgroundColor: data.settings.primaryColor }}>
-              <LogoComponent size={48} />
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden bg-slate-950">
+        {/* Arctic Mesh Gradient Background */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] rounded-full blur-[140px] opacity-20 animate-pulse bg-sky-400"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[90%] h-[90%] rounded-full blur-[180px] opacity-10 bg-indigo-500"></div>
+        </div>
+
+        {/* Optimized Falling Snow */}
+        <div className="absolute inset-0 pointer-events-none z-1 overflow-hidden">
+          {[...Array(window.innerWidth < 640 ? 20 : 40)].map((_, i) => (
+            <div 
+              key={`snow-${i}`}
+              className="absolute bg-white rounded-full opacity-40 animate-[snow_linear_infinite]"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `-${Math.random() * 10}%`,
+                width: `${Math.random() * 3 + 1}px`,
+                height: `${Math.random() * 3 + 1}px`,
+                animationDuration: `${Math.random() * 8 + 4}s`,
+                animationDelay: `${Math.random() * 5}s`
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Login Card - Mobile Responsive Refined */}
+        <div className="w-full max-w-[420px] backdrop-blur-2xl bg-white/5 p-8 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] relative z-10 overflow-hidden group">
+          <div className="text-center mb-10 relative">
+            <div className="inline-flex items-center justify-center w-20 h-20 sm:w-28 sm:h-28 rounded-[2rem] sm:rounded-[3rem] text-white shadow-2xl mb-6 transform hover:scale-110 transition-all duration-700 bg-gradient-to-br from-sky-400 to-indigo-600 border border-white/20">
+              <LogoComponent size={window.innerWidth < 640 ? 40 : 56} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">{data.settings.companyName}</h1>
-            <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">{data.settings.loginHeader}</p>
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tighter mb-2">{data.settings.companyName}</h1>
+            <p className="text-sky-300/60 font-black text-[9px] sm:text-[10px] uppercase tracking-[0.4em]">{data.settings.loginHeader}</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">E-mail</label>
-              <div className="relative">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="email" 
-                  value={authEmail} 
-                  onChange={(e) => setAuthEmail(e.target.value)} 
-                  className="w-full h-14 pl-14 pr-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 transition-all font-semibold" 
-                  placeholder="seu@email.com" 
-                  required 
-                />
-              </div>
+          <form onSubmit={handleLogin} className="space-y-5 sm:space-y-6">
+            <div className="relative group">
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-sky-200/30 group-focus-within:text-sky-400 transition-colors" size={20} />
+              <input 
+                type="email" 
+                value={authEmail} 
+                onChange={(e) => setAuthEmail(e.target.value)} 
+                className="w-full h-14 sm:h-16 pl-14 pr-6 bg-white/5 border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] outline-none focus:ring-2 focus:ring-sky-500/30 focus:bg-white/10 transition-all font-semibold text-white placeholder:text-white/20" 
+                placeholder="E-mail" 
+                required 
+              />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Senha</label>
-              <div className="relative">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="password" 
-                  value={authPassword} 
-                  onChange={(e) => setAuthPassword(e.target.value)} 
-                  className="w-full h-14 pl-14 pr-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 transition-all font-semibold" 
-                  placeholder="••••••••" 
-                  required 
-                />
-              </div>
+            <div className="relative group">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-sky-200/30 group-focus-within:text-sky-400 transition-colors" size={20} />
+              <input 
+                type="password" 
+                value={authPassword} 
+                onChange={(e) => setAuthPassword(e.target.value)} 
+                className="w-full h-14 sm:h-16 pl-14 pr-6 bg-white/5 border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] outline-none focus:ring-2 focus:ring-sky-500/30 focus:bg-white/10 transition-all font-semibold text-white placeholder:text-white/20" 
+                placeholder="Senha" 
+                required 
+              />
             </div>
 
             <button 
               type="submit" 
               disabled={authLoading} 
-              className="w-full h-16 text-white font-black rounded-[1.5rem] shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-3 mt-8" 
+              className="w-full h-14 sm:h-16 text-white font-black text-base sm:text-lg rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 mt-8 relative overflow-hidden border border-white/10"
               style={{ backgroundColor: data.settings.primaryColor }}
             >
               {authLoading ? <Loader2 className="animate-spin" size={24} /> : <LogIn size={24} />}
-              {authLoading ? 'Autenticando...' : 'Acessar Painel'}
+              <span>{authLoading ? 'Gelando...' : 'Entrar no Sistema'}</span>
             </button>
           </form>
 
           {data.settings.supportPhone && (
-            <div className="mt-10 pt-8 border-t border-slate-100 text-center">
-              <a 
-                href={`tel:${data.settings.supportPhone}`}
-                className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold text-xs transition-colors"
-              >
-                <MessageCircle size={16} /> Suporte: {data.settings.supportPhone}
+            <div className="mt-10 pt-8 border-t border-white/5 text-center">
+              <a href={`tel:${data.settings.supportPhone}`} className="inline-flex items-center gap-2 text-white/30 hover:text-white font-bold text-[10px] uppercase tracking-widest transition-all">
+                <Phone size={14} className="text-sky-500" /> Suporte: {data.settings.supportPhone}
               </a>
             </div>
           )}
         </div>
 
+        {/* Signature - Premium Ice Glow Design (Single Dynamic Output) */}
         {data.settings.footerText && (
-          <p className="mt-8 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">{data.settings.footerText}</p>
+          <div className="mt-12 flex flex-col items-center gap-2 relative z-10 animate-in fade-in slide-in-from-bottom-2 duration-1000">
+            <div className="flex items-center gap-3 px-6 py-3 bg-white/5 rounded-[1.5rem] border border-white/10 backdrop-blur-md shadow-[0_0_30px_rgba(125,211,252,0.1)] group hover:border-sky-400/30 transition-all duration-500">
+              <Code2 size={14} className="text-sky-400 animate-pulse" />
+              <span className="text-sky-300 font-black text-[11px] sm:text-[12px] uppercase tracking-[0.2em] drop-shadow-[0_0_10px_rgba(125,211,252,0.5)] group-hover:text-white transition-colors">
+                {data.settings.footerText}
+              </span>
+            </div>
+          </div>
         )}
+
+        <style>{`
+          @keyframes snow {
+            from { transform: translateY(-10vh) rotate(0deg); }
+            to { transform: translateY(110vh) rotate(360deg); }
+          }
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -339,19 +379,40 @@ const App: React.FC = () => {
   const isUserAdmin = session?.user?.email === ADMIN_EMAIL;
 
   return (
-    <div className="min-h-screen flex bg-slate-50 flex-col lg:flex-row">
-      <div className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-40">
-        <h1 className="font-bold text-slate-800">{data.settings.companyName}</h1>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}><Menu size={26} /></button>
+    <div className="min-h-screen flex bg-slate-50 flex-col lg:flex-row font-medium overflow-x-hidden">
+      {/* Mobile Header Refined */}
+      <div className="lg:hidden bg-white/90 backdrop-blur-2xl border-b border-slate-200 px-5 py-4 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: data.settings.primaryColor }}>
+            <LogoComponent size={20} />
+          </div>
+          <h1 className="font-black text-slate-900 tracking-tighter text-lg">{data.settings.companyName}</h1>
+        </div>
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-slate-100 rounded-xl text-slate-600 active:scale-90 transition-all">
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 lg:static lg:block ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300`}>
-        <div className="p-6 h-full flex flex-col">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="p-2.5 rounded-2xl text-white shadow-xl" style={{ backgroundColor: data.settings.primaryColor }}>
-              <LogoComponent size={24} />
+      {/* Sidebar - Mobile Responsive Overlays */}
+      <aside className={`
+        fixed inset-0 z-50 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+        transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 lg:w-80 bg-white border-r border-slate-200
+      `}>
+        {/* Overlay for mobile */}
+        <div 
+          className={`lg:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-500 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+
+        <div className="relative z-10 p-8 h-full flex flex-col bg-white">
+          <div className="flex items-center gap-4 mb-14 px-2">
+            <div className="p-4 rounded-[1.5rem] text-white shadow-2xl shadow-indigo-100 transform hover:rotate-6 transition-all duration-500" style={{ backgroundColor: data.settings.primaryColor }}>
+              <LogoComponent size={28} />
             </div>
-            <h1 className="font-extrabold text-slate-900 text-xl truncate">{data.settings.companyName}</h1>
+            <div className="min-w-0">
+              <h1 className="font-black text-slate-900 text-xl truncate tracking-tighter leading-none">{data.settings.companyName}</h1>
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Ice Control System</p>
+            </div>
           </div>
 
           <nav className="space-y-1.5 flex-1">
@@ -359,27 +420,30 @@ const App: React.FC = () => {
               <button 
                 key={item.id} 
                 onClick={() => handleNavigate(item.id as ViewType)} 
-                className={`w-full flex items-center p-3.5 rounded-2xl transition-all ${view === item.id ? 'text-white font-bold shadow-lg' : 'text-slate-600 hover:bg-slate-50'}`}
+                className={`w-full flex items-center p-4 rounded-2xl transition-all duration-300 group ${view === item.id ? 'text-white font-bold shadow-xl' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'}`}
                 style={view === item.id ? { backgroundColor: data.settings.primaryColor } : {}}
               >
-                <item.icon size={22} />
-                <span className="ml-3.5">{item.label}</span>
+                <item.icon size={20} className={`transition-transform duration-500 ${view === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span className="ml-4 tracking-tight">{item.label}</span>
               </button>
             ))}
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-slate-100 space-y-3">
+          <div className="mt-auto pt-8 border-t border-slate-100 space-y-3 px-2">
             {isUserAdmin && (
-              <button onClick={() => handleNavigate('admin')} className={`w-full flex items-center p-3.5 rounded-2xl ${view === 'admin' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}>
-                <ShieldAlert size={22} /><span className="ml-3.5">Administrador</span>
+              <button onClick={() => handleNavigate('admin')} className={`w-full flex items-center p-4 rounded-2xl transition-all ${view === 'admin' ? 'bg-slate-900 text-white font-bold' : 'text-slate-400 hover:text-slate-900'}`}>
+                <ShieldAlert size={20} /><span className="ml-4">Gestão Admin</span>
               </button>
             )}
-            <button onClick={handleLogout} className="w-full flex items-center p-3.5 text-rose-500 font-bold"><LogOut size={22} /><span className="ml-3.5">Sair</span></button>
+            <button onClick={handleLogout} className="w-full flex items-center p-4 text-rose-500 font-bold hover:bg-rose-50 rounded-2xl transition-all">
+              <LogOut size={20} />
+              <span className="ml-4">Desconectar</span>
+            </button>
           </div>
         </div>
       </aside>
 
-      <main className="flex-1 p-4 lg:p-10">
+      <main className="flex-1 p-5 sm:p-10 lg:p-14 overflow-y-auto bg-[#fafbfc]">
         <div className="max-w-7xl mx-auto">
           {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} onSwitchView={handleNavigate} />}
           {view === 'production' && <ProductionView production={data.production} onUpdate={handleUpdateProduction} />}
