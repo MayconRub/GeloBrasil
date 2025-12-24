@@ -28,7 +28,8 @@ import {
   Wallet,
   Snowflake,
   Box,
-  Phone
+  Phone,
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, fetchSettings, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction } from './store';
@@ -261,22 +262,76 @@ const App: React.FC = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-xl">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-20" style={{ backgroundImage: `linear-gradient(to right, transparent, ${data.settings.primaryColor}, transparent)` }}></div>
+        
+        <div className="max-w-md w-full bg-white p-10 rounded-[3rem] border border-slate-200 shadow-2xl relative z-10">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2.5rem] text-white shadow-2xl mb-6" style={{ backgroundColor: data.settings.primaryColor }}>
-              <LogoComponent size={40} />
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] text-white shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500" style={{ backgroundColor: data.settings.primaryColor }}>
+              <LogoComponent size={48} />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{data.settings.companyName}</h1>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">{data.settings.companyName}</h1>
+            <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">{data.settings.loginHeader}</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-6">
-            <input type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none" placeholder="E-mail" required />
-            <input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none" placeholder="Senha" required />
-            <button type="submit" disabled={authLoading} className="w-full h-14 text-white font-black rounded-2xl transition-all" style={{ backgroundColor: data.settings.primaryColor }}>
-              {authLoading ? 'Carregando...' : 'Entrar'}
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">E-mail</label>
+              <div className="relative">
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="email" 
+                  value={authEmail} 
+                  onChange={(e) => setAuthEmail(e.target.value)} 
+                  className="w-full h-14 pl-14 pr-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 transition-all font-semibold" 
+                  placeholder="seu@email.com" 
+                  required 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="password" 
+                  value={authPassword} 
+                  onChange={(e) => setAuthPassword(e.target.value)} 
+                  className="w-full h-14 pl-14 pr-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 transition-all font-semibold" 
+                  placeholder="••••••••" 
+                  required 
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={authLoading} 
+              className="w-full h-16 text-white font-black rounded-[1.5rem] shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-3 mt-8" 
+              style={{ backgroundColor: data.settings.primaryColor }}
+            >
+              {authLoading ? <Loader2 className="animate-spin" size={24} /> : <LogIn size={24} />}
+              {authLoading ? 'Autenticando...' : 'Acessar Painel'}
             </button>
           </form>
+
+          {data.settings.supportPhone && (
+            <div className="mt-10 pt-8 border-t border-slate-100 text-center">
+              <a 
+                href={`tel:${data.settings.supportPhone}`}
+                className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold text-xs transition-colors"
+              >
+                <MessageCircle size={16} /> Suporte: {data.settings.supportPhone}
+              </a>
+            </div>
+          )}
         </div>
+
+        {data.settings.footerText && (
+          <p className="mt-8 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">{data.settings.footerText}</p>
+        )}
       </div>
     );
   }
