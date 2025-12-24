@@ -11,6 +11,13 @@ export interface Sale {
   description: string;
 }
 
+export interface Production {
+  id: string;
+  quantityKg: number;
+  date: string;
+  observation?: string;
+}
+
 export interface Expense {
   id: string;
   description: string;
@@ -47,4 +54,4 @@ export interface AppSettings {
   footerText: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'expenses' | 'team' | 'fleet' | 'admin';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';

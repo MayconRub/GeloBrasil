@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const VITE_SUPABASE_URL = 'https://ghyodlccgtvkcmiryldb.supabase.co';

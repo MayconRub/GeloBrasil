@@ -1,11 +1,12 @@
 import { supabase } from './supabaseClient';
-import { Sale, Expense, Employee, Vehicle, ExpenseStatus, AppSettings } from './types';
+import { Sale, Expense, Employee, Vehicle, ExpenseStatus, AppSettings, Production } from './types';
 
 export interface AppData {
   sales: Sale[];
   expenses: Expense[];
   employees: Employee[];
   vehicles: Vehicle[];
+  production: Production[];
   categories: string[];
   settings: AppSettings;
 }
@@ -28,6 +29,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     { data: expenses },
     { data: employees },
     { data: vehicles },
+    { data: production },
     { data: categories },
     settings
   ] = await Promise.all([
@@ -35,6 +37,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     supabase.from('despesas').select('*').order('data_vencimento', { ascending: false }),
     supabase.from('funcionarios').select('*').order('nome'),
     supabase.from('veiculos').select('*').order('nome'),
+    supabase.from('producao').select('*').order('data', { ascending: false }),
     supabase.from('categorias').select('nome').order('nome'),
     fetchSettings()
   ]);
@@ -47,6 +50,13 @@ export const fetchAllData = async (): Promise<AppData> => {
     value: s.valor,
     date: s.data,
     description: s.descricao
+  }));
+
+  const processedProduction = (production || []).map((p: any) => ({
+    id: p.id,
+    quantityKg: p.quantidade_kg,
+    date: p.data,
+    observation: p.observacao
   }));
 
   const processedExpenses = (expenses || []).map((e: any) => {
@@ -88,6 +98,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     expenses: processedExpenses,
     employees: processedEmployees,
     vehicles: processedVehicles,
+    production: processedProduction,
     categories: (categories || []).map(c => c.nome),
     settings
   };
@@ -112,6 +123,16 @@ export const syncSale = async (sale: Sale, isDelete = false) => {
     valor: sale.value,
     data: sale.date,
     descricao: sale.description
+  });
+};
+
+export const syncProduction = async (prod: Production, isDelete = false) => {
+  if (isDelete) return supabase.from('producao').delete().eq('id', prod.id);
+  return supabase.from('producao').upsert({
+    id: prod.id,
+    quantidade_kg: prod.quantityKg,
+    data: prod.date,
+    observacao: prod.observation
   });
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
@@ -28,13 +29,15 @@ import {
   Wallet,
   Snowflake,
   Box,
-  Phone
+  Phone,
+  Scale
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
-import { fetchAllData, fetchSettings, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData } from './store';
-import { ViewType, Sale, Expense, Employee, Vehicle, AppSettings } from './types';
+import { fetchAllData, fetchSettings, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction } from './store';
+import { ViewType, Sale, Expense, Employee, Vehicle, AppSettings, Production } from './types';
 import DashboardView from './components/DashboardView';
 import SalesView from './components/SalesView';
+import ProductionView from './components/ProductionView';
 import ExpensesView from './components/ExpensesView';
 import TeamView from './components/TeamView';
 import FleetView from './components/FleetView';
@@ -49,6 +52,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -58,12 +62,13 @@ const App: React.FC = () => {
     expenses: [],
     employees: [],
     vehicles: [],
+    production: [],
     categories: [],
     settings: { 
-      companyName: 'Gestor Pro', 
+      companyName: '', // Inicialmente vazio para evitar flash do nome padrão
       primaryColor: '#4f46e5', 
       logoId: 'LayoutGrid',
-      loginHeader: 'Login Corporativo',
+      loginHeader: 'Carregando...',
       supportPhone: '',
       footerText: ''
     }
@@ -78,8 +83,15 @@ const App: React.FC = () => {
         const settings = await fetchSettings();
         setData(prev => ({ ...prev, settings }));
         document.title = settings.companyName;
+        setIsSettingsLoaded(true);
       } catch (e) {
         console.error("Erro ao carregar configurações:", e);
+        // Fallback caso falhe
+        setData(prev => ({ 
+          ...prev, 
+          settings: { ...prev.settings, companyName: 'Gestor Pro' } 
+        }));
+        setIsSettingsLoaded(true);
       }
     };
     loadInitialSettings();
@@ -97,8 +109,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!session) {
-      // Se não houver sessão, paramos o loader principal mas permitimos ver o login com as settings carregadas
-      setIsLoading(false);
+      if (isSettingsLoaded) setIsLoading(false);
       return;
     }
 
@@ -124,7 +135,7 @@ const App: React.FC = () => {
     initData();
     
     return () => window.removeEventListener('resize', handleResize);
-  }, [session]);
+  }, [session, isSettingsLoaded]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +166,21 @@ const App: React.FC = () => {
         return !ps || JSON.stringify(ps) !== JSON.stringify(us);
       });
       if (changed) await syncSale(changed);
+    }
+  };
+
+  const handleUpdateProduction = async (updatedProduction: Production[]) => {
+    const prevProduction = data.production;
+    setData(prev => ({ ...prev, production: updatedProduction }));
+    if (updatedProduction.length < prevProduction.length) {
+      const deleted = prevProduction.find(pp => !updatedProduction.find(up => up.id === pp.id));
+      if (deleted) await syncProduction(deleted, true);
+    } else {
+      const changed = updatedProduction.find(up => {
+        const pp = prevProduction.find(p => p.id === up.id);
+        return !pp || JSON.stringify(pp) !== JSON.stringify(up);
+      });
+      if (changed) await syncProduction(changed);
     }
   };
 
@@ -218,6 +244,7 @@ const App: React.FC = () => {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'production', label: 'Produção', icon: Snowflake },
     { id: 'sales', label: 'Vendas', icon: CircleDollarSign },
     { id: 'expenses', label: 'Despesas', icon: Receipt },
     { id: 'team', label: 'Equipe', icon: Users },
@@ -235,12 +262,25 @@ const App: React.FC = () => {
 
   const LogoComponent = LOGO_COMPONENTS[data.settings.logoId] || LayoutGrid;
 
-  if (isLoading) {
+  if (isLoading || !isSettingsLoaded) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <LogoComponent className="animate-bounce text-indigo-600 mx-auto mb-4" size={48} />
-          <p className="text-slate-600 font-medium tracking-wide animate-pulse">{data.settings.companyName}</p>
+        <div className="text-center animate-in fade-in duration-500">
+          <LogoComponent 
+            className="animate-bounce mx-auto mb-6" 
+            size={56} 
+            style={{ color: data.settings.primaryColor || '#4f46e5' }} 
+          />
+          <div className="space-y-2">
+            {data.settings.companyName ? (
+              <p className="text-slate-800 font-black text-xl tracking-tight animate-pulse">
+                {data.settings.companyName}
+              </p>
+            ) : (
+              <div className="h-6 w-32 bg-slate-200 rounded-full mx-auto animate-pulse"></div>
+            )}
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">Carregando Sistema</p>
+          </div>
         </div>
       </div>
     );
@@ -248,8 +288,11 @@ const App: React.FC = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative">
-        <div className="max-w-md w-full animate-in zoom-in-95 duration-500 z-10">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-between p-6 overflow-y-auto">
+        {/* Espaçador superior para centralizar o formulário verticalmente se houver espaço */}
+        <div className="flex-1 hidden md:block"></div>
+        
+        <div className="max-w-md w-full animate-in zoom-in-95 duration-500 z-10 py-8">
           <div className="text-center mb-10">
             <div 
               className="inline-flex items-center justify-center w-20 h-20 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-200 mb-6 transition-colors duration-500"
@@ -260,6 +303,7 @@ const App: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{data.settings.companyName}</h1>
             <p className="text-slate-500 font-medium mt-2">{data.settings.loginHeader || 'Login Corporativo'}</p>
           </div>
+          
           <form onSubmit={handleLogin} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-xl space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -295,9 +339,12 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Rodapé de Créditos */}
+        {/* Espaçador inferior para empurrar o rodapé */}
+        <div className="flex-1"></div>
+
+        {/* Rodapé de Créditos - Agora posicionado naturalmente no fim do container flex */}
         {data.settings.footerText && (
-          <div className="absolute bottom-8 w-full text-center animate-in fade-in duration-1000 delay-500">
+          <div className="w-full text-center py-8 animate-in fade-in duration-1000 delay-500 mt-4">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">
               {data.settings.footerText}
             </p>
@@ -374,7 +421,8 @@ const App: React.FC = () => {
 
       <main className="flex-1 p-4 lg:p-10 overflow-x-hidden overflow-y-auto">
         <div className="max-w-7xl mx-auto pb-10">
-          {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} onSwitchView={handleNavigate} />}
+          {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} onSwitchView={handleNavigate} />}
+          {view === 'production' && <ProductionView production={data.production} onUpdate={handleUpdateProduction} />}
           {view === 'sales' && <SalesView sales={data.sales} onUpdate={handleUpdateSales} />}
           {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={handleUpdateExpenses} onUpdateCategories={handleUpdateCategories} />}
           {view === 'team' && <TeamView employees={data.employees} onUpdate={handleUpdateEmployees} />}

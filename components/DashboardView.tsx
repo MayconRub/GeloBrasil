@@ -10,20 +10,22 @@ import {
   ArrowUpRight,
   Scale,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Snowflake
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-import { Sale, Expense, ExpenseStatus, ViewType } from '../types';
+import { Sale, Expense, ExpenseStatus, ViewType, Production } from '../types';
 
 interface Props {
   sales: Sale[];
   expenses: Expense[];
+  production: Production[];
   onSwitchView: (view: ViewType) => void;
 }
 
-const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
+const DashboardView: React.FC<Props> = ({ sales, expenses, production, onSwitchView }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   
   const getTodayLocal = () => {
@@ -50,23 +52,32 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   const stats = useMemo(() => {
+    // Vendas
     const todaySales = sales.filter(s => s.date === today).reduce((sum, s) => sum + s.value, 0);
     const monthSales = sales.filter(s => {
       const d = new Date(s.date + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((sum, s) => sum + s.value, 0);
 
+    // Despesas
     const monthExpenses = expenses.filter(e => {
       const d = new Date(e.dueDate + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((sum, e) => sum + e.value, 0);
 
+    // Produção
+    const todayProd = production.filter(p => p.date === today).reduce((sum, p) => sum + p.quantityKg, 0);
+    const monthProd = production.filter(p => {
+      const d = new Date(p.date + 'T00:00:00');
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).reduce((sum, p) => sum + p.quantityKg, 0);
+
     const overdueCount = expenses.filter(e => e.status === ExpenseStatus.VENCIDO).length;
     const overdueValue = expenses.filter(e => e.status === ExpenseStatus.VENCIDO).reduce((sum, e) => sum + e.value, 0);
     const netProfit = monthSales - monthExpenses;
 
-    return { todaySales, monthSales, monthExpenses, overdueValue, overdueCount, netProfit };
-  }, [sales, expenses, today, currentMonth, currentYear]);
+    return { todaySales, monthSales, monthExpenses, overdueValue, overdueCount, netProfit, todayProd, monthProd };
+  }, [sales, expenses, production, today, currentMonth, currentYear]);
 
   const chartData = useMemo(() => {
     const data = [];
@@ -88,7 +99,6 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
     return data;
   }, [sales, expenses, currentMonth, currentYear]);
 
-  // Filtra e ordena as próximas contas (pendentes e vencidas)
   const nextBills = useMemo(() => {
     return expenses
       .filter(e => e.status !== ExpenseStatus.PAGO)
@@ -121,13 +131,22 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
       </header>
 
       {/* Cards de Métricas Principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-5">
         <StatCard 
           title="VENDAS HOJE" 
           value={stats.todaySales} 
           icon={<ArrowUpRight size={24} className="text-emerald-500" />} 
           color="bg-emerald-50"
           subtitle="Entradas confirmadas"
+          isCurrency={true}
+        />
+        <StatCard 
+          title="PRODUÇÃO HOJE" 
+          value={stats.todayProd} 
+          icon={<Snowflake size={24} className="text-sky-500" />} 
+          color="bg-sky-50"
+          subtitle={`${stats.monthProd.toLocaleString('pt-BR')} KG no mês`}
+          suffix=" KG"
         />
         <StatCard 
           title="DESPESAS (MÊS)" 
@@ -135,6 +154,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
           icon={<ArrowDownLeft size={24} className="text-rose-500" />} 
           color="bg-rose-50"
           subtitle="Total acumulado"
+          isCurrency={true}
         />
         <StatCard 
           title="SALDO LÍQUIDO" 
@@ -143,6 +163,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
           color={stats.netProfit >= 0 ? "bg-indigo-50" : "bg-rose-50"}
           subtitle="Resultado operacional"
           isProfit={true}
+          isCurrency={true}
         />
         <StatCard 
           title="CONTAS VENCIDAS" 
@@ -151,11 +172,11 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
           color="bg-rose-50"
           subtitle={`${stats.overdueCount} faturas em atraso`}
           isAlert={stats.overdueCount > 0}
+          isCurrency={true}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico de Desempenho Semanal */}
         <div className="lg:col-span-2 bg-white p-5 lg:p-8 rounded-[2rem] border border-slate-100 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
             <h3 className="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Desempenho Semanal</h3>
@@ -201,7 +222,6 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
           </div>
         </div>
 
-        {/* Faturas Críticas */}
         <div className="bg-white p-6 lg:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col h-full">
           <div className="flex items-center justify-between mb-8">
             <h3 className="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Próximas Contas</h3>
@@ -219,7 +239,6 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
                 const isOverdue = expense.dueDate < today;
                 const isToday = expense.dueDate === today;
                 
-                // Estilos base para contas normais (a vencer) - Agora em Azul Claro (Sky)
                 let itemClass = "bg-sky-50 border-sky-100 hover:border-sky-300 text-sky-600";
                 let iconClass = "bg-sky-100 border-sky-200 text-sky-600";
                 let badgeClass = "text-sky-500 font-bold";
@@ -268,19 +287,21 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, onSwitchView }) => {
   );
 };
 
-const StatCard = ({ title, value, icon, color, subtitle, isAlert, isProfit }: any) => (
-  <div className={`p-6 lg:p-7 bg-white rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
-    <div className={`w-14 h-14 rounded-2xl ${color} flex items-center justify-center mb-6 shadow-inner ring-8 ring-white transition-transform group-hover:scale-110`}>
+const StatCard = ({ title, value, icon, color, subtitle, isAlert, isProfit, isCurrency, suffix }: any) => (
+  <div className={`p-5 lg:p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+    <div className={`w-12 h-12 rounded-2xl ${color} flex items-center justify-center mb-4 shadow-inner ring-8 ring-white transition-transform group-hover:scale-110`}>
       {icon}
     </div>
-    {isAlert && <div className="absolute top-8 right-8 w-3 h-3 bg-rose-500 rounded-full animate-ping"></div>}
-    {isAlert && <div className="absolute top-8 right-8 w-3 h-3 bg-rose-500 rounded-full border-4 border-white"></div>}
+    {isAlert && <div className="absolute top-6 right-6 w-3 h-3 bg-rose-500 rounded-full animate-ping"></div>}
+    {isAlert && <div className="absolute top-6 right-6 w-3 h-3 bg-rose-500 rounded-full border-4 border-white"></div>}
     
-    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{title}</p>
-    <h4 className={`text-2xl lg:text-3xl font-black leading-tight ${isProfit && value < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
-      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
+    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{title}</p>
+    <h4 className={`text-xl lg:text-2xl font-black leading-tight ${isProfit && value < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+      {isCurrency 
+        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+        : `${value.toLocaleString('pt-BR')}${suffix || ''}`}
     </h4>
-    <p className="text-[11px] text-slate-400 font-bold mt-3 border-t border-slate-50 pt-3 flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+    <p className="text-[10px] text-slate-400 font-bold mt-2.5 border-t border-slate-50 pt-2.5 flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity truncate">
       {subtitle}
     </p>
   </div>
