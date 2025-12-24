@@ -203,7 +203,6 @@ const App: React.FC = () => {
       if (deleted) await syncEmployee(deleted, true);
     } else {
       const changed = updatedEmployees.find(ue => {
-        // Fix: Changed 'us.id' to 'ue.id' to match the callback argument name and avoid "Cannot find name 'us'" error.
         const pe = prevEmployees.find(p => p.id === ue.id);
         return !pe || JSON.stringify(pe) !== JSON.stringify(ue);
       });
@@ -350,12 +349,12 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Signature - Premium Ice Glow Design (Single Dynamic Output) */}
+        {/* Signature - Redesigned for Single Line Mobile Display */}
         {data.settings.footerText && (
-          <div className="mt-12 flex flex-col items-center gap-2 relative z-10 animate-in fade-in slide-in-from-bottom-2 duration-1000">
-            <div className="flex items-center gap-3 px-6 py-3 bg-white/5 rounded-[1.5rem] border border-white/10 backdrop-blur-md shadow-[0_0_30px_rgba(125,211,252,0.1)] group hover:border-sky-400/30 transition-all duration-500">
-              <Code2 size={14} className="text-sky-400 animate-pulse" />
-              <span className="text-sky-300 font-black text-[11px] sm:text-[12px] uppercase tracking-[0.2em] drop-shadow-[0_0_10px_rgba(125,211,252,0.5)] group-hover:text-white transition-colors">
+          <div className="mt-10 flex flex-col items-center relative z-10 animate-in fade-in slide-in-from-bottom-2 duration-1000 max-w-[90vw]">
+            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/5 rounded-full border border-white/10 backdrop-blur-md shadow-[0_0_30px_rgba(125,211,252,0.1)] group hover:border-sky-400/30 transition-all duration-500 flex-nowrap overflow-hidden">
+              <Code2 size={14} className="text-sky-400 animate-pulse shrink-0" />
+              <span className="text-sky-300 font-black text-[10px] sm:text-[12px] uppercase tracking-[0.15em] sm:tracking-[0.2em] drop-shadow-[0_0_10px_rgba(125,211,252,0.5)] group-hover:text-white transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                 {data.settings.footerText}
               </span>
             </div>
