@@ -12,15 +12,26 @@ export interface AppData {
 }
 
 export const fetchSettings = async (): Promise<AppSettings> => {
-  const { data: settings } = await supabase.from('configuracoes').select('*').single();
-  return {
-    companyName: settings?.nome_empresa || 'Gestor Pro',
-    primaryColor: settings?.cor_primaria || '#4f46e5',
-    logoId: settings?.logo_id || 'LayoutGrid',
-    loginHeader: settings?.login_header || 'Login Corporativo',
-    supportPhone: settings?.support_phone || '',
-    footerText: settings?.footer_text || ''
-  };
+  try {
+    const { data: settings } = await supabase.from('configuracoes').select('*').single();
+    return {
+      companyName: settings?.nome_empresa || 'Gestor Pro',
+      primaryColor: settings?.cor_primaria || '#4f46e5',
+      logoId: settings?.logo_id || 'LayoutGrid',
+      loginHeader: settings?.login_header || 'Login Corporativo',
+      supportPhone: settings?.support_phone || '',
+      footerText: settings?.footer_text || ''
+    };
+  } catch (e) {
+    return {
+      companyName: 'Gestor Pro',
+      primaryColor: '#4f46e5',
+      logoId: 'LayoutGrid',
+      loginHeader: 'Login Corporativo',
+      supportPhone: '',
+      footerText: ''
+    };
+  }
 };
 
 export const fetchAllData = async (): Promise<AppData> => {
