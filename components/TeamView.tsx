@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -14,7 +14,8 @@ import {
   Save,
   Percent
 } from 'lucide-react';
-import { Employee } from '../types';
+import { Employee, AppSettings } from '../types';
+import { fetchSettings } from '../store';
 
 interface Props {
   employees: Employee[];
@@ -22,7 +23,17 @@ interface Props {
   companyName?: string;
 }
 
-const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Brasil" }) => {
+const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName: initialCompanyName }) => {
+  const [settings, setSettings] = useState<Partial<AppSettings>>({
+    companyName: initialCompanyName || 'Gelo Brasil',
+    cnpj: '',
+    address: ''
+  });
+
+  useEffect(() => {
+    fetchSettings().then(setSettings);
+  }, []);
+
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -319,21 +330,18 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         </div>
       </div>
 
-      {/* MODELO DE HOLERITE PROFISSIONAL - IRRF INTEGRADO */}
       {selectedForPrint && (
         <div className="hidden print:flex flex-row bg-white text-black font-sans text-[9px] leading-tight w-[18.5cm] mx-auto overflow-visible p-0">
           
-          {/* Corpo Principal do Holerite */}
           <div className="flex-1 border border-black flex flex-col">
             
-            {/* Header Empregador */}
             <div className="flex border-b border-black min-h-[55px]">
               <div className="flex-1 p-2 border-r border-black">
                 <p className="text-[7px] font-bold uppercase mb-0.5 leading-none">Empregador</p>
                 <div className="flex flex-col">
-                  <span className="font-black text-xs uppercase leading-tight">{companyName}</span>
-                  <span className="text-[7px] mt-0.5">Endereço RUA EXEMPLO, QD 01 LT 01 - CEP 00000-000</span>
-                  <span className="text-[7px]">CNPJ 23.646.174/0001-21</span>
+                  <span className="font-black text-xs uppercase leading-tight">{settings.companyName}</span>
+                  <span className="text-[7px] mt-0.5">{settings.address || 'ENDEREÇO NÃO CADASTRADO'}</span>
+                  <span className="text-[7px]">CNPJ {settings.cnpj || '00.000.000/0000-00'}</span>
                 </div>
               </div>
               <div className="w-[42%] flex flex-col items-center justify-center p-1 text-center">
@@ -342,7 +350,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </div>
             </div>
 
-            {/* Dados Funcionário */}
             <div className="grid grid-cols-4 border-b border-black min-h-[45px]">
               <div className="col-span-3 p-1.5 border-r border-black flex flex-col justify-between">
                 <div>
@@ -350,7 +357,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                   <p className="font-black text-xs uppercase tracking-tight">{selectedForPrint.name}</p>
                 </div>
                 <div className="flex justify-between items-end border-t border-black/10 mt-1 pt-0.5">
-                   <span className="text-[7px] font-bold uppercase italic">01/01/2024 a 31/01/2024</span>
+                   <span className="text-[7px] font-bold uppercase italic">PERÍODO: 01 A 30</span>
                    <span className="text-[7px] font-black uppercase">ADMINISTRATIVO</span>
                 </div>
               </div>
@@ -366,7 +373,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </div>
             </div>
 
-            {/* Tabela de Lançamentos */}
             <div className="flex flex-col min-h-[380px]">
               <table className="w-full border-collapse">
                 <thead>
@@ -379,7 +385,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                   </tr>
                 </thead>
                 <tbody className="font-mono text-[9px]">
-                  {/* Salário Base */}
                   <tr className="h-5">
                     <td className="border-r border-black text-center text-[8px]">001</td>
                     <td className="border-r border-black pl-3 font-bold uppercase">SALARIO BASE</td>
@@ -387,7 +392,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                     <td className="border-r border-black text-right pr-3 font-bold">{formatBRL(selectedForPrint.salary || 0)}</td>
                     <td className="text-right pr-3 font-bold"></td>
                   </tr>
-                  {/* Periculosidade */}
                   {selectedForPrint.isDangerous && (
                     <tr className="h-5">
                       <td className="border-r border-black text-center text-[8px]">050</td>
@@ -397,27 +401,24 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                       <td className="text-right pr-3 font-bold"></td>
                     </tr>
                   )}
-                  {/* INSS */}
                   {selectedForPrint.inss && (
                     <tr className="h-5">
                       <td className="border-r border-black text-center text-[8px]">201</td>
                       <td className="border-r border-black pl-3 font-bold uppercase">INSS</td>
-                      <td className="border-r border-black text-center">{selectedForPrint.inss?.toFixed(2)}</td>
+                      <td className="border-r border-black text-center">{selectedForPrint.inss?.toFixed(2)}%</td>
                       <td className="border-r border-black text-right pr-3 font-bold"></td>
                       <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</td>
                     </tr>
                   )}
-                  {/* IRRF */}
                   {selectedForPrint.irrf && (
                     <tr className="h-5">
                       <td className="border-r border-black text-center text-[8px]">205</td>
                       <td className="border-r border-black pl-3 font-bold uppercase">IRRF</td>
-                      <td className="border-r border-black text-center">{selectedForPrint.irrf?.toFixed(2)}</td>
+                      <td className="border-r border-black text-center">{selectedForPrint.irrf?.toFixed(2)}%</td>
                       <td className="border-r border-black text-right pr-3 font-bold"></td>
                       <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.irrf))}</td>
                     </tr>
                   )}
-                  {/* Linhas vazias */}
                   {[...Array(13)].map((_, i) => (
                     <tr key={i} className="h-5">
                       <td className="border-r border-black"></td>
@@ -431,7 +432,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </table>
             </div>
 
-            {/* Totais */}
             <div className="flex border-t border-black min-h-[70px]">
               <div className="flex-1 border-r border-black p-2 bg-slate-50/20">
                 <p className="text-[7px] font-bold uppercase mb-1 leading-none">Mensagens</p>
@@ -464,7 +464,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </div>
             </div>
 
-            {/* Bases de Cálculo (Rodapé) */}
             <div className="grid grid-cols-6 border-t border-black bg-white text-center h-11">
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Salário Base</p>
@@ -493,7 +492,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
             </div>
           </div>
 
-          {/* Canhoto Lateral (Assinatura Vertical) */}
           <div className="w-[1.4cm] border-y border-r border-black flex flex-col items-center justify-between py-10 px-0 bg-white ml-[-1px]">
             <div className="font-black text-[7px] uppercase tracking-tighter w-full text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
                Declaro ter recebido a importância líquida deste recibo.

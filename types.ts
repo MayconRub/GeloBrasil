@@ -51,13 +51,15 @@ export interface Vehicle {
 
 export interface AppSettings {
   companyName: string;
+  cnpj?: string;
+  address?: string;
   primaryColor: string;
   logoId: string;
   loginHeader: string;
   supportPhone: string;
   footerText: string;
   expirationDate: string;
-  hiddenViews: string[]; // Lista de ViewTypes que devem ser ocultados
+  hiddenViews: string[]; 
   dashboardNotice?: string;
 }
 

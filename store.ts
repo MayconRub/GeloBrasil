@@ -17,6 +17,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     const { data: settings } = await supabase.from('configuracoes').select('*').single();
     return {
       companyName: settings?.nome_empresa || 'Gestor Pro',
+      cnpj: settings?.cnpj || '',
+      address: settings?.endereco || '',
       primaryColor: settings?.cor_primaria || '#4f46e5',
       logoId: settings?.logo_id || 'LayoutGrid',
       loginHeader: settings?.login_header || 'Login Corporativo',
@@ -24,7 +26,7 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       footerText: settings?.footer_text || '',
       expirationDate: settings?.data_expiracao || '2099-12-31',
       hiddenViews: settings?.paginas_ocultas || [],
-      dashboardNotice: '' // Removida leitura da coluna inexistente
+      dashboardNotice: settings?.aviso_dashboard || '' 
     };
   } catch (e) {
     return {
@@ -126,17 +128,19 @@ export const fetchAllData = async (): Promise<AppData> => {
 };
 
 export const syncSettings = async (settings: AppSettings) => {
-  // Removido aviso_dashboard do payload para evitar erro de coluna inexistente
   return supabase.from('configuracoes').upsert({
     id: 1,
     nome_empresa: settings.companyName,
+    cnpj: settings.cnpj,
+    endereco: settings.address,
     cor_primaria: settings.primaryColor,
     logo_id: settings.logoId,
     login_header: settings.loginHeader,
     support_phone: settings.supportPhone,
     footer_text: settings.footerText,
     data_expiracao: settings.expirationDate,
-    paginas_ocultas: settings.hiddenViews
+    paginas_ocultas: settings.hiddenViews,
+    aviso_dashboard: settings.dashboardNotice
   });
 };
 

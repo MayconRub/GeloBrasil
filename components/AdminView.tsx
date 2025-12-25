@@ -36,7 +36,9 @@ import {
   Megaphone,
   Code2,
   Settings2,
-  Key
+  Key,
+  MapPin,
+  Fingerprint
 } from 'lucide-react';
 import { AppSettings } from '../types';
 
@@ -73,6 +75,8 @@ const MENU_PAGES = [
 const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const [activeTab, setActiveTab] = useState<'licensing' | 'branding' | 'system'>('licensing');
   const [companyName, setCompanyName] = useState(settings.companyName);
+  const [cnpj, setCnpj] = useState(settings.cnpj || '');
+  const [address, setAddress] = useState(settings.address || '');
   const [primaryColor, setPrimaryColor] = useState(settings.primaryColor);
   const [logoId, setLogoId] = useState(settings.logoId);
   const [loginHeader, setLoginHeader] = useState(settings.loginHeader);
@@ -96,7 +100,19 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
-    await onUpdateSettings({ companyName, primaryColor, logoId, loginHeader, supportPhone, footerText, expirationDate, hiddenViews, dashboardNotice });
+    await onUpdateSettings({ 
+      companyName, 
+      cnpj,
+      address,
+      primaryColor, 
+      logoId, 
+      loginHeader, 
+      supportPhone, 
+      footerText, 
+      expirationDate, 
+      hiddenViews, 
+      dashboardNotice 
+    });
     setIsUpdating(false);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
@@ -108,6 +124,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
     setIsUpdating(true);
     await onUpdateSettings({ 
       companyName, 
+      cnpj,
+      address,
       primaryColor, 
       logoId, 
       loginHeader, 
@@ -139,6 +157,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
     
     await onUpdateSettings({ 
       companyName, 
+      cnpj,
+      address,
       primaryColor, 
       logoId, 
       loginHeader, 
@@ -175,7 +195,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
         )}
       </header>
 
-      {/* Internal Navigation Tabs */}
       <div className="flex items-center p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setActiveTab('licensing')}
@@ -201,7 +220,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
             
-            {/* TAB CONTENT: LICENSING */}
             {activeTab === 'licensing' && (
               <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
                 <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
@@ -256,7 +274,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
               </div>
             )}
 
-            {/* TAB CONTENT: BRANDING */}
             {activeTab === 'branding' && (
               <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
                 <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
@@ -264,31 +281,43 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                     <Palette size={28} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Marca e Cores</h3>
-                    <p className="text-sm text-slate-400 font-medium">Personalize a identidade visual.</p>
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Identidade Corporativa</h3>
+                    <p className="text-sm text-slate-400 font-medium">Dados que aparecem no holerite e sistema.</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Building2 size={12} /> Nome da Empresa</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Building2 size={12} /> Nome da Empresa (Holerite)</label>
                       <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Palette size={12} /> Cor Primária</label>
-                      <div className="flex gap-4">
-                        <div className="w-14 h-14 shrink-0 rounded-2xl border-2 border-slate-100 relative overflow-hidden">
-                          <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="absolute inset-[-50%] w-[200%] h-[200%] cursor-pointer" />
-                        </div>
-                        <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-sm font-black uppercase" />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Fingerprint size={12} /> CNPJ da Empresa</label>
+                      <input type="text" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><MapPin size={12} /> Endereço Completo</label>
+                    <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, Número, Bairro, Cidade - UF" className="w-full h-[140px] p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50 resize-none text-sm" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Palette size={12} /> Cor Primária</label>
+                    <div className="flex gap-4">
+                      <div className="w-14 h-14 shrink-0 rounded-2xl border-2 border-slate-100 relative overflow-hidden">
+                        <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="absolute inset-[-50%] w-[200%] h-[200%] cursor-pointer" />
                       </div>
+                      <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-sm font-black uppercase" />
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Gem size={12} /> Logotipo do Sistema</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Gem size={12} /> Logotipo</label>
                     <div className="grid grid-cols-4 gap-2.5">
                       {AVAILABLE_LOGOS.map((item) => (
                         <button
@@ -296,7 +325,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                           type="button"
                           onClick={() => setLogoId(item.id)}
                           className={`aspect-square flex items-center justify-center rounded-2xl border-2 transition-all ${logoId === item.id ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-50 bg-slate-50 text-slate-300 hover:border-slate-200'}`}
-                          title={item.label}
                         >
                           <item.icon size={22} />
                         </button>
@@ -304,9 +332,42 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'system' && (
+              <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                  <div className="bg-sky-50 p-4 rounded-2xl text-sky-600 shadow-inner">
+                    <Megaphone size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Comunicação e Suporte</h3>
+                    <p className="text-sm text-slate-400 font-medium">Configurações de interface e visibilidade.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><TextCursor size={12} /> Frase de Login</label>
+                      <input type="text" value={loginHeader} onChange={e => setLoginHeader(e.target.value)} className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Phone size={12} /> WhatsApp Suporte</label>
+                      <input type="text" value={supportPhone} onChange={e => setSupportPhone(e.target.value)} placeholder="(00) 00000-0000" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Megaphone size={12} /> Mural de Avisos</label>
+                    <textarea value={dashboardNotice} onChange={e => setDashboardNotice(e.target.value)} placeholder="Aparecerá para todos os usuários no dashboard..." className="w-full h-[140px] p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50 resize-none text-sm" />
+                  </div>
+                </div>
 
                 <div className="pt-4 space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Eye size={12} /> Páginas Visíveis</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Eye size={12} /> Módulos Ativos</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {MENU_PAGES.map(page => (
                       <button
@@ -327,77 +388,32 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
               </div>
             )}
 
-            {/* TAB CONTENT: SYSTEM & SUPPORT */}
-            {activeTab === 'system' && (
-              <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
-                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
-                  <div className="bg-sky-50 p-4 rounded-2xl text-sky-600 shadow-inner">
-                    <Megaphone size={28} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Comunicação e Suporte</h3>
-                    <p className="text-sm text-slate-400 font-medium">Informações de apoio e rodapé.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><TextCursor size={12} /> Texto de Login</label>
-                      <input type="text" value={loginHeader} onChange={e => setLoginHeader(e.target.value)} className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Phone size={12} /> Telefone Suporte</label>
-                      <input type="text" value={supportPhone} onChange={e => setSupportPhone(e.target.value)} placeholder="(00) 00000-0000" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Code2 size={12} /> Créditos / Rodapé</label>
-                      <input 
-                        type="text" 
-                        value={footerText} 
-                        onChange={e => setFooterText(e.target.value)} 
-                        placeholder="Desenvolvido por Sua Empresa"
-                        className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Megaphone size={12} /> Aviso do Dashboard</label>
-                    <textarea 
-                      value={dashboardNotice} 
-                      onChange={e => setDashboardNotice(e.target.value)} 
-                      placeholder="Deixe um recado para os usuários..."
-                      className="w-full h-[228px] p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50 resize-none text-sm" 
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
               <div className={`flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest transition-all ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
-                <CheckCircle2 size={18} /> Configurações Salvas!
+                <CheckCircle2 size={18} /> Sincronizado com Sucesso!
               </div>
               <button 
                 type="submit"
                 disabled={isUpdating}
                 className="bg-slate-900 text-white font-black px-12 py-4 rounded-[1.5rem] hover:bg-indigo-600 transition-all active:scale-95 shadow-xl flex items-center gap-3 disabled:opacity-50"
               >
-                <Save size={20} /> {isUpdating ? 'Salvando...' : 'Salvar Tudo'}
+                <Save size={20} /> {isUpdating ? 'Gravando...' : 'Salvar Alterações'}
               </button>
             </div>
           </form>
         </div>
 
-        {/* PREVIEW PANEL */}
         <div className="space-y-6">
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-8">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">Prévia Instantânea</h4>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">Prévia do Holerite</h4>
             
-            <div className="space-y-8">
+            <div className="space-y-6">
+               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-[10px]">
+                  <p className="font-black text-slate-800 uppercase leading-none mb-1">{companyName || 'NOME DA EMPRESA'}</p>
+                  <p className="text-slate-500 mb-0.5">{address || 'ENDEREÇO NÃO CADASTRADO'}</p>
+                  <p className="text-slate-500">CNPJ: {cnpj || '00.000.000/0000-00'}</p>
+               </div>
+
               <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-3xl border border-slate-100">
                 <div className="p-4 rounded-2xl text-white shadow-xl flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
                   {(() => {
@@ -406,28 +422,10 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                   })()}
                 </div>
                 <div className="min-w-0">
-                  <h5 className="text-xl font-black text-slate-800 truncate leading-none">{companyName || 'Sua Empresa'}</h5>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1.5">Painel Ativo</p>
+                  <h5 className="text-xl font-black text-slate-800 truncate leading-none">{companyName || 'Gelo Brasil'}</h5>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1.5">Identidade Ativa</p>
                 </div>
               </div>
-
-              {footerText && (
-                <div className="pt-4 border-t border-slate-50">
-                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Rodapé do Sistema:</p>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
-                    <Code2 size={14} className="text-indigo-400" />
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-wider truncate max-w-[150px]">{footerText}</span>
-                  </div>
-                </div>
-              )}
-
-              {dashboardNotice && (activeTab === 'system') && (
-                <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-3xl relative overflow-hidden group">
-                  <Megaphone size={40} className="absolute -right-2 -bottom-2 text-indigo-100 -rotate-12 group-hover:rotate-0 transition-transform" />
-                  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">Preview do Aviso:</p>
-                  <p className="text-indigo-900 text-xs font-bold leading-relaxed relative z-10">{dashboardNotice}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
