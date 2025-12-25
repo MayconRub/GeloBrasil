@@ -335,97 +335,101 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         </div>
       </div>
 
-      {/* MODELO DE CONTRA-CHEQUE PROFISSIONAL (EXATAMENTE IGUAL À IMAGEM) */}
+      {/* MODELO DE HOLERITE PROFISSIONAL - AJUSTE PARA NÃO CORTAR (LARGURA 18.5CM) */}
       {selectedForPrint && (
-        <div className="hidden print:block p-0 bg-white text-black font-sans text-[9px] leading-tight w-[19cm] mx-auto overflow-visible relative">
-          <div className="border-[1.5px] border-black flex flex-col w-full relative">
+        <div className="hidden print:flex flex-row bg-white text-black font-sans text-[9px] leading-tight w-[18.5cm] mx-auto overflow-visible p-0">
+          
+          {/* Corpo Principal do Holerite */}
+          <div className="flex-1 border border-black flex flex-col">
             
-            {/* 1. Header Empregador */}
-            <div className="flex border-b-[1.5px] border-black min-h-[50px]">
-              <div className="flex-1 p-1 border-r-[1.5px] border-black">
-                <p className="text-[7px] font-bold uppercase mb-0.5">Empregador</p>
+            {/* Header Empregador */}
+            <div className="flex border-b border-black min-h-[55px]">
+              <div className="flex-1 p-2 border-r border-black">
+                <p className="text-[7px] font-bold uppercase mb-0.5 leading-none">Empregador</p>
                 <div className="flex flex-col">
-                  <span className="font-black text-sm uppercase">Nome <span className="text-base ml-2">{companyName}</span></span>
-                  <span className="text-[8px] mt-0.5">Endereço RUA EXEMPLO, QD 01 LT 01 - BAIRRO</span>
-                  <span className="text-[8px]">CNPJ 00.000.000/0001-00</span>
+                  <span className="font-black text-xs uppercase leading-tight">{companyName}</span>
+                  <span className="text-[7px] mt-0.5">Endereço RUA EXEMPLO, QD 01 LT 01 - CEP 00000-000</span>
+                  <span className="text-[7px]">CNPJ 23.646.174/0001-21</span>
                 </div>
               </div>
-              <div className="w-[45%] flex flex-col items-center justify-center p-1">
-                <h2 className="text-sm font-black uppercase text-center tracking-tight">Recibo de Pagamento de Salário</h2>
-                <p className="text-[9px] font-bold mt-1">Referente {getReferenceMonth()}</p>
+              <div className="w-[42%] flex flex-col items-center justify-center p-1 text-center">
+                <h2 className="text-[10px] font-black uppercase tracking-tight leading-none mb-1">Recibo de Pagamento de Salário</h2>
+                <p className="text-[8px] font-bold">Referente {getReferenceMonth()}</p>
               </div>
             </div>
 
-            {/* 2. Dados Funcionário Principal */}
-            <div className="grid grid-cols-4 border-b-[1.5px] border-black min-h-[40px]">
-              <div className="col-span-3 p-1 border-r-[1.5px] border-black flex flex-col justify-between">
-                <p className="text-[7px] font-bold uppercase">Nome do Funcionário</p>
-                <p className="font-black text-sm uppercase mb-1">{selectedForPrint.name}</p>
-                <div className="flex justify-between items-end border-t border-black/10 pt-0.5">
+            {/* Dados Funcionário */}
+            <div className="grid grid-cols-4 border-b border-black min-h-[45px]">
+              <div className="col-span-3 p-1.5 border-r border-black flex flex-col justify-between">
+                <div>
+                  <p className="text-[7px] font-bold uppercase leading-none mb-0.5">Nome do Funcionário</p>
+                  <p className="font-black text-xs uppercase tracking-tight">{selectedForPrint.name}</p>
+                </div>
+                <div className="flex justify-between items-end border-t border-black/10 mt-1 pt-0.5">
                    <span className="text-[7px] font-bold uppercase italic">01/01/2024 a 31/01/2024</span>
                    <span className="text-[7px] font-black uppercase">ADMINISTRATIVO</span>
                 </div>
               </div>
-              <div className="flex flex-col p-1 justify-between">
-                <div className="mb-1">
-                  <p className="text-[7px] font-bold uppercase leading-none">FUNÇÃO</p>
-                  <p className="font-black uppercase truncate">{selectedForPrint.role}</p>
+              <div className="flex flex-col p-1.5 justify-between">
+                <div>
+                  <p className="text-[7px] font-bold uppercase leading-none mb-0.5">FUNÇÃO</p>
+                  <p className="font-black uppercase truncate text-[8px]">{selectedForPrint.role}</p>
                 </div>
                 <div>
-                  <p className="text-[7px] font-bold uppercase leading-none">DATA ADMISSÃO</p>
-                  <p className="font-black">{new Date(selectedForPrint.joinedAt).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[7px] font-bold uppercase leading-none mb-0.5">DATA ADMISSÃO</p>
+                  <p className="font-black text-[8px]">{new Date(selectedForPrint.joinedAt).toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
             </div>
 
-            {/* 3. Tabela de Lançamentos */}
-            <div className="flex flex-col min-h-[350px]">
+            {/* Tabela de Lançamentos */}
+            <div className="flex flex-col min-h-[380px]">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b-[1.5px] border-black text-[8px] font-black">
-                    <th className="border-r-[1.5px] border-black p-0.5 text-center w-8">Cód.</th>
-                    <th className="border-r-[1.5px] border-black p-0.5 text-left pl-2">Descrição</th>
-                    <th className="border-r-[1.5px] border-black p-0.5 text-center w-20">Referência</th>
-                    <th className="border-r-[1.5px] border-black p-0.5 text-right w-24 pr-2">Proventos</th>
-                    <th className="p-0.5 text-right w-24 pr-2">Descontos</th>
+                  <tr className="border-b border-black text-[8px] font-black bg-slate-50">
+                    <th className="border-r border-black p-1 text-center w-8">Cód.</th>
+                    <th className="border-r border-black p-1 text-left pl-3">Descrição</th>
+                    <th className="border-r border-black p-1 text-center w-20">Referência</th>
+                    <th className="border-r border-black p-1 text-right w-24 pr-3">Proventos</th>
+                    <th className="p-1 text-right w-24 pr-3">Descontos</th>
                   </tr>
                 </thead>
                 <tbody className="font-mono text-[9px]">
                   {/* Salário Base */}
-                  <tr className="h-4">
-                    <td className="border-r-[1.5px] border-black text-center">001</td>
-                    <td className="border-r-[1.5px] border-black pl-2 font-bold uppercase">SALARIO BASE</td>
-                    <td className="border-r-[1.5px] border-black text-center">220:00</td>
-                    <td className="border-r-[1.5px] border-black text-right pr-2">{formatBRL(selectedForPrint.salary || 0)}</td>
-                    <td className="text-right pr-2"></td>
+                  <tr className="h-5">
+                    <td className="border-r border-black text-center text-[8px]">001</td>
+                    <td className="border-r border-black pl-3 font-bold uppercase">SALARIO BASE</td>
+                    <td className="border-r border-black text-center">220:00</td>
+                    <td className="border-r border-black text-right pr-3 font-bold">{formatBRL(selectedForPrint.salary || 0)}</td>
+                    <td className="text-right pr-3 font-bold"></td>
                   </tr>
                   {/* Periculosidade */}
                   {selectedForPrint.isDangerous && (
-                    <tr className="h-4">
-                      <td className="border-r-[1.5px] border-black text-center">050</td>
-                      <td className="border-r-[1.5px] border-black pl-2 font-bold uppercase">ADIC. PERICULOSIDADE</td>
-                      <td className="border-r-[1.5px] border-black text-center">30.00</td>
-                      <td className="border-r-[1.5px] border-black text-right pr-2">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</td>
-                      <td className="text-right pr-2"></td>
+                    <tr className="h-5">
+                      <td className="border-r border-black text-center text-[8px]">050</td>
+                      <td className="border-r border-black pl-3 font-bold uppercase">ADIC. PERICULOSIDADE</td>
+                      <td className="border-r border-black text-center">30.00</td>
+                      <td className="border-r border-black text-right pr-3 font-bold">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</td>
+                      <td className="text-right pr-3 font-bold"></td>
                     </tr>
                   )}
                   {/* INSS */}
                   {selectedForPrint.inss && (
-                    <tr className="h-4">
-                      <td className="border-r-[1.5px] border-black text-center">201</td>
-                      <td className="border-r-[1.5px] border-black pl-2 font-bold uppercase">INSS</td>
-                      <td className="border-r-[1.5px] border-black text-center">{selectedForPrint.inss?.toFixed(2)}</td>
-                      <td className="border-r-[1.5px] border-black text-right pr-2"></td>
-                      <td className="text-right pr-2">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</td>
+                    <tr className="h-5">
+                      <td className="border-r border-black text-center text-[8px]">201</td>
+                      <td className="border-r border-black pl-3 font-bold uppercase">INSS</td>
+                      <td className="border-r border-black text-center">{selectedForPrint.inss?.toFixed(2)}</td>
+                      <td className="border-r border-black text-right pr-3 font-bold"></td>
+                      <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</td>
                     </tr>
                   )}
-                  {/* Linhas vazias para preencher o formulário */}
-                  {[...Array(15)].map((_, i) => (
-                    <tr key={i} className="h-4">
-                      <td className="border-r-[1.5px] border-black"></td>
-                      <td className="border-r-[1.5px] border-black"></td>
-                      <td className="border-r-[1.5px] border-black"></td>
-                      <td className="border-r-[1.5px] border-black"></td>
+                  {/* Linhas vazias */}
+                  {[...Array(14)].map((_, i) => (
+                    <tr key={i} className="h-5">
+                      <td className="border-r border-black"></td>
+                      <td className="border-r border-black"></td>
+                      <td className="border-r border-black"></td>
+                      <td className="border-r border-black"></td>
                       <td></td>
                     </tr>
                   ))}
@@ -433,32 +437,29 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </table>
             </div>
 
-            {/* 4. Totais e Valor Líquido */}
-            <div className="flex border-t-[1.5px] border-black">
-              <div className="flex-1 border-r-[1.5px] border-black flex flex-col">
-                 <div className="p-1 border-b border-black min-h-[30px]">
-                    <p className="text-[7px] font-bold uppercase">MENSAGENS</p>
-                    <p className="text-[8px] italic"></p>
-                 </div>
-                 <div className="flex-1"></div>
+            {/* Totais */}
+            <div className="flex border-t border-black min-h-[70px]">
+              <div className="flex-1 border-r border-black p-2 bg-slate-50/20">
+                <p className="text-[7px] font-bold uppercase mb-1 leading-none">Mensagens</p>
+                <p className="text-[8px] italic"></p>
               </div>
-              <div className="w-[45%] flex flex-col">
-                <div className="flex border-b-[1.5px] border-black h-10">
-                  <div className="flex-1 p-1 border-r-[1.5px] border-black text-center flex flex-col justify-center">
-                    <p className="text-[7px] font-bold uppercase mb-0.5">Total Vencimentos</p>
-                    <p className="font-black text-xs">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
+              <div className="w-[48%] flex flex-col">
+                <div className="flex border-b border-black h-10">
+                  <div className="flex-1 p-1 border-r border-black text-center flex flex-col justify-center">
+                    <p className="text-[7px] font-bold uppercase mb-0.5 leading-none text-[6px]">Total Vencimentos</p>
+                    <p className="font-black text-[10px]">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
                   </div>
                   <div className="flex-1 p-1 text-center flex flex-col justify-center">
-                    <p className="text-[7px] font-bold uppercase mb-0.5">Total Descontos</p>
-                    <p className="font-black text-xs">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
+                    <p className="text-[7px] font-bold uppercase mb-0.5 leading-none text-[6px]">Total Descontos</p>
+                    <p className="font-black text-[10px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
                   </div>
                 </div>
-                <div className="flex items-center h-10">
-                  <div className="flex-1 pl-2 flex items-center">
-                    <p className="text-[10px] font-black uppercase">Líquido a Receber ---&gt;</p>
+                <div className="flex items-center h-12 bg-slate-50">
+                  <div className="flex-1 pl-2">
+                    <p className="text-[8px] font-black uppercase tracking-tight">Valor Líquido a Receber --&gt;</p>
                   </div>
-                  <div className="w-[110px] pr-2 text-right">
-                    <p className="font-black text-lg">
+                  <div className="w-[100px] pr-2 text-right">
+                    <p className="font-black text-[14px] leading-none">
                       {formatBRL(
                         ((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary)) - 
                         calculateDeduction(selectedForPrint.salary, selectedForPrint.inss)
@@ -469,55 +470,52 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </div>
             </div>
 
-            {/* 5. Footer Bases de Cálculo */}
-            <div className="grid grid-cols-6 border-t-[1.5px] border-black bg-white text-center h-10">
-              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
-                <p className="text-[6.5px] font-bold uppercase leading-none">Salário Base</p>
-                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
+            {/* Bases de Cálculo (Rodapé) */}
+            <div className="grid grid-cols-6 border-t border-black bg-white text-center h-11">
+              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">Salário Base</p>
+                <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
-                <p className="text-[6.5px] font-bold uppercase leading-none">Base Cálc. INSS</p>
-                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
+              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">Base INSS</p>
+                <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
-                <p className="text-[6.5px] font-bold uppercase leading-none">Base Cálc. FGTS</p>
-                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
+              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">Base FGTS</p>
+                <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
-                <p className="text-[6.5px] font-bold uppercase leading-none">FGTS do Mês</p>
-                <p className="font-black text-[9px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.fgts))}</p>
+              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">FGTS do Mês</p>
+                <p className="font-black text-[8px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.fgts))}</p>
               </div>
-              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
-                <p className="text-[6.5px] font-bold uppercase leading-none">Base Cálc. IRRF</p>
-                <p className="font-black text-[9px]">{formatBRL((selectedForPrint.salary || 0) - calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
+              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">Base IRRF</p>
+                <p className="font-black text-[8px]">{formatBRL((selectedForPrint.salary || 0) - calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
               </div>
-              <div className="p-1 flex flex-col justify-between">
-                <p className="text-[6.5px] font-bold uppercase leading-none">Faixa IRRF</p>
-                <p className="font-black text-[9px]">0</p>
+              <div className="p-1 flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">Faixa IRRF</p>
+                <p className="font-black text-[8px]">0</p>
               </div>
             </div>
-
-            {/* 6. Canhoto de Assinatura Lateral (Vertical na Direita) */}
-            <div className="hidden print:flex absolute right-[-4.5cm] top-0 bottom-0 w-[4.5cm] flex-col justify-between py-10 px-2 border-[1.5px] border-black ml-[1.5px] bg-white">
-               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold origin-center w-full text-center">
-                  DECLARO TER RECEBIDO A IMPORTÂNCIA LÍQUIDA DISCRIMINADA NESTE RECIBO.
-               </div>
-               <div className="rotate-[-90deg] origin-center text-center mt-20">
-                  <div className="flex justify-center gap-1 text-[8px] font-bold mb-8">
-                     <span>____ / ____ / ____</span>
-                     <span className="ml-4 uppercase italic">DATA</span>
-                  </div>
-                  <div className="border-t border-black pt-1">
-                     <p className="text-[7px] font-black uppercase">ASSINATURA DO FUNCIONÁRIO</p>
-                  </div>
-               </div>
-            </div>
-
           </div>
 
-          <p className="mt-2 text-[6px] font-black uppercase tracking-widest text-slate-400 pl-1">
-            1ª VIA - EMPREGADOR | Holerite Profissional {companyName}
-          </p>
+          {/* Canhoto Lateral (Assinatura Vertical - Refinado para Impressão) */}
+          <div className="w-[1.4cm] border-y border-r border-black flex flex-col items-center justify-between py-10 px-0 bg-white ml-[-1px]">
+            <div className="font-black text-[7px] uppercase tracking-tighter w-full text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+               Declaro ter recebido a importância líquida deste recibo.
+            </div>
+            
+            <div className="flex flex-col gap-10 items-center justify-end h-[50%] mb-4">
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-[6px] font-black uppercase italic">Data</p>
+                <p className="text-[8px] font-bold whitespace-nowrap">____ / ____ / ____</p>
+              </div>
+              <div className="border-t border-black w-[130px] pt-1 text-center" style={{ transform: 'rotate(-90deg)', marginBottom: '50px' }}>
+                <p className="text-[7px] font-black uppercase">Assinatura</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
     </div>
