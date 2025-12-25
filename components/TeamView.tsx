@@ -13,7 +13,6 @@ import {
   Pencil,
   AlertTriangle,
   X,
-  // Fix: Added missing Save icon import
   Save
 } from 'lucide-react';
 import { Employee } from '../types';
@@ -120,6 +119,10 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
   const calculateDangerousnessValue = (baseSalary?: number) => {
     if (!baseSalary) return 0;
     return baseSalary * 0.3;
+  };
+
+  const formatBRL = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   };
 
   return (
@@ -341,10 +344,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                       <CalendarDays size={12} /> <span className="uppercase tracking-widest">Admissão:</span> {new Date(emp.joinedAt).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
-
-                  {emp.isDangerous && (
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/30 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:scale-110 transition-transform"></div>
-                  )}
                 </div>
               ))
             )}
@@ -352,139 +351,185 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         </div>
       </div>
 
-      {/* PAY SLIP PRINT VIEW */}
+      {/* PAY SLIP PRINT VIEW (MODAL HOLERITE PROFISSIONAL) */}
       {selectedForPrint && (
-        <div className="hidden print:block p-8 bg-white text-black font-sans leading-relaxed">
-          <div className="border-4 border-black p-6">
-            {/* Header */}
-            <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
-              <div>
-                <h1 className="text-2xl font-black uppercase tracking-tighter">{companyName}</h1>
-                <p className="text-xs font-bold uppercase">Recibo de Pagamento de Salário</p>
+        <div className="hidden print:block p-0 bg-white text-black font-sans text-[10px] leading-tight w-full">
+          <div className="border border-black flex flex-col w-full relative">
+            
+            {/* Header Empregador */}
+            <div className="flex border-b border-black">
+              <div className="flex-1 p-2 border-r border-black">
+                <p className="text-[8px] font-bold uppercase mb-0.5">Empregador</p>
+                <p className="font-black text-sm uppercase">{companyName}</p>
+                <p className="text-[9px]">Endereço da Empresa - CNPJ: 00.000.000/0001-00</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-bold uppercase">Referência</p>
-                <p className="text-lg font-black">{new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}</p>
+              <div className="w-[30%] p-2 flex flex-col items-center justify-center">
+                <p className="text-sm font-black uppercase text-center">Recibo de Pagamento de Salário</p>
+                <p className="text-[9px] font-bold mt-1">Referente {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}</p>
               </div>
             </div>
 
-            {/* Employee Info */}
-            <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-              <div className="border border-black p-2">
-                <p className="text-[10px] font-bold uppercase mb-1">Nome do Funcionário</p>
-                <p className="font-black">{selectedForPrint.name}</p>
+            {/* Employee Data */}
+            <div className="grid grid-cols-4 border-b border-black">
+              <div className="col-span-3 p-2 border-r border-black">
+                <p className="text-[8px] font-bold uppercase mb-1">Nome do Funcionário</p>
+                <p className="font-black text-sm">{selectedForPrint.name}</p>
               </div>
-              <div className="border border-black p-2">
-                <p className="text-[10px] font-bold uppercase mb-1">Cargo / Função</p>
-                <p className="font-black">{selectedForPrint.role}</p>
+              <div className="p-2">
+                <p className="text-[8px] font-bold uppercase mb-1">Código / CBO</p>
+                <p className="font-black">000000 / ADMIN</p>
               </div>
-              <div className="border border-black p-2">
-                <p className="text-[10px] font-bold uppercase mb-1">Data de Admissão</p>
+            </div>
+            
+            <div className="grid grid-cols-3 border-b border-black bg-gray-50/30">
+              <div className="p-2 border-r border-black">
+                <p className="text-[8px] font-bold uppercase mb-0.5">Função</p>
+                <p className="font-black uppercase">{selectedForPrint.role}</p>
+              </div>
+              <div className="p-2 border-r border-black">
+                <p className="text-[8px] font-bold uppercase mb-0.5">Departamento</p>
+                <p className="font-black uppercase">OPERACIONAL</p>
+              </div>
+              <div className="p-2">
+                <p className="text-[8px] font-bold uppercase mb-0.5">Data Admissão</p>
                 <p className="font-black">{new Date(selectedForPrint.joinedAt).toLocaleDateString('pt-BR')}</p>
               </div>
-              <div className="border border-black p-2">
-                <p className="text-[10px] font-bold uppercase mb-1">Data de Emissão</p>
-                <p className="font-black">{new Date().toLocaleDateString('pt-BR')}</p>
-              </div>
             </div>
 
-            {/* Pay Table */}
-            <table className="w-full border-collapse border border-black mb-4 text-sm">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-black px-4 py-2 text-left text-[10px] font-bold uppercase">Cód.</th>
-                  <th className="border border-black px-4 py-2 text-left text-[10px] font-bold uppercase">Descrição</th>
-                  <th className="border border-black px-4 py-2 text-right text-[10px] font-bold uppercase">Vencimentos</th>
-                  <th className="border border-black px-4 py-2 text-right text-[10px] font-bold uppercase">Descontos</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border border-black px-4 py-2 font-mono">001</td>
-                  <td className="border border-black px-4 py-2 font-bold uppercase">SALÁRIO BASE</td>
-                  <td className="border border-black px-4 py-2 text-right font-black">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedForPrint.salary || 0)}
-                  </td>
-                  <td className="border border-black px-4 py-2 text-right">-</td>
-                </tr>
-                {selectedForPrint.isDangerous && (
+            {/* Table Lançamentos */}
+            <div className="flex-1 min-h-[350px] flex flex-col">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-black">
+                    <th className="border-r border-black p-1 text-left w-12 font-black">Cód.</th>
+                    <th className="border-r border-black p-1 text-left font-black">Descrição</th>
+                    <th className="border-r border-black p-1 text-center w-20 font-black">Referência</th>
+                    <th className="border-r border-black p-1 text-right w-24 font-black">Proventos</th>
+                    <th className="p-1 text-right w-24 font-black">Descontos</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
                   <tr>
-                    <td className="border border-black px-4 py-2 font-mono">050</td>
-                    <td className="border border-black px-4 py-2 font-bold uppercase">ADICIONAL PERICULOSIDADE (30%)</td>
-                    <td className="border border-black px-4 py-2 text-right font-black">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateDangerousnessValue(selectedForPrint.salary))}
-                    </td>
-                    <td className="border border-black px-4 py-2 text-right">-</td>
+                    <td className="border-r border-black p-1">001</td>
+                    <td className="border-r border-black p-1 font-bold">SALARIO BASE</td>
+                    <td className="border-r border-black p-1 text-center">220:00</td>
+                    <td className="border-r border-black p-1 text-right">{formatBRL(selectedForPrint.salary || 0)}</td>
+                    <td className="p-1 text-right"></td>
                   </tr>
-                )}
-                <tr>
-                  <td className="border border-black px-4 py-2 font-mono">010</td>
-                  <td className="border border-black px-4 py-2 font-bold uppercase">DESCONTO INSS</td>
-                  <td className="border border-black px-4 py-2 text-right">-</td>
-                  <td className="border border-black px-4 py-2 text-right font-black">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedForPrint.inss || 0)}
-                  </td>
-                </tr>
-                {/* Linhas vazias */}
-                {[...Array(selectedForPrint.isDangerous ? 2 : 3)].map((_, i) => (
-                  <tr key={i} className="h-8">
-                    <td className="border border-black px-4 py-2"></td>
-                    <td className="border border-black px-4 py-2"></td>
-                    <td className="border border-black px-4 py-2"></td>
-                    <td className="border border-black px-4 py-2"></td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-50 font-black">
-                  <td colSpan={2} className="border border-black px-4 py-2 text-right uppercase text-[10px]">Totais</td>
-                  <td className="border border-black px-4 py-2 text-right">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}
-                  </td>
-                  <td className="border border-black px-4 py-2 text-right">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedForPrint.inss || 0)}
-                  </td>
-                </tr>
-                <tr className="bg-gray-200 font-black">
-                  <td colSpan={2} className="border border-black px-4 py-4 text-right uppercase text-sm">Valor Líquido a Receber</td>
-                  <td colSpan={2} className="border border-black px-4 py-4 text-right text-xl">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      (selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary) - (selectedForPrint.inss || 0)
-                    )}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                  {selectedForPrint.isDangerous && (
+                    <tr>
+                      <td className="border-r border-black p-1">050</td>
+                      <td className="border-r border-black p-1 font-bold">ADIC. PERICULOSIDADE</td>
+                      <td className="border-r border-black p-1 text-center">30.00%</td>
+                      <td className="border-r border-black p-1 text-right">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</td>
+                      <td className="p-1 text-right"></td>
+                    </tr>
+                  )}
+                  {selectedForPrint.inss && (
+                    <tr>
+                      <td className="border-r border-black p-1">201</td>
+                      <td className="border-r border-black p-1 font-bold">INSS</td>
+                      <td className="border-r border-black p-1 text-center">9.00</td>
+                      <td className="border-r border-black p-1 text-right"></td>
+                      <td className="p-1 text-right">{formatBRL(selectedForPrint.inss)}</td>
+                    </tr>
+                  )}
+                  {/* Linhas vazias para preencher o formulário */}
+                  {[...Array(12 - (selectedForPrint.isDangerous ? 1 : 0))].map((_, i) => (
+                    <tr key={i} className="h-5">
+                      <td className="border-r border-black"></td>
+                      <td className="border-r border-black"></td>
+                      <td className="border-r border-black"></td>
+                      <td className="border-r border-black"></td>
+                      <td></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-            {/* Encargos Info */}
-            <div className="mb-8 p-3 border border-dashed border-black bg-gray-50 flex justify-between items-center">
-              <span className="text-[10px] font-black uppercase">Informações de Encargos (Não dedutíveis)</span>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold">BASE FGTS:</span>
-                  <span className="text-sm font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedForPrint.fgts || 0)}</span>
+            {/* Totals Section */}
+            <div className="flex border-t border-black">
+              <div className="flex-1 p-2 border-r border-black bg-gray-50/50">
+                <p className="text-[8px] font-bold uppercase mb-1">Mensagens</p>
+                <p className="italic text-[9px]">Agradecemos pelo seu trabalho!</p>
+              </div>
+              <div className="w-[48%] flex flex-col">
+                <div className="flex border-b border-black">
+                  <div className="flex-1 p-2 border-r border-black">
+                    <p className="text-[8px] font-bold uppercase">Total Vencimentos</p>
+                    <p className="text-right font-black text-sm">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
+                  </div>
+                  <div className="flex-1 p-2">
+                    <p className="text-[8px] font-bold uppercase">Total Descontos</p>
+                    <p className="text-right font-black text-sm">{formatBRL(selectedForPrint.inss || 0)}</p>
+                  </div>
+                </div>
+                <div className="flex p-2 bg-gray-100">
+                  <p className="flex-1 text-[9px] font-black uppercase self-center">Valor Líquido a Receber ---&gt;</p>
+                  <p className="font-black text-lg text-right">
+                    R$ {formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary) - (selectedForPrint.inss || 0))}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Footer / Signatures */}
-            <div className="grid grid-cols-2 gap-10 mt-12">
-              <div className="text-center pt-4 border-t border-black">
-                <p className="text-[10px] font-bold uppercase">Assinatura do Empregador</p>
+            {/* Footer Bases */}
+            <div className="grid grid-cols-6 border-t border-black bg-gray-50/50 text-center">
+              <div className="p-1 border-r border-black">
+                <p className="text-[7px] font-bold uppercase">Salário Base</p>
+                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="text-center pt-4 border-t border-black">
-                <p className="text-[10px] font-bold uppercase">Assinatura do Funcionário</p>
+              <div className="p-1 border-r border-black">
+                <p className="text-[7px] font-bold uppercase">Base Cálc. INSS</p>
+                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
+              </div>
+              <div className="p-1 border-r border-black">
+                <p className="text-[7px] font-bold uppercase">Base Cálc. FGTS</p>
+                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
+              </div>
+              <div className="p-1 border-r border-black">
+                <p className="text-[7px] font-bold uppercase">FGTS do Mês</p>
+                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.fgts || 0)}</p>
+              </div>
+              <div className="p-1 border-r border-black">
+                <p className="text-[7px] font-bold uppercase">Base Cálc. IRRF</p>
+                <p className="font-black text-[9px]">{formatBRL((selectedForPrint.salary || 0) - (selectedForPrint.inss || 0))}</p>
+              </div>
+              <div className="p-1">
+                <p className="text-[7px] font-bold uppercase">Faixa IRRF</p>
+                <p className="font-black text-[9px]">0</p>
               </div>
             </div>
-            
-            <p className="text-[8px] mt-8 text-center text-gray-400 uppercase tracking-widest italic">
-              Este documento é um recibo de pagamento oficial gerado pelo sistema {companyName}
-            </p>
+
+            {/* Assinatura Lateral (Canhoto) */}
+            <div className="absolute right-[-2.5cm] top-0 bottom-0 w-8 flex flex-col items-center justify-between py-8 text-[7px] font-bold whitespace-nowrap overflow-visible no-print">
+              <div className="rotate-90 origin-center translate-y-20 border-b border-black w-[300px] text-center pb-1">
+                 ASSINATURA DO FUNCIONÁRIO
+              </div>
+              <div className="rotate-90 origin-center -translate-y-20">
+                 DATA: ____/____/____
+              </div>
+            </div>
+
+            {/* Painel de Assinatura Vertical Integrado (para print real) */}
+            <div className="hidden print:flex absolute right-0 top-0 bottom-0 border-l border-black w-10 flex-col items-center justify-around py-4">
+               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold translate-y-24">
+                  DECLARO TER RECEBIDO A IMPORTÂNCIA LÍQUIDA DISCRIMINADA NESTE RECIBO.
+               </div>
+               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold mt-20">
+                  DATA: ____/____/____
+               </div>
+               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold mt-20 border-t border-black pt-1 px-8">
+                  ASSINATURA DO FUNCIONÁRIO
+               </div>
+            </div>
+
           </div>
-          
-          <div className="mt-20 border-t-2 border-dashed border-gray-300 pt-20">
-             <p className="text-[8px] text-gray-300 text-center uppercase mb-4">Segunda Via (Corte Aqui)</p>
-          </div>
+
+          <p className="mt-4 text-[7px] text-center text-gray-400 font-bold uppercase tracking-widest">
+            1ª VIA - EMPREGADOR | Gerado pelo Sistema de Gestão Gelo Brasil
+          </p>
         </div>
       )}
     </div>
