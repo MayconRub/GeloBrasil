@@ -13,7 +13,8 @@ import {
   Pencil,
   AlertTriangle,
   X,
-  Save
+  Save,
+  Percent
 } from 'lucide-react';
 import { Employee } from '../types';
 
@@ -39,7 +40,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
   const [joinedAt, setJoinedAt] = useState(getTodayString());
   const [selectedForPrint, setSelectedForPrint] = useState<Employee | null>(null);
 
-  const handleCurrencyChange = (val: string, setter: (v: string) => void) => {
+  const handleNumericChange = (val: string, setter: (v: string) => void) => {
     const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
     const parts = sanitized.split('.');
     if (parts.length > 2) return;
@@ -71,16 +72,16 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
 
   const handleAddOrUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    const numericSalary = salary ? parseFloat(salary) : undefined;
-    const numericInss = inss ? parseFloat(inss) : 0;
-    const numericFgts = fgts ? parseFloat(fgts) : 0;
+    const numericSalary = salary ? parseFloat(salary) : 0;
+    const numericInssPercent = inss ? parseFloat(inss) : 0;
+    const numericFgtsPercent = fgts ? parseFloat(fgts) : 0;
     
     if (!name || !role || !joinedAt) return;
 
     if (editingId) {
       const updatedEmployees = employees.map(emp => 
         emp.id === editingId 
-          ? { ...emp, name, role, salary: numericSalary, inss: numericInss, fgts: numericFgts, isDangerous, joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() }
+          ? { ...emp, name, role, salary: numericSalary, inss: numericInssPercent, fgts: numericFgtsPercent, isDangerous, joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() }
           : emp
       );
       onUpdate(updatedEmployees);
@@ -90,8 +91,8 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         name,
         role,
         salary: numericSalary,
-        inss: numericInss,
-        fgts: numericFgts,
+        inss: numericInssPercent,
+        fgts: numericFgtsPercent,
         isDangerous,
         joinedAt: new Date(joinedAt + 'T00:00:00').toISOString()
       };
@@ -121,18 +122,29 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
     return baseSalary * 0.3;
   };
 
+  const calculateDeduction = (baseSalary: number = 0, percent: number = 0) => {
+    return (baseSalary * percent) / 100;
+  };
+
   const formatBRL = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+  };
+
+  const getReferenceMonth = () => {
+    const months = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+    const now = new Date();
+    return `${months[now.getMonth()]} / ${now.getFullYear()}`;
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="no-print">
         <h2 className="text-2xl font-bold text-slate-800">Equipe</h2>
-        <p className="text-slate-500">Gestão de colaboradores, cargos e encargos.</p>
+        <p className="text-slate-500">Gestão de colaboradores e impressão de holerites.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 no-print">
+        {/* Formulario de Cadastro */}
         <div className="lg:col-span-1">
           <form onSubmit={handleAddOrUpdate} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-8">
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
@@ -173,16 +185,17 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Salário Base</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Salário Base (Bruto)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
                     <input 
                       type="text" 
                       inputMode="decimal"
                       value={salary}
-                      onChange={(e) => handleCurrencyChange(e.target.value, setSalary)}
+                      onChange={(e) => handleNumericChange(e.target.value, setSalary)}
                       placeholder="0.00"
                       className="w-full h-11 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs transition-all font-mono font-bold"
+                      required
                     />
                   </div>
                 </div>
@@ -204,30 +217,30 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                 </div>
                 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Desconto INSS</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">INSS (%)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold"><Percent size={12} /></span>
                     <input 
                       type="text" 
                       inputMode="decimal"
                       value={inss}
-                      onChange={(e) => handleCurrencyChange(e.target.value, setInss)}
-                      placeholder="0.00"
+                      onChange={(e) => handleNumericChange(e.target.value, setInss)}
+                      placeholder="9.0"
                       className="w-full h-11 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs transition-all font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Base FGTS</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">FGTS (%)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold"><Percent size={12} /></span>
                     <input 
                       type="text" 
                       inputMode="decimal"
                       value={fgts}
-                      onChange={(e) => handleCurrencyChange(e.target.value, setFgts)}
-                      placeholder="0.00"
+                      onChange={(e) => handleNumericChange(e.target.value, setFgts)}
+                      placeholder="8.0"
                       className="w-full h-11 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs transition-all font-mono"
                     />
                   </div>
@@ -256,6 +269,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
           </form>
         </div>
 
+        {/* Listagem de Funcionários */}
         <div className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {employees.length === 0 ? (
@@ -287,7 +301,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                       <button 
                         onClick={() => handlePrintPaySlip(emp)}
                         className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                        title="Imprimir Contra-cheque"
+                        title="Imprimir Holerite"
                       >
                         <Printer size={18} />
                       </button>
@@ -304,42 +318,12 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                   <div className="grid grid-cols-2 gap-2 mt-4 relative z-10">
                     <div className="col-span-2 flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-700 font-bold text-xs uppercase tracking-tight">
-                        <Banknote size={14} /> Salário Base
+                        <Banknote size={14} /> Salário Bruto
                       </div>
                       <span className="text-slate-900 font-black text-sm">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(emp.salary || 0)}
                       </span>
                     </div>
-                    
-                    {emp.isDangerous && (
-                      <div className="col-span-2 flex items-center justify-between bg-amber-50 p-2.5 rounded-xl border border-amber-100">
-                        <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-tight">
-                          <AlertTriangle size={14} /> Periculosidade (30%)
-                        </div>
-                        <span className="text-amber-900 font-black text-sm">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateDangerousnessValue(emp.salary))}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-1 bg-rose-50/50 p-2 rounded-xl border border-rose-100">
-                      <div className="flex items-center gap-1.5 text-rose-600 font-bold text-[9px] uppercase tracking-widest">
-                        <ShieldCheck size={12} /> INSS
-                      </div>
-                      <span className="text-rose-900 font-bold text-xs">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(emp.inss || 0)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col gap-1 bg-sky-50/50 p-2 rounded-xl border border-sky-100">
-                      <div className="flex items-center gap-1.5 text-sky-600 font-bold text-[9px] uppercase tracking-widest">
-                        <PiggyBank size={12} /> FGTS
-                      </div>
-                      <span className="text-sky-900 font-bold text-xs">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(emp.fgts || 0)}
-                      </span>
-                    </div>
-
                     <div className="col-span-2 flex items-center gap-2 text-slate-400 text-[9px] font-bold bg-slate-50 px-3 py-1.5 rounded-lg w-full">
                       <CalendarDays size={12} /> <span className="uppercase tracking-widest">Admissão:</span> {new Date(emp.joinedAt).toLocaleDateString('pt-BR')}
                     </div>
@@ -351,96 +335,97 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         </div>
       </div>
 
-      {/* PAY SLIP PRINT VIEW (MODAL HOLERITE PROFISSIONAL) */}
+      {/* MODELO DE CONTRA-CHEQUE PROFISSIONAL (EXATAMENTE IGUAL À IMAGEM) */}
       {selectedForPrint && (
-        <div className="hidden print:block p-0 bg-white text-black font-sans text-[10px] leading-tight w-full">
-          <div className="border border-black flex flex-col w-full relative">
+        <div className="hidden print:block p-0 bg-white text-black font-sans text-[9px] leading-tight w-[19cm] mx-auto overflow-visible relative">
+          <div className="border-[1.5px] border-black flex flex-col w-full relative">
             
-            {/* Header Empregador */}
-            <div className="flex border-b border-black">
-              <div className="flex-1 p-2 border-r border-black">
-                <p className="text-[8px] font-bold uppercase mb-0.5">Empregador</p>
-                <p className="font-black text-sm uppercase">{companyName}</p>
-                <p className="text-[9px]">Endereço da Empresa - CNPJ: 00.000.000/0001-00</p>
+            {/* 1. Header Empregador */}
+            <div className="flex border-b-[1.5px] border-black min-h-[50px]">
+              <div className="flex-1 p-1 border-r-[1.5px] border-black">
+                <p className="text-[7px] font-bold uppercase mb-0.5">Empregador</p>
+                <div className="flex flex-col">
+                  <span className="font-black text-sm uppercase">Nome <span className="text-base ml-2">{companyName}</span></span>
+                  <span className="text-[8px] mt-0.5">Endereço RUA EXEMPLO, QD 01 LT 01 - BAIRRO</span>
+                  <span className="text-[8px]">CNPJ 00.000.000/0001-00</span>
+                </div>
               </div>
-              <div className="w-[30%] p-2 flex flex-col items-center justify-center">
-                <p className="text-sm font-black uppercase text-center">Recibo de Pagamento de Salário</p>
-                <p className="text-[9px] font-bold mt-1">Referente {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}</p>
+              <div className="w-[45%] flex flex-col items-center justify-center p-1">
+                <h2 className="text-sm font-black uppercase text-center tracking-tight">Recibo de Pagamento de Salário</h2>
+                <p className="text-[9px] font-bold mt-1">Referente {getReferenceMonth()}</p>
               </div>
             </div>
 
-            {/* Employee Data */}
-            <div className="grid grid-cols-4 border-b border-black">
-              <div className="col-span-3 p-2 border-r border-black">
-                <p className="text-[8px] font-bold uppercase mb-1">Nome do Funcionário</p>
-                <p className="font-black text-sm">{selectedForPrint.name}</p>
+            {/* 2. Dados Funcionário Principal */}
+            <div className="grid grid-cols-4 border-b-[1.5px] border-black min-h-[40px]">
+              <div className="col-span-3 p-1 border-r-[1.5px] border-black flex flex-col justify-between">
+                <p className="text-[7px] font-bold uppercase">Nome do Funcionário</p>
+                <p className="font-black text-sm uppercase mb-1">{selectedForPrint.name}</p>
+                <div className="flex justify-between items-end border-t border-black/10 pt-0.5">
+                   <span className="text-[7px] font-bold uppercase italic">01/01/2024 a 31/01/2024</span>
+                   <span className="text-[7px] font-black uppercase">ADMINISTRATIVO</span>
+                </div>
               </div>
-              <div className="p-2">
-                <p className="text-[8px] font-bold uppercase mb-1">Código / CBO</p>
-                <p className="font-black">000000 / ADMIN</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 border-b border-black bg-gray-50/30">
-              <div className="p-2 border-r border-black">
-                <p className="text-[8px] font-bold uppercase mb-0.5">Função</p>
-                <p className="font-black uppercase">{selectedForPrint.role}</p>
-              </div>
-              <div className="p-2 border-r border-black">
-                <p className="text-[8px] font-bold uppercase mb-0.5">Departamento</p>
-                <p className="font-black uppercase">OPERACIONAL</p>
-              </div>
-              <div className="p-2">
-                <p className="text-[8px] font-bold uppercase mb-0.5">Data Admissão</p>
-                <p className="font-black">{new Date(selectedForPrint.joinedAt).toLocaleDateString('pt-BR')}</p>
+              <div className="flex flex-col p-1 justify-between">
+                <div className="mb-1">
+                  <p className="text-[7px] font-bold uppercase leading-none">FUNÇÃO</p>
+                  <p className="font-black uppercase truncate">{selectedForPrint.role}</p>
+                </div>
+                <div>
+                  <p className="text-[7px] font-bold uppercase leading-none">DATA ADMISSÃO</p>
+                  <p className="font-black">{new Date(selectedForPrint.joinedAt).toLocaleDateString('pt-BR')}</p>
+                </div>
               </div>
             </div>
 
-            {/* Table Lançamentos */}
-            <div className="flex-1 min-h-[350px] flex flex-col">
+            {/* 3. Tabela de Lançamentos */}
+            <div className="flex flex-col min-h-[350px]">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-black">
-                    <th className="border-r border-black p-1 text-left w-12 font-black">Cód.</th>
-                    <th className="border-r border-black p-1 text-left font-black">Descrição</th>
-                    <th className="border-r border-black p-1 text-center w-20 font-black">Referência</th>
-                    <th className="border-r border-black p-1 text-right w-24 font-black">Proventos</th>
-                    <th className="p-1 text-right w-24 font-black">Descontos</th>
+                  <tr className="border-b-[1.5px] border-black text-[8px] font-black">
+                    <th className="border-r-[1.5px] border-black p-0.5 text-center w-8">Cód.</th>
+                    <th className="border-r-[1.5px] border-black p-0.5 text-left pl-2">Descrição</th>
+                    <th className="border-r-[1.5px] border-black p-0.5 text-center w-20">Referência</th>
+                    <th className="border-r-[1.5px] border-black p-0.5 text-right w-24 pr-2">Proventos</th>
+                    <th className="p-0.5 text-right w-24 pr-2">Descontos</th>
                   </tr>
                 </thead>
-                <tbody className="font-mono">
-                  <tr>
-                    <td className="border-r border-black p-1">001</td>
-                    <td className="border-r border-black p-1 font-bold">SALARIO BASE</td>
-                    <td className="border-r border-black p-1 text-center">220:00</td>
-                    <td className="border-r border-black p-1 text-right">{formatBRL(selectedForPrint.salary || 0)}</td>
-                    <td className="p-1 text-right"></td>
+                <tbody className="font-mono text-[9px]">
+                  {/* Salário Base */}
+                  <tr className="h-4">
+                    <td className="border-r-[1.5px] border-black text-center">001</td>
+                    <td className="border-r-[1.5px] border-black pl-2 font-bold uppercase">SALARIO BASE</td>
+                    <td className="border-r-[1.5px] border-black text-center">220:00</td>
+                    <td className="border-r-[1.5px] border-black text-right pr-2">{formatBRL(selectedForPrint.salary || 0)}</td>
+                    <td className="text-right pr-2"></td>
                   </tr>
+                  {/* Periculosidade */}
                   {selectedForPrint.isDangerous && (
-                    <tr>
-                      <td className="border-r border-black p-1">050</td>
-                      <td className="border-r border-black p-1 font-bold">ADIC. PERICULOSIDADE</td>
-                      <td className="border-r border-black p-1 text-center">30.00%</td>
-                      <td className="border-r border-black p-1 text-right">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</td>
-                      <td className="p-1 text-right"></td>
+                    <tr className="h-4">
+                      <td className="border-r-[1.5px] border-black text-center">050</td>
+                      <td className="border-r-[1.5px] border-black pl-2 font-bold uppercase">ADIC. PERICULOSIDADE</td>
+                      <td className="border-r-[1.5px] border-black text-center">30.00</td>
+                      <td className="border-r-[1.5px] border-black text-right pr-2">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</td>
+                      <td className="text-right pr-2"></td>
                     </tr>
                   )}
+                  {/* INSS */}
                   {selectedForPrint.inss && (
-                    <tr>
-                      <td className="border-r border-black p-1">201</td>
-                      <td className="border-r border-black p-1 font-bold">INSS</td>
-                      <td className="border-r border-black p-1 text-center">9.00</td>
-                      <td className="border-r border-black p-1 text-right"></td>
-                      <td className="p-1 text-right">{formatBRL(selectedForPrint.inss)}</td>
+                    <tr className="h-4">
+                      <td className="border-r-[1.5px] border-black text-center">201</td>
+                      <td className="border-r-[1.5px] border-black pl-2 font-bold uppercase">INSS</td>
+                      <td className="border-r-[1.5px] border-black text-center">{selectedForPrint.inss?.toFixed(2)}</td>
+                      <td className="border-r-[1.5px] border-black text-right pr-2"></td>
+                      <td className="text-right pr-2">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</td>
                     </tr>
                   )}
                   {/* Linhas vazias para preencher o formulário */}
-                  {[...Array(12 - (selectedForPrint.isDangerous ? 1 : 0))].map((_, i) => (
-                    <tr key={i} className="h-5">
-                      <td className="border-r border-black"></td>
-                      <td className="border-r border-black"></td>
-                      <td className="border-r border-black"></td>
-                      <td className="border-r border-black"></td>
+                  {[...Array(15)].map((_, i) => (
+                    <tr key={i} className="h-4">
+                      <td className="border-r-[1.5px] border-black"></td>
+                      <td className="border-r-[1.5px] border-black"></td>
+                      <td className="border-r-[1.5px] border-black"></td>
+                      <td className="border-r-[1.5px] border-black"></td>
                       <td></td>
                     </tr>
                   ))}
@@ -448,87 +433,90 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
               </table>
             </div>
 
-            {/* Totals Section */}
-            <div className="flex border-t border-black">
-              <div className="flex-1 p-2 border-r border-black bg-gray-50/50">
-                <p className="text-[8px] font-bold uppercase mb-1">Mensagens</p>
-                <p className="italic text-[9px]">Agradecemos pelo seu trabalho!</p>
+            {/* 4. Totais e Valor Líquido */}
+            <div className="flex border-t-[1.5px] border-black">
+              <div className="flex-1 border-r-[1.5px] border-black flex flex-col">
+                 <div className="p-1 border-b border-black min-h-[30px]">
+                    <p className="text-[7px] font-bold uppercase">MENSAGENS</p>
+                    <p className="text-[8px] italic"></p>
+                 </div>
+                 <div className="flex-1"></div>
               </div>
-              <div className="w-[48%] flex flex-col">
-                <div className="flex border-b border-black">
-                  <div className="flex-1 p-2 border-r border-black">
-                    <p className="text-[8px] font-bold uppercase">Total Vencimentos</p>
-                    <p className="text-right font-black text-sm">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
+              <div className="w-[45%] flex flex-col">
+                <div className="flex border-b-[1.5px] border-black h-10">
+                  <div className="flex-1 p-1 border-r-[1.5px] border-black text-center flex flex-col justify-center">
+                    <p className="text-[7px] font-bold uppercase mb-0.5">Total Vencimentos</p>
+                    <p className="font-black text-xs">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
                   </div>
-                  <div className="flex-1 p-2">
-                    <p className="text-[8px] font-bold uppercase">Total Descontos</p>
-                    <p className="text-right font-black text-sm">{formatBRL(selectedForPrint.inss || 0)}</p>
+                  <div className="flex-1 p-1 text-center flex flex-col justify-center">
+                    <p className="text-[7px] font-bold uppercase mb-0.5">Total Descontos</p>
+                    <p className="font-black text-xs">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
                   </div>
                 </div>
-                <div className="flex p-2 bg-gray-100">
-                  <p className="flex-1 text-[9px] font-black uppercase self-center">Valor Líquido a Receber ---&gt;</p>
-                  <p className="font-black text-lg text-right">
-                    R$ {formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary) - (selectedForPrint.inss || 0))}
-                  </p>
+                <div className="flex items-center h-10">
+                  <div className="flex-1 pl-2 flex items-center">
+                    <p className="text-[10px] font-black uppercase">Líquido a Receber ---&gt;</p>
+                  </div>
+                  <div className="w-[110px] pr-2 text-right">
+                    <p className="font-black text-lg">
+                      {formatBRL(
+                        ((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary)) - 
+                        calculateDeduction(selectedForPrint.salary, selectedForPrint.inss)
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Footer Bases */}
-            <div className="grid grid-cols-6 border-t border-black bg-gray-50/50 text-center">
-              <div className="p-1 border-r border-black">
-                <p className="text-[7px] font-bold uppercase">Salário Base</p>
+            {/* 5. Footer Bases de Cálculo */}
+            <div className="grid grid-cols-6 border-t-[1.5px] border-black bg-white text-center h-10">
+              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
+                <p className="text-[6.5px] font-bold uppercase leading-none">Salário Base</p>
                 <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="p-1 border-r border-black">
-                <p className="text-[7px] font-bold uppercase">Base Cálc. INSS</p>
+              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
+                <p className="text-[6.5px] font-bold uppercase leading-none">Base Cálc. INSS</p>
                 <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="p-1 border-r border-black">
-                <p className="text-[7px] font-bold uppercase">Base Cálc. FGTS</p>
+              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
+                <p className="text-[6.5px] font-bold uppercase leading-none">Base Cálc. FGTS</p>
                 <p className="font-black text-[9px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
-              <div className="p-1 border-r border-black">
-                <p className="text-[7px] font-bold uppercase">FGTS do Mês</p>
-                <p className="font-black text-[9px]">{formatBRL(selectedForPrint.fgts || 0)}</p>
+              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
+                <p className="text-[6.5px] font-bold uppercase leading-none">FGTS do Mês</p>
+                <p className="font-black text-[9px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.fgts))}</p>
               </div>
-              <div className="p-1 border-r border-black">
-                <p className="text-[7px] font-bold uppercase">Base Cálc. IRRF</p>
-                <p className="font-black text-[9px]">{formatBRL((selectedForPrint.salary || 0) - (selectedForPrint.inss || 0))}</p>
+              <div className="p-1 border-r-[1.5px] border-black flex flex-col justify-between">
+                <p className="text-[6.5px] font-bold uppercase leading-none">Base Cálc. IRRF</p>
+                <p className="font-black text-[9px]">{formatBRL((selectedForPrint.salary || 0) - calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
               </div>
-              <div className="p-1">
-                <p className="text-[7px] font-bold uppercase">Faixa IRRF</p>
+              <div className="p-1 flex flex-col justify-between">
+                <p className="text-[6.5px] font-bold uppercase leading-none">Faixa IRRF</p>
                 <p className="font-black text-[9px]">0</p>
               </div>
             </div>
 
-            {/* Assinatura Lateral (Canhoto) */}
-            <div className="absolute right-[-2.5cm] top-0 bottom-0 w-8 flex flex-col items-center justify-between py-8 text-[7px] font-bold whitespace-nowrap overflow-visible no-print">
-              <div className="rotate-90 origin-center translate-y-20 border-b border-black w-[300px] text-center pb-1">
-                 ASSINATURA DO FUNCIONÁRIO
-              </div>
-              <div className="rotate-90 origin-center -translate-y-20">
-                 DATA: ____/____/____
-              </div>
-            </div>
-
-            {/* Painel de Assinatura Vertical Integrado (para print real) */}
-            <div className="hidden print:flex absolute right-0 top-0 bottom-0 border-l border-black w-10 flex-col items-center justify-around py-4">
-               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold translate-y-24">
+            {/* 6. Canhoto de Assinatura Lateral (Vertical na Direita) */}
+            <div className="hidden print:flex absolute right-[-4.5cm] top-0 bottom-0 w-[4.5cm] flex-col justify-between py-10 px-2 border-[1.5px] border-black ml-[1.5px] bg-white">
+               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold origin-center w-full text-center">
                   DECLARO TER RECEBIDO A IMPORTÂNCIA LÍQUIDA DISCRIMINADA NESTE RECIBO.
                </div>
-               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold mt-20">
-                  DATA: ____/____/____
-               </div>
-               <div className="rotate-[-90deg] whitespace-nowrap text-[8px] font-bold mt-20 border-t border-black pt-1 px-8">
-                  ASSINATURA DO FUNCIONÁRIO
+               <div className="rotate-[-90deg] origin-center text-center mt-20">
+                  <div className="flex justify-center gap-1 text-[8px] font-bold mb-8">
+                     <span>____ / ____ / ____</span>
+                     <span className="ml-4 uppercase italic">DATA</span>
+                  </div>
+                  <div className="border-t border-black pt-1">
+                     <p className="text-[7px] font-black uppercase">ASSINATURA DO FUNCIONÁRIO</p>
+                  </div>
                </div>
             </div>
 
           </div>
 
-          <p className="mt-4 text-[7px] text-center text-gray-400 font-bold uppercase tracking-widest">
-            1ª VIA - EMPREGADOR | Gerado pelo Sistema de Gestão Gelo Brasil
+          <p className="mt-2 text-[6px] font-black uppercase tracking-widest text-slate-400 pl-1">
+            1ª VIA - EMPREGADOR | Holerite Profissional {companyName}
           </p>
         </div>
       )}
