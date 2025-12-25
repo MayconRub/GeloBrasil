@@ -8,8 +8,6 @@ import {
   Banknote, 
   CalendarDays, 
   Printer, 
-  ShieldCheck, 
-  PiggyBank,
   Pencil,
   AlertTriangle,
   X,
@@ -35,7 +33,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
   const [role, setRole] = useState('');
   const [salary, setSalary] = useState('');
   const [inss, setInss] = useState('');
-  const [fgts, setFgts] = useState('');
+  const [irrf, setIrrf] = useState('');
   const [isDangerous, setIsDangerous] = useState(false);
   const [joinedAt, setJoinedAt] = useState(getTodayString());
   const [selectedForPrint, setSelectedForPrint] = useState<Employee | null>(null);
@@ -53,7 +51,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
     setRole('');
     setSalary('');
     setInss('');
-    setFgts('');
+    setIrrf('');
     setIsDangerous(false);
     setJoinedAt(getTodayString());
   };
@@ -64,7 +62,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
     setRole(emp.role);
     setSalary(emp.salary?.toString() || '');
     setInss(emp.inss?.toString() || '');
-    setFgts(emp.fgts?.toString() || '');
+    setIrrf(emp.irrf?.toString() || '');
     setIsDangerous(emp.isDangerous || false);
     setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -74,14 +72,23 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
     e.preventDefault();
     const numericSalary = salary ? parseFloat(salary) : 0;
     const numericInssPercent = inss ? parseFloat(inss) : 0;
-    const numericFgtsPercent = fgts ? parseFloat(fgts) : 0;
+    const numericIrrfPercent = irrf ? parseFloat(irrf) : 0;
     
     if (!name || !role || !joinedAt) return;
 
     if (editingId) {
       const updatedEmployees = employees.map(emp => 
         emp.id === editingId 
-          ? { ...emp, name, role, salary: numericSalary, inss: numericInssPercent, fgts: numericFgtsPercent, isDangerous, joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() }
+          ? { 
+              ...emp, 
+              name, 
+              role, 
+              salary: numericSalary, 
+              inss: numericInssPercent, 
+              irrf: numericIrrfPercent, 
+              isDangerous, 
+              joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() 
+            }
           : emp
       );
       onUpdate(updatedEmployees);
@@ -92,7 +99,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         role,
         salary: numericSalary,
         inss: numericInssPercent,
-        fgts: numericFgtsPercent,
+        irrf: numericIrrfPercent,
         isDangerous,
         joinedAt: new Date(joinedAt + 'T00:00:00').toISOString()
       };
@@ -144,7 +151,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 no-print">
-        {/* Formulario de Cadastro */}
         <div className="lg:col-span-1">
           <form onSubmit={handleAddOrUpdate} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-8">
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
@@ -232,15 +238,15 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">FGTS (%)</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">IRRF (%)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold"><Percent size={12} /></span>
                     <input 
                       type="text" 
                       inputMode="decimal"
-                      value={fgts}
-                      onChange={(e) => handleNumericChange(e.target.value, setFgts)}
-                      placeholder="8.0"
+                      value={irrf}
+                      onChange={(e) => handleNumericChange(e.target.value, setIrrf)}
+                      placeholder="7.5"
                       className="w-full h-11 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs transition-all font-mono"
                     />
                   </div>
@@ -269,7 +275,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
           </form>
         </div>
 
-        {/* Listagem de Funcionários */}
         <div className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {employees.length === 0 ? (
@@ -291,27 +296,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                       </p>
                     </div>
                     <div className="flex gap-1">
-                      <button 
-                        onClick={() => handleEdit(emp)}
-                        className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
-                        title="Editar"
-                      >
-                        <Pencil size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handlePrintPaySlip(emp)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                        title="Imprimir Holerite"
-                      >
-                        <Printer size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(emp.id)}
-                        className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                        title="Excluir"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <button onClick={() => handleEdit(emp)} className="p-2 text-slate-400 hover:text-amber-600 rounded-xl transition-all"><Pencil size={18} /></button>
+                      <button onClick={() => handlePrintPaySlip(emp)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl transition-all"><Printer size={18} /></button>
+                      <button onClick={() => handleDelete(emp.id)} className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={18} /></button>
                     </div>
                   </div>
 
@@ -324,9 +311,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(emp.salary || 0)}
                       </span>
                     </div>
-                    <div className="col-span-2 flex items-center gap-2 text-slate-400 text-[9px] font-bold bg-slate-50 px-3 py-1.5 rounded-lg w-full">
-                      <CalendarDays size={12} /> <span className="uppercase tracking-widest">Admissão:</span> {new Date(emp.joinedAt).toLocaleDateString('pt-BR')}
-                    </div>
                   </div>
                 </div>
               ))
@@ -335,7 +319,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
         </div>
       </div>
 
-      {/* MODELO DE HOLERITE PROFISSIONAL - AJUSTE PARA NÃO CORTAR (LARGURA 18.5CM) */}
+      {/* MODELO DE HOLERITE PROFISSIONAL - IRRF INTEGRADO */}
       {selectedForPrint && (
         <div className="hidden print:flex flex-row bg-white text-black font-sans text-[9px] leading-tight w-[18.5cm] mx-auto overflow-visible p-0">
           
@@ -423,8 +407,18 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                       <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</td>
                     </tr>
                   )}
+                  {/* IRRF */}
+                  {selectedForPrint.irrf && (
+                    <tr className="h-5">
+                      <td className="border-r border-black text-center text-[8px]">205</td>
+                      <td className="border-r border-black pl-3 font-bold uppercase">IRRF</td>
+                      <td className="border-r border-black text-center">{selectedForPrint.irrf?.toFixed(2)}</td>
+                      <td className="border-r border-black text-right pr-3 font-bold"></td>
+                      <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.irrf))}</td>
+                    </tr>
+                  )}
                   {/* Linhas vazias */}
-                  {[...Array(14)].map((_, i) => (
+                  {[...Array(13)].map((_, i) => (
                     <tr key={i} className="h-5">
                       <td className="border-r border-black"></td>
                       <td className="border-r border-black"></td>
@@ -451,7 +445,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                   </div>
                   <div className="flex-1 p-1 text-center flex flex-col justify-center">
                     <p className="text-[7px] font-bold uppercase mb-0.5 leading-none text-[6px]">Total Descontos</p>
-                    <p className="font-black text-[10px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
+                    <p className="font-black text-[10px]">{formatBRL(calculateDeduction(selectedForPrint.salary, (selectedForPrint.inss || 0) + (selectedForPrint.irrf || 0)))}</p>
                   </div>
                 </div>
                 <div className="flex items-center h-12 bg-slate-50">
@@ -462,7 +456,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                     <p className="font-black text-[14px] leading-none">
                       {formatBRL(
                         ((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary)) - 
-                        calculateDeduction(selectedForPrint.salary, selectedForPrint.inss)
+                        calculateDeduction(selectedForPrint.salary, (selectedForPrint.inss || 0) + (selectedForPrint.irrf || 0))
                       )}
                     </p>
                   </div>
@@ -481,25 +475,25 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName = "Gelo Br
                 <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
-                <p className="text-[6px] font-bold uppercase leading-none">Base FGTS</p>
-                <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
-              </div>
-              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
-                <p className="text-[6px] font-bold uppercase leading-none">FGTS do Mês</p>
-                <p className="font-black text-[8px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.fgts))}</p>
+                <p className="text-[6px] font-bold uppercase leading-none">Base Peric.</p>
+                <p className="font-black text-[8px]">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</p>
               </div>
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Base IRRF</p>
-                <p className="font-black text-[8px]">{formatBRL((selectedForPrint.salary || 0) - calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</p>
+                <p className="font-black text-[8px]">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
+              </div>
+              <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
+                <p className="text-[6px] font-bold uppercase leading-none">Vlr IRRF</p>
+                <p className="font-black text-[8px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.irrf))}</p>
               </div>
               <div className="p-1 flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Faixa IRRF</p>
-                <p className="font-black text-[8px]">0</p>
+                <p className="font-black text-[8px]">{selectedForPrint.irrf ? selectedForPrint.irrf.toFixed(1) + '%' : '0'}</p>
               </div>
             </div>
           </div>
 
-          {/* Canhoto Lateral (Assinatura Vertical - Refinado para Impressão) */}
+          {/* Canhoto Lateral (Assinatura Vertical) */}
           <div className="w-[1.4cm] border-y border-r border-black flex flex-col items-center justify-between py-10 px-0 bg-white ml-[-1px]">
             <div className="font-black text-[7px] uppercase tracking-tighter w-full text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
                Declaro ter recebido a importância líquida deste recibo.

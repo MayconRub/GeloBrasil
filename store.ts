@@ -102,7 +102,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     role: emp.cargo,
     salary: emp.salario,
     inss: emp.inss,
-    fgts: emp.fgts,
+    irrf: emp.fgts, // Mapeando a coluna existente fgts para a nova lógica de irrf no frontend
     isDangerous: emp.periculosidade,
     joinedAt: emp.data_admissao
   }));
@@ -183,7 +183,7 @@ export const syncEmployee = async (employee: Employee, isDelete = false) => {
     cargo: employee.role,
     salario: employee.salary,
     inss: employee.inss,
-    fgts: employee.fgts,
+    fgts: employee.irrf, // Mantendo compatibilidade com a coluna fgts do banco mas tratando como irrf
     periculosidade: employee.isDangerous,
     data_admissao: employee.joinedAt
   });
