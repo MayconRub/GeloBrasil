@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Search, Snowflake, Pencil, X, ChevronLeft, ChevronRight, Scale, FileDown } from 'lucide-react';
+import { Plus, Trash2, Search, Snowflake, Pencil, X, ChevronLeft, ChevronRight, Scale, Printer } from 'lucide-react';
 import { Production } from '../types';
 
 interface Props {
@@ -24,28 +24,17 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleQuantityChange = (val: string) => {
-    const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
-    const parts = sanitized.split('.');
-    if (parts.length > 2) return;
-    setQuantity(sanitized);
+  const handlePrint = () => {
+    window.print();
   };
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const handlePrevMonth = () => {
-    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  };
-
-  const handleResetMonth = () => {
-    setSelectedDate(new Date());
-  };
+  const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handleResetMonth = () => setSelectedDate(new Date());
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,23 +42,11 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
     if (isNaN(numericQuantity) || !date) return;
 
     if (editingId) {
-      const updatedProduction = production.map(p => 
-        p.id === editingId 
-          ? { ...p, quantityKg: numericQuantity, date, observation } 
-          : p
-      );
-      onUpdate(updatedProduction);
+      onUpdate(production.map(p => p.id === editingId ? { ...p, quantityKg: numericQuantity, date, observation } : p));
       setEditingId(null);
     } else {
-      const newEntry: Production = {
-        id: crypto.randomUUID(),
-        quantityKg: numericQuantity,
-        date,
-        observation
-      };
-      onUpdate([newEntry, ...production]);
+      onUpdate([{ id: crypto.randomUUID(), quantityKg: numericQuantity, date, observation }, ...production]);
     }
-
     resetForm();
   };
 
@@ -88,32 +65,22 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
     setObservation('');
   };
 
-  const handleDelete = (id: string) => {
-    if (editingId === id) resetForm();
-    onUpdate(production.filter(p => p.id !== id));
-  };
-
   const filteredProduction = useMemo(() => {
     return production.filter(p => {
       const d = new Date(p.date + 'T00:00:00');
-      const matchesMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      const matchesSearch = p.observation?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           p.quantityKg.toString().includes(searchTerm);
-      return matchesMonth && matchesSearch;
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
-  }, [production, currentMonth, currentYear, searchTerm]);
+  }, [production, currentMonth, currentYear]);
 
-  const totalProduced = useMemo(() => {
-    return filteredProduction.reduce((sum, p) => sum + p.quantityKg, 0);
-  }, [filteredProduction]);
+  const totalProduced = useMemo(() => filteredProduction.reduce((sum, p) => sum + p.quantityKg, 0), [filteredProduction]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="print-header">
-        <h1 className="text-2xl font-black text-slate-900">Relatório de Fabricação de Gelo</h1>
+        <h1 className="text-2xl font-black text-slate-900">Relatório de Produção de Gelo</h1>
         <div className="flex justify-between items-end mt-2">
           <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Período: {monthName}</p>
-          <p className="text-slate-400 font-medium text-[9px]">Geração: {new Date().toLocaleString('pt-BR')}</p>
+          <p className="text-slate-400 font-medium text-[9px]">Total Fabricado: {totalProduced.toLocaleString('pt-BR')} KG</p>
         </div>
       </div>
 
@@ -122,16 +89,16 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <Snowflake className="text-sky-500" /> Produção de Gelo
           </h2>
-          <p className="text-sm text-slate-500 font-medium">Controle diário de fabricação em KG.</p>
+          <p className="text-sm text-slate-500 font-medium">Controle de fabricação em KG.</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 no-print">
           <button 
-            onClick={() => window.print()}
-            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 group"
+            onClick={handlePrint}
+            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
           >
-            <FileDown size={18} className="group-hover:translate-y-0.5 transition-transform" />
-            <span className="text-xs uppercase tracking-wider">Exportar PDF</span>
+            <Printer size={18} />
+            <span className="text-xs uppercase tracking-wider">Imprimir</span>
           </button>
 
           <div className="bg-white px-5 py-3 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
@@ -143,99 +110,52 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
                <p className="text-lg font-black text-slate-900">{totalProduced.toLocaleString('pt-BR')} <span className="text-xs font-bold text-slate-400 uppercase">KG</span></p>
              </div>
           </div>
-
-          <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-1 shadow-sm w-full sm:w-auto">
-            <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500 transition-all active:scale-90 shrink-0">
-              <ChevronLeft size={18} />
-            </button>
-            <button onClick={handleResetMonth} className="flex-1 px-4 py-1 flex flex-col items-center justify-center hover:bg-slate-50 rounded-xl transition-all min-w-[120px]">
-              <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest text-center">Mês Base</span>
-              <span className="text-xs font-bold text-slate-800 capitalize leading-tight text-center">{monthName}</span>
-            </button>
-            <button onClick={handleNextMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500 transition-all active:scale-90 shrink-0">
-              <ChevronRight size={18} />
-            </button>
-          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-1 no-print">
-          <form onSubmit={handleAdd} className={`bg-white p-6 rounded-3xl border ${editingId ? 'border-indigo-400 ring-2 ring-indigo-50' : 'border-slate-200'} shadow-sm lg:sticky lg:top-8 transition-all`}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                {editingId ? <Pencil className="text-indigo-600" size={18} /> : <Plus className="text-indigo-600" size={18} />}
-                {editingId ? 'Editar Produção' : 'Novo Lançamento'}
-              </h3>
-              {editingId && (
-                <button type="button" onClick={resetForm} className="text-[10px] font-black uppercase text-rose-500 hover:text-rose-600 flex items-center gap-1">
-                  <X size={14} /> Cancelar
-                </button>
-              )}
-            </div>
-            
-            <div className="space-y-5">
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Quantidade (KG)</label>
-                <div className="relative">
-                   <input 
-                    type="text" 
-                    inputMode="decimal"
-                    value={quantity}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all font-mono font-bold"
-                    required
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">KG</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Data da Produção</label>
-                <input 
-                  type="date" 
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Observação (Opcional)</label>
-                <textarea 
-                  value={observation}
-                  onChange={(e) => setObservation(e.target.value)}
-                  placeholder="Ex: Turno da manhã, máquina 02..."
-                  className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all resize-none"
-                />
-              </div>
-
+          <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-8">
+            <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2">
+              {editingId ? <Pencil className="text-indigo-600" size={18} /> : <Plus className="text-indigo-600" size={18} />}
+              {editingId ? 'Editar Produção' : 'Novo Lançamento'}
+            </h3>
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Quantidade (KG)" 
+                value={quantity} 
+                onChange={e => setQuantity(e.target.value)} 
+                className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold" 
+                required 
+              />
+              <input 
+                type="date" 
+                value={date} 
+                onChange={e => setDate(e.target.value)} 
+                className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl" 
+                required 
+              />
+              <textarea 
+                placeholder="Observação" 
+                value={observation} 
+                onChange={e => setObservation(e.target.value)} 
+                className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-xl resize-none"
+              />
               <button 
-                type="submit"
-                className={`w-full h-12 ${editingId ? 'bg-indigo-600' : 'bg-slate-900'} text-white font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95`}
+                type="submit" 
+                className="w-full h-12 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all shadow-lg"
               >
-                <Snowflake size={20} /> {editingId ? 'Atualizar Registro' : 'Salvar Produção'}
+                {editingId ? 'Atualizar' : 'Salvar Registro'}
               </button>
             </div>
           </form>
         </div>
 
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center bg-slate-50/50 no-print">
-              <Search className="text-slate-400 mr-2" size={18} />
-              <input 
-                type="text"
-                placeholder="Filtrar por observação ou quantidade..."
-                className="bg-transparent border-none outline-none text-sm w-full h-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="overflow-x-auto scrollbar-thin">
-              <table className="w-full text-left min-w-[500px]">
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                     <th className="px-6 py-4">Data</th>
@@ -245,49 +165,19 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredProduction.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic text-sm">
-                        Nenhum registro de produção encontrado para este mês.
+                  {filteredProduction.map((p) => (
+                    <tr key={p.id}>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-500">{new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                      <td className="px-6 py-4 text-sm font-black text-sky-600">{p.quantityKg.toLocaleString('pt-BR')} KG</td>
+                      <td className="px-6 py-4 text-xs text-slate-500">{p.observation || '-'}</td>
+                      <td className="px-6 py-4 text-center no-print">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-indigo-600"><Pencil size={18} /></button>
+                          <button onClick={() => onUpdate(production.filter(x => x.id !== p.id))} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={18} /></button>
+                        </div>
                       </td>
                     </tr>
-                  ) : (
-                    filteredProduction.map((p) => (
-                      <tr key={p.id} className={`hover:bg-slate-50 transition-colors ${editingId === p.id ? 'bg-indigo-50/50' : ''}`}>
-                        <td className="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap">
-                          {new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-black text-sky-600 whitespace-nowrap">
-                            {p.quantityKg.toLocaleString('pt-BR')} KG
-                          </p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-xs font-medium text-slate-500 truncate max-w-[200px]" title={p.observation}>
-                            {p.observation || '-'}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4 text-center no-print">
-                          <div className="flex items-center justify-center gap-2">
-                            <button 
-                              onClick={() => handleEdit(p)}
-                              className={`p-2 rounded-xl transition-all ${editingId === p.id ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 hover:text-indigo-600'}`}
-                              title="Editar"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(p.id)}
-                              className="p-2 text-slate-300 hover:text-rose-500 bg-slate-50 rounded-xl transition-all"
-                              title="Excluir"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -295,7 +185,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
         </div>
       </div>
       <div className="print-footer">
-        Gestão de Produção - Relatório Formal A4.
+        Gerado pelo Ice Control em {new Date().toLocaleString('pt-BR')}
       </div>
     </div>
   );

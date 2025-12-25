@@ -13,32 +13,29 @@
         @media print {
             @page {
                 size: A4;
-                margin: 1.5cm;
+                margin: 1cm;
             }
 
-            /* Ocultar elementos de interface e navegação */
-            aside, nav, button, form, .no-print, .Search, 
-            header button, .lg:col-span-1, .scrollbar-thin, 
-            [role="button"], .fixed, .absolute.inset-0 {
+            /* Ocultar absolutamente tudo que não for o conteúdo principal do relatório */
+            aside, nav, button, form, .no-print, input, select, textarea, 
+            .Search, .lg:col-span-1, .scrollbar-thin, [role="button"],
+            .fixed, .absolute, header .flex-col, .bg-slate-50 {
                 display: none !important;
                 visibility: hidden !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
-            /* Garantir que o conteúdo principal seja exibido */
-            body, html {
+            /* Forçar o conteúdo a ser exibido em fundo branco e sem sombras */
+            body, html, #root, main {
                 background: white !important;
                 color: black !important;
-                height: auto !important;
                 overflow: visible !important;
-            }
-
-            #root, main {
-                display: block !important;
-                position: static !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: visible !important;
+                display: block !important;
             }
 
             .max-w-7xl {
@@ -46,41 +43,52 @@
                 width: 100% !important;
             }
 
-            /* Forçar as colunas das tabelas a ocuparem a tela toda */
+            /* Expande a área de dados para a largura total da página */
             .lg:col-span-2, .lg:col-span-3, .xl:col-span-5 {
                 width: 100% !important;
                 display: block !important;
             }
 
+            .bg-white {
+                background: white !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            /* Estilização da Tabela no PDF */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                table-layout: auto !important;
+                margin-top: 10px;
             }
 
             th {
-                background-color: #f1f5f9 !important;
-                border-bottom: 2px solid #cbd5e1 !important;
-                color: #334155 !important;
-                font-weight: 800 !important;
-                text-transform: uppercase !important;
+                background-color: #f8fafc !important;
+                border-bottom: 2px solid #000 !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                padding: 10px !important;
+                text-align: left !important;
+                font-size: 10pt !important;
             }
 
             td {
                 border-bottom: 1px solid #e2e8f0 !important;
+                padding: 8px 10px !important;
+                font-size: 9pt !important;
                 color: #000 !important;
             }
 
-            /* Remover as colunas de "Ações" (os botões de editar/excluir) no PDF */
+            /* Esconder a última coluna (Ações) */
             th:last-child, td:last-child {
                 display: none !important;
             }
 
             .print-header {
                 display: block !important;
-                margin-bottom: 30px;
-                padding-bottom: 10px;
                 border-bottom: 4px solid #000;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
             }
 
             .print-footer {
@@ -92,7 +100,17 @@
                 font-size: 8pt;
                 color: #64748b;
                 border-top: 1px solid #e2e8f0;
-                padding-top: 10px;
+                padding-top: 5px;
+            }
+
+            /* Cores de status no PDF */
+            .bg-emerald-100 { background-color: #d1fae5 !important; color: #065f46 !important; border: 1px solid #065f46 !important; }
+            .bg-rose-100 { background-color: #fee2e2 !important; color: #991b1b !important; border: 1px solid #991b1b !important; }
+            .bg-amber-100 { background-color: #fef3c7 !important; color: #92400e !important; border: 1px solid #92400e !important; }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
 
