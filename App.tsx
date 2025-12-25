@@ -73,7 +73,8 @@ const App: React.FC = () => {
       supportPhone: '',
       footerText: '',
       expirationDate: '2099-12-31',
-      hiddenViews: []
+      hiddenViews: [],
+      dashboardNotice: ''
     }
   });
 
@@ -478,11 +479,11 @@ const App: React.FC = () => {
 
       <main className="flex-1 p-5 sm:p-10 lg:p-14 overflow-y-auto bg-[#fafbfc]">
         <div className="max-w-[1600px] mx-auto">
-          {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} hiddenViews={data.settings.hiddenViews} onSwitchView={handleNavigate} />}
+          {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} hiddenViews={data.settings.hiddenViews} dashboardNotice={data.settings.dashboardNotice} onSwitchView={handleNavigate} />}
           {view === 'production' && <ProductionView production={data.production} onUpdate={handleUpdateProduction} />}
           {view === 'sales' && <SalesView sales={data.sales} onUpdate={handleUpdateSales} />}
           {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={handleUpdateExpenses} onUpdateCategories={handleUpdateCategories} />}
-          {view === 'team' && <TeamView employees={data.employees} onUpdate={handleUpdateEmployees} />}
+          {view === 'team' && <TeamView employees={data.employees} onUpdate={handleUpdateEmployees} companyName={data.settings.companyName} />}
           {view === 'fleet' && <FleetView vehicles={data.vehicles} onUpdate={handleUpdateVehicles} />}
           {view === 'admin' && isUserAdmin && <AdminView settings={data.settings} onUpdateSettings={handleUpdateSettings} />}
         </div>

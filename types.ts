@@ -55,6 +55,7 @@ export interface AppSettings {
   footerText: string;
   expirationDate: string;
   hiddenViews: string[]; // Lista de ViewTypes que devem ser ocultados
+  dashboardNotice?: string;
 }
 
 export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';

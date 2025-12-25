@@ -5,7 +5,6 @@ import {
   Save, 
   Building2, 
   Palette, 
-  Info, 
   CheckCircle2, 
   LayoutGrid, 
   Zap, 
@@ -16,7 +15,6 @@ import {
   Building, 
   Gem, 
   Globe, 
-  Smile, 
   Heart,
   Store,
   Wallet,
@@ -24,13 +22,9 @@ import {
   Box,
   TextCursor,
   Phone,
-  Copyright,
   CalendarDays,
   Clock,
   Unlock,
-  Plus,
-  TestTube2,
-  AlertTriangle,
   ArrowRight,
   Lock,
   Eye,
@@ -38,7 +32,11 @@ import {
   CircleDollarSign,
   Receipt,
   Users,
-  Truck
+  Truck,
+  Megaphone,
+  Code2,
+  Settings2,
+  Key
 } from 'lucide-react';
 import { AppSettings } from '../types';
 
@@ -73,6 +71,7 @@ const MENU_PAGES = [
 ];
 
 const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
+  const [activeTab, setActiveTab] = useState<'licensing' | 'branding' | 'system'>('licensing');
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [primaryColor, setPrimaryColor] = useState(settings.primaryColor);
   const [logoId, setLogoId] = useState(settings.logoId);
@@ -80,6 +79,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const [supportPhone, setSupportPhone] = useState(settings.supportPhone);
   const [footerText, setFooterText] = useState(settings.footerText);
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
+  const [dashboardNotice, setDashboardNotice] = useState(settings.dashboardNotice || '');
   const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
   const [renewDays, setRenewDays] = useState(30);
   const [isSaved, setIsSaved] = useState(false);
@@ -96,7 +96,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
-    await onUpdateSettings({ companyName, primaryColor, logoId, loginHeader, supportPhone, footerText, expirationDate, hiddenViews });
+    await onUpdateSettings({ companyName, primaryColor, logoId, loginHeader, supportPhone, footerText, expirationDate, hiddenViews, dashboardNotice });
     setIsUpdating(false);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
@@ -114,7 +114,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
       supportPhone, 
       footerText, 
       expirationDate: pastDate,
-      hiddenViews
+      hiddenViews,
+      dashboardNotice
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -144,7 +145,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
       supportPhone, 
       footerText, 
       expirationDate: dateStr,
-      hiddenViews
+      hiddenViews,
+      dashboardNotice
     });
     
     setIsUpdating(false);
@@ -160,11 +162,11 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <header className="flex items-center justify-between">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Painel Master</h2>
-          <p className="text-slate-500 font-medium">Controle de licenciamento e visibilidade.</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Painel Master</h2>
+          <p className="text-slate-500 font-medium">Controle total de licença e visual.</p>
         </div>
         {isUpdating && (
           <div className="flex items-center gap-2 bg-sky-100 text-sky-700 px-4 py-2 rounded-full text-xs font-black animate-pulse">
@@ -173,180 +175,216 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
         )}
       </header>
 
-      {/* Subscription Control Card */}
-      <div className="bg-slate-950 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group border border-white/5">
-        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform duration-700">
-          <Shield size={180} />
-        </div>
-        
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-10">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${isExpired() ? 'bg-rose-500/20 text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.2)]' : 'bg-emerald-500/20 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]'} border border-current transition-all duration-500`}>
-                {isExpired() ? <Lock size={32} /> : <Unlock size={32} />}
-              </div>
-              <div>
-                <h3 className="text-2xl font-black uppercase tracking-tight">
-                  {isExpired() ? 'Acesso Bloqueado' : 'Acesso Liberado'}
-                </h3>
-                <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-widest bg-white/5 px-3 py-1 rounded-lg w-fit mt-1">
-                  <CalendarDays size={14} />
-                  Banco: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-3">
-              <button 
-                onClick={handleSetBlock}
-                className="bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/30 px-6 py-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 group/block"
-              >
-                <Lock size={20} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Bloquear Agora</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-white/5 p-6 rounded-[2rem] border border-white/10 backdrop-blur-md">
-            <div className="flex flex-col gap-2 w-full sm:w-36">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Dias de Acesso</label>
-              <input 
-                type="number" 
-                min="0"
-                value={renewDays}
-                onChange={(e) => setRenewDays(parseInt(e.target.value) || 0)}
-                className="w-full h-16 bg-slate-900 border border-white/20 rounded-2xl text-center text-3xl font-black outline-none focus:ring-2 focus:ring-sky-500 transition-all text-white"
-              />
-            </div>
-
-            <button 
-              onClick={handleRenewCustomDays}
-              className="w-full sm:w-auto h-20 px-10 bg-emerald-500 hover:bg-emerald-400 text-white font-black rounded-3xl shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all flex items-center justify-center gap-4 group/btn overflow-hidden"
-            >
-              <div className="flex flex-col items-start text-left">
-                <span className="text-[10px] opacity-70 uppercase tracking-[0.2em] leading-none mb-1">Confirmar Dias</span>
-                <span className="text-xl leading-none">Liberar Sistema</span>
-              </div>
-              <ArrowRight size={24} className="group-hover/btn:translate-x-2 transition-transform" />
-            </button>
-          </div>
-        </div>
+      {/* Internal Navigation Tabs */}
+      <div className="flex items-center p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto no-scrollbar">
+        <button 
+          onClick={() => setActiveTab('licensing')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'licensing' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Key size={18} /> Licenciamento
+        </button>
+        <button 
+          onClick={() => setActiveTab('branding')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'branding' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Palette size={18} /> Identidade & Visual
+        </button>
+        <button 
+          onClick={() => setActiveTab('system')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'system' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Settings2 size={18} /> Sistema & Suporte
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
-            <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
-              <div className="bg-indigo-50 p-4 rounded-2xl text-indigo-600 shadow-inner">
-                <Shield size={28} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">Identidade e Visibilidade</h3>
-                <p className="text-sm text-slate-400 font-medium tracking-tight">Personalize o que o usuário vê.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <Building2 size={12} /> Nome da Empresa
-                  </label>
-                  <input 
-                    type="text" 
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 outline-none transition-all font-semibold"
-                  />
+            
+            {/* TAB CONTENT: LICENSING */}
+            {activeTab === 'licensing' && (
+              <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                  <div className="bg-indigo-50 p-4 rounded-2xl text-indigo-600 shadow-inner">
+                    <Shield size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Status da Licença</h3>
+                    <p className="text-sm text-slate-400 font-medium">Controle de validade e bloqueios.</p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <TextCursor size={12} /> Cabeçalho de Login
-                  </label>
-                  <input 
-                    type="text" 
-                    value={loginHeader}
-                    onChange={(e) => setLoginHeader(e.target.value)}
-                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 outline-none transition-all font-semibold"
-                  />
+                <div className={`p-8 rounded-[2rem] border-2 transition-all duration-500 ${isExpired() ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isExpired() ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'}`}>
+                        {isExpired() ? <Lock size={28} /> : <Unlock size={28} />}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-800 uppercase tracking-tight">Sistema {isExpired() ? 'Bloqueado' : 'Liberado'}</h4>
+                        <p className="text-xs font-bold text-slate-500">Expira em: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={handleSetBlock}
+                      className="text-rose-600 hover:bg-rose-100 px-4 py-2 rounded-xl text-xs font-black transition-all border border-rose-200"
+                    >
+                      FORÇAR BLOQUEIO
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4 bg-white/50 p-6 rounded-2xl border border-white">
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dias para Adicionar</label>
+                      <input 
+                        type="number" 
+                        value={renewDays}
+                        onChange={(e) => setRenewDays(parseInt(e.target.value) || 0)}
+                        className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl text-2xl font-black outline-none focus:ring-4 focus:ring-indigo-100 transition-all"
+                      />
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={handleRenewCustomDays}
+                      className="h-14 px-8 bg-slate-900 text-white font-black rounded-2xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-xl"
+                    >
+                      Renovar Acesso <ArrowRight size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: BRANDING */}
+            {activeTab === 'branding' && (
+              <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                  <div className="bg-amber-50 p-4 rounded-2xl text-amber-600 shadow-inner">
+                    <Palette size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Marca e Cores</h3>
+                    <p className="text-sm text-slate-400 font-medium">Personalize a identidade visual.</p>
+                  </div>
                 </div>
 
-                {/* VISIBILIDADE DE PÁGINAS */}
-                <div className="pt-4 space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <Eye size={12} /> Visibilidade das Páginas
-                  </label>
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Building2 size={12} /> Nome da Empresa</label>
+                      <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Palette size={12} /> Cor Primária</label>
+                      <div className="flex gap-4">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl border-2 border-slate-100 relative overflow-hidden">
+                          <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="absolute inset-[-50%] w-[200%] h-[200%] cursor-pointer" />
+                        </div>
+                        <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-sm font-black uppercase" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Gem size={12} /> Logotipo do Sistema</label>
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {AVAILABLE_LOGOS.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setLogoId(item.id)}
+                          className={`aspect-square flex items-center justify-center rounded-2xl border-2 transition-all ${logoId === item.id ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-50 bg-slate-50 text-slate-300 hover:border-slate-200'}`}
+                          title={item.label}
+                        >
+                          <item.icon size={22} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Eye size={12} /> Páginas Visíveis</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {MENU_PAGES.map(page => (
                       <button
                         key={page.id}
                         type="button"
                         onClick={() => toggleViewVisibility(page.id)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${hiddenViews.includes(page.id) ? 'bg-slate-50 border-slate-200 text-slate-400' : 'bg-white border-indigo-100 text-slate-700 shadow-sm'}`}
+                        className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${hiddenViews.includes(page.id) ? 'bg-slate-50 border-slate-200 text-slate-400' : 'bg-white border-indigo-100 text-slate-700 shadow-sm'}`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                           <page.icon size={16} />
-                          <span className="text-sm font-bold tracking-tight">{page.label}</span>
+                          <span className="text-[11px] font-black tracking-tight">{page.label}</span>
                         </div>
-                        {hiddenViews.includes(page.id) ? <EyeOff size={16} /> : <Eye size={16} className="text-indigo-500" />}
+                        {hiddenViews.includes(page.id) ? <EyeOff size={14} /> : <Eye size={14} className="text-indigo-500" />}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <Palette size={12} /> Cor Primária
-                  </label>
-                  <div className="flex gap-4">
-                    <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border-2 border-slate-100">
+            {/* TAB CONTENT: SYSTEM & SUPPORT */}
+            {activeTab === 'system' && (
+              <div className="space-y-8 animate-in slide-in-from-left-4 duration-300">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                  <div className="bg-sky-50 p-4 rounded-2xl text-sky-600 shadow-inner">
+                    <Megaphone size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Comunicação e Suporte</h3>
+                    <p className="text-sm text-slate-400 font-medium">Informações de apoio e rodapé.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><TextCursor size={12} /> Texto de Login</label>
+                      <input type="text" value={loginHeader} onChange={e => setLoginHeader(e.target.value)} className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Phone size={12} /> Telefone Suporte</label>
+                      <input type="text" value={supportPhone} onChange={e => setSupportPhone(e.target.value)} placeholder="(00) 00000-0000" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Code2 size={12} /> Créditos / Rodapé</label>
                       <input 
-                        type="color" 
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="absolute inset-0 w-[150%] h-[150%] translate-x-[-25%] translate-y-[-25%] cursor-pointer"
+                        type="text" 
+                        value={footerText} 
+                        onChange={e => setFooterText(e.target.value)} 
+                        placeholder="Desenvolvido por Sua Empresa"
+                        className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50" 
                       />
                     </div>
-                    <input 
-                      type="text" 
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-sm uppercase font-bold"
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Megaphone size={12} /> Aviso do Dashboard</label>
+                    <textarea 
+                      value={dashboardNotice} 
+                      onChange={e => setDashboardNotice(e.target.value)} 
+                      placeholder="Deixe um recado para os usuários..."
+                      className="w-full h-[228px] p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50 resize-none text-sm" 
                     />
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <Gem size={12} /> Logotipo
-                  </label>
-                  <div className="grid grid-cols-4 gap-3">
-                    {AVAILABLE_LOGOS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setLogoId(item.id)}
-                        className={`aspect-square flex items-center justify-center rounded-2xl border-2 transition-all ${logoId === item.id ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-50 bg-slate-50/50 text-slate-300 hover:border-slate-200'}`}
-                      >
-                        <item.icon size={24} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
-            </div>
+            )}
 
             <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
               <div className={`flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest transition-all ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
-                <CheckCircle2 size={18} /> Salvo!
+                <CheckCircle2 size={18} /> Configurações Salvas!
               </div>
               <button 
                 type="submit"
                 disabled={isUpdating}
-                className="bg-slate-900 text-white font-black px-10 py-4 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 shadow-xl flex items-center gap-3 disabled:opacity-50"
+                className="bg-slate-900 text-white font-black px-12 py-4 rounded-[1.5rem] hover:bg-indigo-600 transition-all active:scale-95 shadow-xl flex items-center gap-3 disabled:opacity-50"
               >
                 <Save size={20} /> {isUpdating ? 'Salvando...' : 'Salvar Tudo'}
               </button>
@@ -354,20 +392,42 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
           </form>
         </div>
 
+        {/* PREVIEW PANEL */}
         <div className="space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Prévia do App</h4>
-            <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-              <div className="bg-white p-4 rounded-2xl text-white shadow-xl" style={{ backgroundColor: primaryColor }}>
-                {(() => {
-                  const SelectedIcon = AVAILABLE_LOGOS.find(l => l.id === logoId)?.icon || LayoutGrid;
-                  return <SelectedIcon size={32} />;
-                })()}
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-8">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">Prévia Instantânea</h4>
+            
+            <div className="space-y-8">
+              <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                <div className="p-4 rounded-2xl text-white shadow-xl flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
+                  {(() => {
+                    const SelectedIcon = AVAILABLE_LOGOS.find(l => l.id === logoId)?.icon || LayoutGrid;
+                    return <SelectedIcon size={32} />;
+                  })()}
+                </div>
+                <div className="min-w-0">
+                  <h5 className="text-xl font-black text-slate-800 truncate leading-none">{companyName || 'Sua Empresa'}</h5>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1.5">Painel Ativo</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h5 className="text-xl font-black text-slate-800 truncate leading-none">{companyName}</h5>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ativo</p>
-              </div>
+
+              {footerText && (
+                <div className="pt-4 border-t border-slate-50">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Rodapé do Sistema:</p>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
+                    <Code2 size={14} className="text-indigo-400" />
+                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-wider truncate max-w-[150px]">{footerText}</span>
+                  </div>
+                </div>
+              )}
+
+              {dashboardNotice && (activeTab === 'system') && (
+                <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-3xl relative overflow-hidden group">
+                  <Megaphone size={40} className="absolute -right-2 -bottom-2 text-indigo-100 -rotate-12 group-hover:rotate-0 transition-transform" />
+                  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">Preview do Aviso:</p>
+                  <p className="text-indigo-900 text-xs font-bold leading-relaxed relative z-10">{dashboardNotice}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

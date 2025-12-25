@@ -14,7 +14,9 @@ import {
   Snowflake,
   TrendingUp,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  Megaphone,
+  Bell
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
@@ -26,10 +28,11 @@ interface Props {
   expenses: Expense[];
   production: Production[];
   hiddenViews: string[];
+  dashboardNotice?: string;
   onSwitchView: (view: ViewType) => void;
 }
 
-const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenViews, onSwitchView }) => {
+const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenViews, dashboardNotice, onSwitchView }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   
   const getTodayLocal = () => {
@@ -101,6 +104,23 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenVie
 
   return (
     <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      
+      {/* Dashboard Administrative Notice */}
+      {dashboardNotice && (
+        <div className="relative overflow-hidden bg-white border border-indigo-100 p-6 rounded-[2rem] shadow-xl shadow-indigo-100/30 flex flex-col md:flex-row items-center gap-6 group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+            <Megaphone size={120} />
+          </div>
+          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover:rotate-6 transition-transform">
+            <Bell size={28} className="animate-bounce" />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Aviso da Administração</h4>
+            <p className="text-slate-800 font-bold leading-relaxed">{dashboardNotice}</p>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
