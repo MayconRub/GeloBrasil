@@ -13,6 +13,15 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
   const [plate, setPlate] = useState('');
   const [year, setYear] = useState('');
 
+  const handlePlateChange = (val: string) => {
+    // Remove qualquer coisa que não seja letra, número ou hífen
+    // E limita a 8 caracteres (padrão antigo com hífen)
+    const sanitized = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    if (sanitized.length <= 8) {
+      setPlate(sanitized);
+    }
+  };
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !plate) return;
@@ -20,7 +29,7 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
     const newVeh: Vehicle = {
       id: crypto.randomUUID(),
       name,
-      plate: plate.toUpperCase(),
+      plate: plate.trim(),
       modelYear: year || 'N/A'
     };
 
@@ -35,7 +44,7 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <header>
         <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Frota</h2>
         <p className="text-sm text-slate-500">Controle de veículos da empresa.</p>
@@ -43,8 +52,8 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-1">
-          <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2">
+          <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-8">
+            <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
               <Truck className="text-indigo-600" size={18} /> Cadastrar Veículo
             </h3>
             <div className="space-y-5">
@@ -65,9 +74,9 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
                   <input 
                     type="text" 
                     value={plate}
-                    onChange={(e) => setPlate(e.target.value)}
-                    placeholder="ABC-1234"
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all uppercase"
+                    onChange={(e) => handlePlateChange(e.target.value)}
+                    placeholder="AAA-1234 ou AAA1A23"
+                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all uppercase font-mono font-bold"
                     required
                   />
                 </div>
@@ -76,7 +85,7 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
                   <input 
                     type="text" 
                     value={year}
-                    onChange={(e) => setYear(e.target.value)}
+                    onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     placeholder="2024"
                     className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
                   />
@@ -84,9 +93,9 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
               </div>
               <button 
                 type="submit"
-                className="w-full h-12 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+                className="w-full h-12 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 mt-2"
               >
-                Salvar Veículo
+                <Plus size={18} /> Salvar Veículo
               </button>
             </div>
           </form>

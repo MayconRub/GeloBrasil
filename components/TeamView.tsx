@@ -13,15 +13,23 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate }) => {
   const [role, setRole] = useState('');
   const [salary, setSalary] = useState('');
 
+  const handleSalaryChange = (val: string) => {
+    const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
+    const parts = sanitized.split('.');
+    if (parts.length > 2) return;
+    setSalary(sanitized);
+  };
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
+    const numericSalary = salary ? parseFloat(salary) : undefined;
     if (!name || !role) return;
 
     const newEmp: Employee = {
       id: crypto.randomUUID(),
       name,
       role,
-      salary: salary ? parseFloat(salary) : undefined,
+      salary: numericSalary,
       joinedAt: new Date().toISOString()
     };
 
@@ -76,12 +84,12 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate }) => {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">R$</span>
                   <input 
-                    type="number" 
-                    step="0.01"
+                    type="text" 
+                    inputMode="decimal"
                     value={salary}
-                    onChange={(e) => setSalary(e.target.value)}
-                    placeholder="0,00"
-                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
+                    onChange={(e) => handleSalaryChange(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all font-mono font-bold"
                   />
                 </div>
               </div>

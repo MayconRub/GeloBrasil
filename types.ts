@@ -1,3 +1,4 @@
+
 export enum ExpenseStatus {
   VENCIDO = 'Vencido',
   A_VENCER = 'A Vencer',
@@ -52,6 +53,7 @@ export interface AppSettings {
   loginHeader: string;
   supportPhone: string;
   footerText: string;
+  expirationDate: string; // Nova propriedade para controle de 30 dias
 }
 
 export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';

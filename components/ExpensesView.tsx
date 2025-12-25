@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, CheckCircle2, Search, Settings2, X, Truck, AlertCircle, StickyNote, Tag, Pencil, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Search, Settings2, X, Truck, AlertCircle, StickyNote, Tag, Pencil, Users, ChevronLeft, ChevronRight, FileDown } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
 
 interface Props {
@@ -39,6 +39,13 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
+  const handleValueChange = (val: string) => {
+    const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
+    const parts = sanitized.split('.');
+    if (parts.length > 2) return;
+    setValue(sanitized);
+  };
+
   const handlePrevMonth = () => {
     setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
@@ -53,7 +60,8 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || !value || !dueDate) return;
+    const numericValue = parseFloat(value);
+    if (!description || isNaN(numericValue) || !dueDate) return;
     
     let finalCategory = category;
     
@@ -80,7 +88,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           return {
             ...exp,
             description,
-            value: parseFloat(value),
+            value: numericValue,
             dueDate,
             status,
             category: finalCategory,
@@ -97,7 +105,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       const newExpense: Expense = { 
         id: crypto.randomUUID(), 
         description, 
-        value: parseFloat(value), 
+        value: numericValue, 
         dueDate, 
         status, 
         category: finalCategory,
@@ -182,13 +190,29 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="print-header">
+        <h1 className="text-2xl font-black text-slate-900">Relatório de Despesas Mensais</h1>
+        <div className="flex justify-between items-end mt-2">
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Período: {monthName}</p>
+          <p className="text-slate-400 font-medium text-[9px]">Emissão: {new Date().toLocaleString('pt-BR')}</p>
+        </div>
+      </div>
+
       <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Despesas</h2>
           <p className="text-sm text-slate-500 font-medium">Controle financeiro e agendamentos.</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 no-print">
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 group"
+          >
+            <FileDown size={18} className="group-hover:translate-y-0.5 transition-transform" />
+            <span className="text-xs uppercase tracking-wider">Exportar PDF</span>
+          </button>
+
           <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-1 shadow-sm w-full sm:w-auto">
             <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500 transition-all active:scale-90 shrink-0">
               <ChevronLeft size={18} />
@@ -212,7 +236,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       </header>
 
       {showCategoryManager && (
-        <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 shadow-sm animate-in slide-in-from-top duration-300">
+        <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 shadow-sm animate-in slide-in-from-top duration-300 no-print">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-indigo-900 flex items-center gap-2 text-sm">
               <Settings2 size={16} /> Gerenciar Categorias
@@ -246,7 +270,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 no-print">
           <form onSubmit={handleAdd} className={`bg-white p-6 rounded-3xl border ${editingId ? 'border-indigo-400 ring-2 ring-indigo-50' : 'border-slate-200'} shadow-sm sticky top-8 transition-all`}>
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
               <h3 className="font-bold text-slate-700 flex items-center gap-2">
@@ -291,12 +315,12 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 <div>
                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Valor (R$)</label>
                   <input 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="0,00" 
+                    type="text" 
+                    inputMode="decimal"
+                    placeholder="0.00" 
                     value={value} 
-                    onChange={e => setValue(e.target.value)} 
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm transition-all" 
+                    onChange={e => handleValueChange(e.target.value)} 
+                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm transition-all font-mono font-bold" 
                     required 
                   />
                 </div>
@@ -381,7 +405,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
 
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center bg-slate-50/50">
+            <div className="p-4 border-b border-slate-100 flex items-center bg-slate-50/50 no-print">
               <Search className="text-slate-400 mr-2" size={18} />
               <input 
                 type="text"
@@ -402,7 +426,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                     <th className="px-6 py-4 text-center">Obs</th>
                     <th className="px-6 py-4">Valor</th>
                     <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-center">Ações</th>
+                    <th className="px-6 py-4 text-center no-print">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -446,9 +470,10 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                             {e.observation ? (
                               <div className="flex items-center justify-center group relative">
                                 <StickyNote size={16} className="text-amber-400" />
-                                <div className="absolute bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl z-10">
+                                <div className="absolute bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl z-10 no-print">
                                   {e.observation}
                                 </div>
+                                <span className="hidden print:inline text-[8px] text-slate-500 italic ml-1">({e.observation})</span>
                               </div>
                             ) : (
                               <span className="text-slate-200">-</span>
@@ -467,7 +492,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                               {e.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 no-print">
                             <div className="flex items-center justify-center gap-2">
                               <button 
                                 onClick={() => handleEdit(e)} 
@@ -501,6 +526,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
             </div>
           </div>
         </div>
+      </div>
+      <div className="print-footer">
+        Gerado automaticamente pelo sistema de gestão Ice Control.
       </div>
     </div>
   );

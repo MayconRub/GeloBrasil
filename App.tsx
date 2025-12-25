@@ -31,7 +31,8 @@ import {
   Box,
   Phone,
   MessageCircle,
-  Code2
+  Code2,
+  AlertOctagon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, fetchSettings, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction } from './store';
@@ -70,7 +71,8 @@ const App: React.FC = () => {
       logoId: 'LayoutGrid',
       loginHeader: 'Login Corporativo',
       supportPhone: '',
-      footerText: ''
+      footerText: '',
+      expirationDate: '2099-12-31'
     }
   });
 
@@ -149,6 +151,18 @@ const App: React.FC = () => {
     setSession(null);
     setView('dashboard');
   };
+
+  const isExpired = () => {
+    if (!data.settings.expirationDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expDate = new Date(data.settings.expirationDate + 'T00:00:00');
+    // Força o uso do timestamp para comparação precisa
+    return today.getTime() > expDate.getTime();
+  };
+
+  const isUserAdmin = session?.user?.email === ADMIN_EMAIL;
+  const systemLocked = isExpired() && !isUserAdmin;
 
   const handleUpdateSales = async (updatedSales: Sale[]) => {
     const prevSales = data.sales;
@@ -234,7 +248,10 @@ const App: React.FC = () => {
   const handleUpdateSettings = async (newSettings: AppSettings) => {
     if (session?.user?.email !== ADMIN_EMAIL) return;
     setData(prev => ({ ...prev, settings: newSettings }));
-    await syncSettings(newSettings);
+    const { error } = await syncSettings(newSettings);
+    if (error) {
+      alert('Erro ao salvar no banco: ' + error.message + '\nVerifique se rodou o script SQL de atualização de colunas.');
+    }
     document.title = newSettings.companyName;
   };
 
@@ -262,7 +279,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
         <Loader2 className="animate-spin text-sky-500 mb-4" size={48} />
-        <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px]">Iniciando Motores...</p>
+        <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px]">Carregando Sistema...</p>
       </div>
     );
   }
@@ -270,13 +287,11 @@ const App: React.FC = () => {
   if (!session) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden bg-slate-950">
-        {/* Arctic Mesh Gradient Background */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] rounded-full blur-[140px] opacity-20 animate-pulse bg-sky-400"></div>
           <div className="absolute bottom-[-20%] right-[-10%] w-[90%] h-[90%] rounded-full blur-[180px] opacity-10 bg-indigo-500"></div>
         </div>
 
-        {/* Optimized Falling Snow */}
         <div className="absolute inset-0 pointer-events-none z-1 overflow-hidden">
           {[...Array(window.innerWidth < 640 ? 20 : 40)].map((_, i) => (
             <div 
@@ -294,7 +309,6 @@ const App: React.FC = () => {
           ))}
         </div>
 
-        {/* Login Card - Mobile Responsive Refined */}
         <div className="w-full max-w-[420px] backdrop-blur-2xl bg-white/5 p-8 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] relative z-10 overflow-hidden group">
           <div className="text-center mb-10 relative">
             <div className="inline-flex items-center justify-center w-20 h-20 sm:w-28 sm:h-28 rounded-[2rem] sm:rounded-[3rem] text-white shadow-2xl mb-6 transform hover:scale-110 transition-all duration-700 bg-gradient-to-br from-sky-400 to-indigo-600 border border-white/20">
@@ -349,7 +363,6 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Signature - Redesigned for Single Line Mobile Display */}
         {data.settings.footerText && (
           <div className="mt-10 flex flex-col items-center relative z-10 animate-in fade-in slide-in-from-bottom-2 duration-1000 max-w-[90vw]">
             <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/5 rounded-full border border-white/10 backdrop-blur-md shadow-[0_0_30px_rgba(125,211,252,0.1)] group hover:border-sky-400/30 transition-all duration-500 flex-nowrap overflow-hidden">
@@ -366,20 +379,43 @@ const App: React.FC = () => {
             from { transform: translateY(-10vh) rotate(0deg); }
             to { transform: translateY(110vh) rotate(360deg); }
           }
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
         `}</style>
       </div>
     );
   }
 
-  const isUserAdmin = session?.user?.email === ADMIN_EMAIL;
+  if (systemLocked) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-24 h-24 bg-rose-500/10 rounded-[2rem] flex items-center justify-center text-rose-500 mb-8 animate-bounce border border-rose-500/20">
+          <AlertOctagon size={48} />
+        </div>
+        <h2 className="text-3xl font-black text-white mb-4">Assinatura Expirada</h2>
+        <p className="text-slate-400 max-w-md mb-10 leading-relaxed font-medium">
+          O prazo de uso deste sistema terminou. Para liberar seu acesso, entre em contato com o suporte.
+        </p>
+        <div className="flex flex-col gap-4 w-full max-w-xs">
+          {data.settings.supportPhone && (
+            <a 
+              href={`tel:${data.settings.supportPhone}`}
+              className="w-full py-4 bg-sky-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-xl hover:brightness-110 active:scale-95 transition-all"
+            >
+              <Phone size={20} /> Ligar Suporte
+            </a>
+          )}
+          <button 
+            onClick={handleLogout}
+            className="w-full py-4 bg-white/5 text-slate-400 font-bold rounded-2xl border border-white/10 hover:bg-white/10 transition-all"
+          >
+            Sair do Sistema
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-50 flex-col lg:flex-row font-medium overflow-x-hidden">
-      {/* Mobile Header Refined */}
       <div className="lg:hidden bg-white/90 backdrop-blur-2xl border-b border-slate-200 px-5 py-4 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: data.settings.primaryColor }}>
@@ -392,12 +428,10 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {/* Sidebar - Mobile Responsive Overlays */}
       <aside className={`
         fixed inset-0 z-50 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 lg:w-80 bg-white border-r border-slate-200
       `}>
-        {/* Overlay for mobile */}
         <div 
           className={`lg:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-500 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
           onClick={() => setIsSidebarOpen(false)}

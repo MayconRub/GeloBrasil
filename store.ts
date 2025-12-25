@@ -1,3 +1,4 @@
+
 import { supabase } from './supabaseClient';
 import { Sale, Expense, Employee, Vehicle, ExpenseStatus, AppSettings, Production } from './types';
 
@@ -20,7 +21,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       logoId: settings?.logo_id || 'LayoutGrid',
       loginHeader: settings?.login_header || 'Login Corporativo',
       supportPhone: settings?.support_phone || '',
-      footerText: settings?.footer_text || ''
+      footerText: settings?.footer_text || '',
+      expirationDate: settings?.data_expiracao || '2099-12-31' // Valor padrão caso não exista
     };
   } catch (e) {
     return {
@@ -29,7 +31,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       logoId: 'LayoutGrid',
       loginHeader: 'Login Corporativo',
       supportPhone: '',
-      footerText: ''
+      footerText: '',
+      expirationDate: '2099-12-31'
     };
   }
 };
@@ -80,7 +83,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       category: e.categoria,
       vehicleId: e.veiculo_id,
       employeeId: e.funcionario_id,
-      observation: e.observacao
+      observation: e.observation
     };
 
     if (expense.status !== ExpenseStatus.PAGO) {
@@ -123,7 +126,8 @@ export const syncSettings = async (settings: AppSettings) => {
     logo_id: settings.logoId,
     login_header: settings.loginHeader,
     support_phone: settings.supportPhone,
-    footer_text: settings.footerText
+    footer_text: settings.footerText,
+    data_expiracao: settings.expirationDate
   });
 };
 
