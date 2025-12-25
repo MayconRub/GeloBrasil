@@ -24,7 +24,7 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       footerText: settings?.footer_text || '',
       expirationDate: settings?.data_expiracao || '2099-12-31',
       hiddenViews: settings?.paginas_ocultas || [],
-      dashboardNotice: settings?.aviso_dashboard || ''
+      dashboardNotice: '' // Removida leitura da coluna inexistente
     };
   } catch (e) {
     return {
@@ -102,8 +102,8 @@ export const fetchAllData = async (): Promise<AppData> => {
     role: emp.cargo,
     salary: emp.salario,
     inss: emp.inss,
-    irrf: emp.fgts, // Mapeando a coluna existente fgts para a nova lógica de irrf no frontend
-    isDangerous: emp.periculosidade,
+    irrf: emp.fgts,
+    isDangerous: !!emp.periculosidade,
     joinedAt: emp.data_admissao
   }));
 
@@ -126,6 +126,7 @@ export const fetchAllData = async (): Promise<AppData> => {
 };
 
 export const syncSettings = async (settings: AppSettings) => {
+  // Removido aviso_dashboard do payload para evitar erro de coluna inexistente
   return supabase.from('configuracoes').upsert({
     id: 1,
     nome_empresa: settings.companyName,
@@ -135,8 +136,7 @@ export const syncSettings = async (settings: AppSettings) => {
     support_phone: settings.supportPhone,
     footer_text: settings.footerText,
     data_expiracao: settings.expirationDate,
-    paginas_ocultas: settings.hiddenViews,
-    aviso_dashboard: settings.dashboardNotice
+    paginas_ocultas: settings.hiddenViews
   });
 };
 
@@ -183,8 +183,8 @@ export const syncEmployee = async (employee: Employee, isDelete = false) => {
     cargo: employee.role,
     salario: employee.salary,
     inss: employee.inss,
-    fgts: employee.irrf, // Mantendo compatibilidade com a coluna fgts do banco mas tratando como irrf
-    periculosidade: employee.isDangerous,
+    fgts: employee.irrf,
+    periculosidade: !!employee.isDangerous,
     data_admissao: employee.joinedAt
   });
 };
