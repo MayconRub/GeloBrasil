@@ -101,6 +101,9 @@ export const fetchAllData = async (): Promise<AppData> => {
     name: emp.nome,
     role: emp.cargo,
     salary: emp.salario,
+    inss: emp.inss,
+    fgts: emp.fgts,
+    isDangerous: emp.periculosidade,
     joinedAt: emp.data_admissao
   }));
 
@@ -179,6 +182,9 @@ export const syncEmployee = async (employee: Employee, isDelete = false) => {
     nome: employee.name,
     cargo: employee.role,
     salario: employee.salary,
+    inss: employee.inss,
+    fgts: employee.fgts,
+    periculosidade: employee.isDangerous,
     data_admissao: employee.joinedAt
   });
 };
