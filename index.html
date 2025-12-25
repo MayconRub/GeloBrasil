@@ -11,31 +11,55 @@
         body { font-family: 'Inter', sans-serif; }
 
         @media print {
+            /* 1. Configuração da Página */
             @page {
                 size: A4;
                 margin: 1cm;
             }
 
-            /* Ocultar absolutamente tudo que não for o conteúdo principal do relatório */
-            aside, nav, button, form, .no-print, input, select, textarea, 
-            .Search, .lg:col-span-1, .scrollbar-thin, [role="button"],
-            .fixed, .absolute, header .flex-col, .bg-slate-50 {
+            /* 2. ESCONDER TUDO QUE NÃO É DADO PURO */
+            aside, 
+            nav, 
+            header:not(.print-header), 
+            button, 
+            form, 
+            .no-print, 
+            .lg\:w-80,
+            input, 
+            select, 
+            textarea,
+            [role="button"],
+            .fixed,
+            .absolute,
+            .lg\:sticky,
+            .shadow-sm,
+            .shadow-xl,
+            .bg-slate-50,
+            .lg\:col-span-1 {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0 !important;
+                width: 0 !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
 
-            /* Forçar o conteúdo a ser exibido em fundo branco e sem sombras */
-            body, html, #root, main {
-                background: white !important;
+            /* 3. RESET DE ESTRUTURA - Ocupar folha inteira */
+            body, html {
+                background-color: white !important;
                 color: black !important;
-                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                display: block !important;
+            }
+
+            #root, main {
+                display: block !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                display: block !important;
+                position: static !important;
             }
 
             .max-w-7xl {
@@ -43,52 +67,62 @@
                 width: 100% !important;
             }
 
-            /* Expande a área de dados para a largura total da página */
-            .lg:col-span-2, .lg:col-span-3, .xl:col-span-5 {
+            /* Forçar a área da tabela a ser 100% da largura */
+            .lg\:col-span-2, .lg\:col-span-3, .xl\:col-span-5, .lg\:col-span-1 {
                 width: 100% !important;
                 display: block !important;
+                float: none !important;
+                clear: both !important;
             }
 
+            /* 4. ESTILO DA TABELA NO RELATÓRIO */
             .bg-white {
                 background: white !important;
                 border: none !important;
                 box-shadow: none !important;
             }
 
-            /* Estilização da Tabela no PDF */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                margin-top: 10px;
+                margin-top: 5px !important;
             }
 
             th {
                 background-color: #f8fafc !important;
                 border-bottom: 2px solid #000 !important;
                 color: #000 !important;
-                font-weight: bold !important;
-                padding: 10px !important;
-                text-align: left !important;
+                padding: 12px 10px !important;
                 font-size: 10pt !important;
+                font-weight: bold !important;
+                text-align: left !important;
             }
 
             td {
                 border-bottom: 1px solid #e2e8f0 !important;
-                padding: 8px 10px !important;
+                padding: 10px !important;
                 font-size: 9pt !important;
                 color: #000 !important;
+                font-weight: 500 !important;
             }
 
-            /* Esconder a última coluna (Ações) */
-            th:last-child, td:last-child {
+            /* Esconder a coluna de AÇÕES no PDF */
+            th:last-child, td:last-child, .no-print {
                 display: none !important;
             }
 
+            /* 5. CABEÇALHO DO RELATÓRIO */
             .print-header {
                 display: block !important;
-                border-bottom: 4px solid #000;
-                margin-bottom: 20px;
-                padding-bottom: 10px;
+                border-bottom: 2px solid #000 !important;
+                margin-bottom: 20px !important;
+                padding-bottom: 10px !important;
+            }
+
+            .print-header h1 {
+                font-size: 18pt !important;
+                margin: 0 !important;
+                font-weight: 800 !important;
             }
 
             .print-footer {
@@ -98,22 +132,12 @@
                 width: 100%;
                 text-align: center;
                 font-size: 8pt;
-                color: #64748b;
                 border-top: 1px solid #e2e8f0;
                 padding-top: 5px;
             }
-
-            /* Cores de status no PDF */
-            .bg-emerald-100 { background-color: #d1fae5 !important; color: #065f46 !important; border: 1px solid #065f46 !important; }
-            .bg-rose-100 { background-color: #fee2e2 !important; color: #991b1b !important; border: 1px solid #991b1b !important; }
-            .bg-amber-100 { background-color: #fef3c7 !important; color: #92400e !important; border: 1px solid #92400e !important; }
-
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
         }
 
+        /* Esconder elementos de impressão na tela normal */
         .print-header, .print-footer {
             display: none;
         }
