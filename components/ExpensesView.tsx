@@ -19,7 +19,9 @@ import {
   Calendar,
   Share2,
   Loader2,
-  BellRing
+  BellRing,
+  CheckCircle,
+  ArrowDownLeft
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
 
@@ -98,7 +100,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
   };
 
-  // FUNÇÃO PARA TESTAR O ALARME AGORA (EM 1 MINUTO)
   const testAlarmNow = async () => {
     if (!isGoogleAuthorized) {
       handleGoogleAuth();
@@ -108,7 +109,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setIsTestingAlarm(true);
     try {
       const now = new Date();
-      // Define o evento para daqui a 5 minutos
       const startTime = new Date(now.getTime() + 5 * 60000); 
       const endTime = new Date(now.getTime() + 35 * 60000);
 
@@ -120,7 +120,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         'reminders': {
           'useDefault': false,
           'overrides': [
-            { 'method': 'popup', 'minutes': 4 } // Notifica em 1 minuto (faltando 4 para o evento)
+            { 'method': 'popup', 'minutes': 4 }
           ]
         }
       };
@@ -188,6 +188,10 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   const handleResetMonth = () => setSelectedDate(new Date());
 
+  const handleMarkAsPaid = (expense: Expense) => {
+    onUpdate(expenses.map(exp => exp.id === expense.id ? { ...exp, status: ExpenseStatus.PAGO } : exp));
+  };
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const numericValue = parseFloat(value);
@@ -240,10 +244,18 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     });
   }, [expenses, currentMonth, currentYear, searchTerm]);
 
+  const totalValue = useMemo(() => {
+    return filteredExpenses.reduce((sum, e) => sum + e.value, 0);
+  }, [filteredExpenses]);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="print-header">
         <h1 className="text-2xl font-black text-slate-900">Relatório de Despesas Mensais</h1>
+        <div className="flex justify-between items-end mt-2">
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Período: {monthName}</p>
+          <p className="text-slate-400 font-medium text-[9px]">Total de Custos: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}</p>
+        </div>
       </div>
 
       <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -253,7 +265,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 no-print">
-          {/* BOTÃO DE TESTE RÁPIDO */}
           <button 
             onClick={testAlarmNow}
             disabled={isTestingAlarm}
@@ -276,6 +287,18 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
             <span className="text-xs uppercase tracking-wider">Imprimir</span>
           </button>
 
+          <div className="bg-white px-5 py-3 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+             <div className="bg-rose-50 p-2 rounded-xl text-rose-600">
+               <ArrowDownLeft size={20} />
+             </div>
+             <div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total no Período</p>
+               <p className="text-lg font-black text-slate-900">
+                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+               </p>
+             </div>
+          </div>
+
           <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-1 shadow-sm w-full sm:w-auto">
             <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500"><ChevronLeft size={18} /></button>
             <button onClick={handleResetMonth} className="flex-1 px-4 py-1 flex flex-col items-center hover:bg-slate-50 rounded-xl min-w-[120px]">
@@ -286,8 +309,8 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="lg:col-span-1 no-print">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 lg:gap-8">
+        <div className="xl:col-span-1 no-print">
           <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-8">
             <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2">
               {editingId ? <Pencil className="text-indigo-600" size={18} /> : <Plus className="text-indigo-600" size={18} />}
@@ -309,7 +332,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           </form>
         </div>
 
-        <div className="lg:col-span-2 space-y-4">
+        <div className="xl:col-span-3 space-y-4">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -337,6 +360,15 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                       </td>
                       <td className="px-6 py-4 text-center no-print">
                         <div className="flex justify-center gap-2">
+                          {e.status !== ExpenseStatus.PAGO && (
+                            <button 
+                              onClick={() => handleMarkAsPaid(e)} 
+                              className="p-2 text-emerald-500 hover:text-emerald-700 transition-all hover:scale-110"
+                              title="Marcar como Pago"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
                           <button onClick={() => syncToGoogleCalendar(e)} className={`p-2 transition-all ${isGoogleAuthorized ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 hover:text-slate-400'}`} title="Sincronizar" disabled={syncingId === e.id}>
                             {syncingId === e.id ? <Loader2 className="animate-spin" size={18} /> : <Share2 size={18} />}
                           </button>
@@ -351,6 +383,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
             </div>
           </div>
         </div>
+      </div>
+      <div className="print-footer">
+        Gerado pelo Ice Control em {new Date().toLocaleString('pt-BR')}
       </div>
     </div>
   );

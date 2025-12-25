@@ -72,7 +72,8 @@ const App: React.FC = () => {
       loginHeader: 'Login Corporativo',
       supportPhone: '',
       footerText: '',
-      expirationDate: '2099-12-31'
+      expirationDate: '2099-12-31',
+      hiddenViews: []
     }
   });
 
@@ -157,7 +158,6 @@ const App: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expDate = new Date(data.settings.expirationDate + 'T00:00:00');
-    // Força o uso do timestamp para comparação precisa
     return today.getTime() > expDate.getTime();
   };
 
@@ -250,7 +250,7 @@ const App: React.FC = () => {
     setData(prev => ({ ...prev, settings: newSettings }));
     const { error } = await syncSettings(newSettings);
     if (error) {
-      alert('Erro ao salvar no banco: ' + error.message + '\nVerifique se rodou o script SQL de atualização de colunas.');
+      alert('Erro ao salvar no banco: ' + error.message);
     }
     document.title = newSettings.companyName;
   };
@@ -262,7 +262,7 @@ const App: React.FC = () => {
     { id: 'expenses', label: 'Despesas', icon: Receipt },
     { id: 'team', label: 'Equipe', icon: Users },
     { id: 'fleet', label: 'Frota', icon: Truck },
-  ];
+  ].filter(item => !data.settings.hiddenViews.includes(item.id));
 
   const handleNavigate = (id: ViewType) => {
     if (id === 'admin' && session?.user?.email !== ADMIN_EMAIL) {
@@ -477,8 +477,8 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 p-5 sm:p-10 lg:p-14 overflow-y-auto bg-[#fafbfc]">
-        <div className="max-w-7xl mx-auto">
-          {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} onSwitchView={handleNavigate} />}
+        <div className="max-w-[1600px] mx-auto">
+          {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} hiddenViews={data.settings.hiddenViews} onSwitchView={handleNavigate} />}
           {view === 'production' && <ProductionView production={data.production} onUpdate={handleUpdateProduction} />}
           {view === 'sales' && <SalesView sales={data.sales} onUpdate={handleUpdateSales} />}
           {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={handleUpdateExpenses} onUpdateCategories={handleUpdateCategories} />}

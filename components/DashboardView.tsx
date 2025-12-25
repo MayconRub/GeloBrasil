@@ -17,7 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Defs, LinearGradient
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import { Sale, Expense, ExpenseStatus, ViewType, Production } from '../types';
 
@@ -25,10 +25,11 @@ interface Props {
   sales: Sale[];
   expenses: Expense[];
   production: Production[];
+  hiddenViews: string[];
   onSwitchView: (view: ViewType) => void;
 }
 
-const DashboardView: React.FC<Props> = ({ sales, expenses, production, onSwitchView }) => {
+const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenViews, onSwitchView }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   
   const getTodayLocal = () => {
@@ -93,6 +94,11 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, onSwitchV
     return data;
   }, [sales, expenses, currentMonth, currentYear]);
 
+  // Seção de visibilidade dinâmica
+  const showSales = !hiddenViews.includes('sales');
+  const showProduction = !hiddenViews.includes('production');
+  const showExpenses = !hiddenViews.includes('expenses');
+
   return (
     <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -114,63 +120,71 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, onSwitchV
         </div>
       </header>
 
-      {/* Bento Grid layout refined - Mobile Responsive Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-8">
-        <StatCard 
-          title="Vendas Hoje" 
-          value={stats.todaySales} 
-          icon={<ArrowUpRight size={20} />} 
-          variant="emerald"
-          subtitle="Geral"
-          isCurrency
-        />
-        <StatCard 
-          title="Produção" 
-          value={stats.todayProd} 
-          icon={<Snowflake size={20} />} 
-          variant="sky"
-          subtitle="KG Hoje"
-          suffix=" KG"
-        />
-        <StatCard 
-          title="Saídas Mês" 
-          value={stats.monthExpenses} 
-          icon={<ArrowDownLeft size={20} />} 
-          variant="rose"
-          subtitle="Registrado"
-          isCurrency
-        />
-        <StatCard 
-          title="Lucro" 
-          value={stats.netProfit} 
-          icon={<Scale size={20} />} 
-          variant={stats.netProfit >= 0 ? "indigo" : "rose"}
-          subtitle="Líquido"
-          isCurrency
-        />
-        <StatCard 
-          title="Vencido" 
-          value={stats.overdueValue} 
-          icon={<AlertCircle size={20} />} 
-          variant="amber"
-          subtitle="A pagar"
-          isCurrency
-          isAlert={stats.overdueCount > 0}
-          className="col-span-2 xl:col-span-1"
-        />
+        {showSales && (
+          <StatCard 
+            title="Vendas Hoje" 
+            value={stats.todaySales} 
+            icon={<ArrowUpRight size={20} />} 
+            variant="emerald"
+            subtitle="Geral"
+            isCurrency
+          />
+        )}
+        {showProduction && (
+          <StatCard 
+            title="Produção" 
+            value={stats.todayProd} 
+            icon={<Snowflake size={20} />} 
+            variant="sky"
+            subtitle="KG Hoje"
+            suffix=" KG"
+          />
+        )}
+        {showExpenses && (
+          <StatCard 
+            title="Saídas Mês" 
+            value={stats.monthExpenses} 
+            icon={<ArrowDownLeft size={20} />} 
+            variant="rose"
+            subtitle="Registrado"
+            isCurrency
+          />
+        )}
+        {(showSales || showExpenses) && (
+          <StatCard 
+            title="Lucro" 
+            value={stats.netProfit} 
+            icon={<Scale size={20} />} 
+            variant={stats.netProfit >= 0 ? "indigo" : "rose"}
+            subtitle="Líquido"
+            isCurrency
+          />
+        )}
+        {showExpenses && (
+          <StatCard 
+            title="Vencido" 
+            value={stats.overdueValue} 
+            icon={<AlertCircle size={20} />} 
+            variant="amber"
+            subtitle="A pagar"
+            isCurrency
+            isAlert={stats.overdueCount > 0}
+            className="col-span-2 xl:col-span-1"
+          />
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
-        {/* Styled Chart Area */}
-        <div className="lg:col-span-2 bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+      <div className={`grid grid-cols-1 ${showExpenses ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8 sm:gap-10`}>
+        <div className={`${showExpenses ? 'lg:col-span-2' : ''} bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
             <div>
               <h3 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Tendências</h3>
               <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Fluxo Diário</p>
             </div>
             <div className="flex items-center gap-4 sm:gap-8 bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100 self-start sm:self-auto">
-              <LegendItem color="bg-emerald-500" label="Vendas" />
-              <LegendItem color="bg-rose-500" label="Custos" />
+              {showSales && <LegendItem color="bg-emerald-500" label="Vendas" />}
+              {showExpenses && <LegendItem color="bg-rose-500" label="Custos" />}
             </div>
           </div>
           
@@ -205,42 +219,43 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, onSwitchV
                   contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.1)', padding: '15px'}} 
                   itemStyle={{fontSize: '11px', fontWeight: '800'}}
                 />
-                <Area type="monotone" dataKey="vendas" stroke="#10b981" strokeWidth={3} fill="url(#colorSales)" />
-                <Area type="monotone" dataKey="despesas" stroke="#ef4444" strokeWidth={3} fill="url(#colorExpenses)" />
+                {showSales && <Area type="monotone" dataKey="vendas" stroke="#10b981" strokeWidth={3} fill="url(#colorSales)" />}
+                {showExpenses && <Area type="monotone" dataKey="despesas" stroke="#ef4444" strokeWidth={3} fill="url(#colorExpenses)" />}
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Professional Expense List */}
-        <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Próximas</h3>
-              <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pendências</p>
-            </div>
-            <button onClick={() => onSwitchView('expenses')} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
-              <Calendar size={18} />
-            </button>
-          </div>
-          
-          <div className="space-y-3 overflow-y-auto max-h-[400px] sm:max-h-[500px] pr-1 custom-scrollbar">
-            {expenses.filter(e => e.status !== ExpenseStatus.PAGO).length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center py-20 opacity-20">
-                <CheckCircle2 size={40} className="text-slate-400 mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Fluxo Limpo</p>
+        {showExpenses && (
+          <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Próximas</h3>
+                <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pendências</p>
               </div>
-            ) : (
-              expenses
-                .filter(e => e.status !== ExpenseStatus.PAGO)
-                .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-                .slice(0, 8)
-                .map(expense => (
-                  <ExpenseItem key={expense.id} expense={expense} today={today} />
-                ))
-            )}
+              <button onClick={() => onSwitchView('expenses')} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                <Calendar size={18} />
+              </button>
+            </div>
+            
+            <div className="space-y-3 overflow-y-auto max-h-[400px] sm:max-h-[500px] pr-1 custom-scrollbar">
+              {expenses.filter(e => e.status !== ExpenseStatus.PAGO).length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-20 opacity-20">
+                  <CheckCircle2 size={40} className="text-slate-400 mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Fluxo Limpo</p>
+                </div>
+              ) : (
+                expenses
+                  .filter(e => e.status !== ExpenseStatus.PAGO)
+                  .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+                  .slice(0, 8)
+                  .map(expense => (
+                    <ExpenseItem key={expense.id} expense={expense} today={today} />
+                  ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

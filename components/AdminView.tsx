@@ -32,7 +32,13 @@ import {
   TestTube2,
   AlertTriangle,
   ArrowRight,
-  Lock
+  Lock,
+  Eye,
+  EyeOff,
+  CircleDollarSign,
+  Receipt,
+  Users,
+  Truck
 } from 'lucide-react';
 import { AppSettings } from '../types';
 
@@ -58,6 +64,14 @@ const AVAILABLE_LOGOS = [
   { id: 'Box', icon: Box, label: 'Cubo de Gelo' }
 ];
 
+const MENU_PAGES = [
+  { id: 'production', label: 'Produção', icon: Snowflake },
+  { id: 'sales', label: 'Vendas', icon: CircleDollarSign },
+  { id: 'expenses', label: 'Despesas', icon: Receipt },
+  { id: 'team', label: 'Equipe', icon: Users },
+  { id: 'fleet', label: 'Frota', icon: Truck },
+];
+
 const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [primaryColor, setPrimaryColor] = useState(settings.primaryColor);
@@ -66,21 +80,29 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const [supportPhone, setSupportPhone] = useState(settings.supportPhone);
   const [footerText, setFooterText] = useState(settings.footerText);
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
+  const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
   const [renewDays, setRenewDays] = useState(30);
   const [isSaved, setIsSaved] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const toggleViewVisibility = (id: string) => {
+    setHiddenViews(prev => 
+      prev.includes(id) 
+        ? prev.filter(v => v !== id) 
+        : [...prev, id]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
-    await onUpdateSettings({ companyName, primaryColor, logoId, loginHeader, supportPhone, footerText, expirationDate });
+    await onUpdateSettings({ companyName, primaryColor, logoId, loginHeader, supportPhone, footerText, expirationDate, hiddenViews });
     setIsUpdating(false);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
 
   const handleSetBlock = async () => {
-    // Força uma data muito antiga para garantir o bloqueio imediato
     const pastDate = '2000-01-01';
     setExpirationDate(pastDate);
     setIsUpdating(true);
@@ -91,7 +113,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
       loginHeader, 
       supportPhone, 
       footerText, 
-      expirationDate: pastDate 
+      expirationDate: pastDate,
+      hiddenViews
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -120,7 +143,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
       loginHeader, 
       supportPhone, 
       footerText, 
-      expirationDate: dateStr 
+      expirationDate: dateStr,
+      hiddenViews
     });
     
     setIsUpdating(false);
@@ -139,12 +163,12 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Painel Master: Licenciamento</h2>
-          <p className="text-slate-500 font-medium">Controle de acesso e identidade visual.</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Painel Master</h2>
+          <p className="text-slate-500 font-medium">Controle de licenciamento e visibilidade.</p>
         </div>
         {isUpdating && (
           <div className="flex items-center gap-2 bg-sky-100 text-sky-700 px-4 py-2 rounded-full text-xs font-black animate-pulse">
-            <Clock size={14} className="animate-spin" /> SINCRONIZANDO BANCO...
+            <Clock size={14} className="animate-spin" /> SINCRONIZANDO...
           </div>
         )}
       </header>
@@ -167,26 +191,17 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                 </h3>
                 <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-widest bg-white/5 px-3 py-1 rounded-lg w-fit mt-1">
                   <CalendarDays size={14} />
-                  No Banco: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  Banco: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}
                 </div>
               </div>
             </div>
             
             <div className="flex flex-wrap gap-3">
-              <div className="bg-sky-500/10 border border-sky-500/20 p-4 rounded-2xl max-w-[280px]">
-                <div className="flex items-center gap-2 text-sky-400 font-black text-[10px] uppercase tracking-widest mb-1">
-                  <TestTube2 size={14} /> Modo Manual
-                </div>
-                <p className="text-sky-100/60 text-[11px] leading-relaxed">
-                  Defina a quantidade de dias e clique em liberar. 0 dias bloqueia imediatamente.
-                </p>
-              </div>
-
               <button 
                 onClick={handleSetBlock}
                 className="bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/30 px-6 py-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 group/block"
               >
-                <Lock size={20} className="group-hover/block:scale-110 transition-transform" />
+                <Lock size={20} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Bloquear Agora</span>
               </button>
             </div>
@@ -226,8 +241,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                 <Shield size={28} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">Identidade Visual</h3>
-                <p className="text-sm text-slate-400 font-medium tracking-tight">Configure a interface do cliente.</p>
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">Identidade e Visibilidade</h3>
+                <p className="text-sm text-slate-400 font-medium tracking-tight">Personalize o que o usuário vê.</p>
               </div>
             </div>
 
@@ -241,7 +256,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                     type="text" 
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all font-semibold"
+                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 outline-none transition-all font-semibold"
                   />
                 </div>
 
@@ -253,40 +268,41 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                     type="text" 
                     value={loginHeader}
                     onChange={(e) => setLoginHeader(e.target.value)}
-                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all font-semibold"
+                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 outline-none transition-all font-semibold"
                   />
                 </div>
 
-                <div className="space-y-2">
+                {/* VISIBILIDADE DE PÁGINAS */}
+                <div className="pt-4 space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <Phone size={12} /> Telefone de Suporte
+                    <Eye size={12} /> Visibilidade das Páginas
                   </label>
-                  <input 
-                    type="text" 
-                    value={supportPhone}
-                    onChange={(e) => setSupportPhone(e.target.value)}
-                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all font-semibold"
-                  />
+                  <div className="space-y-2">
+                    {MENU_PAGES.map(page => (
+                      <button
+                        key={page.id}
+                        type="button"
+                        onClick={() => toggleViewVisibility(page.id)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${hiddenViews.includes(page.id) ? 'bg-slate-50 border-slate-200 text-slate-400' : 'bg-white border-indigo-100 text-slate-700 shadow-sm'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <page.icon size={16} />
+                          <span className="text-sm font-bold tracking-tight">{page.label}</span>
+                        </div>
+                        {hiddenViews.includes(page.id) ? <EyeOff size={16} /> : <Eye size={16} className="text-indigo-500" />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <Copyright size={12} /> Créditos do Rodapé
-                  </label>
-                  <input 
-                    type="text" 
-                    value={footerText}
-                    onChange={(e) => setFooterText(e.target.value)}
-                    className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all font-semibold"
-                  />
-                </div>
-
+              <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                     <Palette size={12} /> Cor Primária
                   </label>
                   <div className="flex gap-4">
-                    <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm">
+                    <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-2xl border-2 border-slate-100">
                       <input 
                         type="color" 
                         value={primaryColor}
@@ -298,68 +314,59 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings }) => {
                       type="text" 
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all font-mono text-sm uppercase font-bold"
+                      className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-sm uppercase font-bold"
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                  <Gem size={12} /> Logotipo do App
-                </label>
-                <div className="grid grid-cols-4 gap-3">
-                  {AVAILABLE_LOGOS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setLogoId(item.id)}
-                      className={`
-                        aspect-square flex flex-col items-center justify-center rounded-2xl transition-all border-2
-                        ${logoId === item.id 
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-600 shadow-md scale-[0.98]' 
-                          : 'border-slate-50 bg-slate-50/50 text-slate-300 hover:border-slate-200 hover:text-slate-500'}
-                      `}
-                    >
-                      <item.icon size={24} />
-                    </button>
-                  ))}
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <Gem size={12} /> Logotipo
+                  </label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {AVAILABLE_LOGOS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setLogoId(item.id)}
+                        className={`aspect-square flex items-center justify-center rounded-2xl border-2 transition-all ${logoId === item.id ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-50 bg-slate-50/50 text-slate-300 hover:border-slate-200'}`}
+                      >
+                        <item.icon size={24} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
-              <div className={`flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest transition-all ${isSaved ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
-                <CheckCircle2 size={18} /> Sincronizado com Sucesso!
+              <div className={`flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest transition-all ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
+                <CheckCircle2 size={18} /> Salvo!
               </div>
               <button 
                 type="submit"
                 disabled={isUpdating}
-                className="bg-slate-900 text-white font-black px-10 py-4 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 shadow-2xl shadow-slate-100 flex items-center gap-3 disabled:opacity-50"
+                className="bg-slate-900 text-white font-black px-10 py-4 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 shadow-xl flex items-center gap-3 disabled:opacity-50"
               >
-                <Save size={20} /> {isUpdating ? 'Salvando...' : 'Salvar Configurações'}
+                <Save size={20} /> {isUpdating ? 'Salvando...' : 'Salvar Tudo'}
               </button>
             </div>
           </form>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden group">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-              <Zap size={14} className="text-indigo-500" /> Prévia Visual
-            </h4>
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100 group-hover:border-indigo-100 transition-colors">
-                <div className="bg-white p-4 rounded-2xl text-white shadow-xl" style={{ backgroundColor: primaryColor }}>
-                  {(() => {
-                    const SelectedIcon = AVAILABLE_LOGOS.find(l => l.id === logoId)?.icon || LayoutGrid;
-                    return <SelectedIcon size={32} />;
-                  })()}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-300 mb-0.5">App Interface:</p>
-                  <h5 className="text-xl font-black text-slate-800 truncate leading-none">{companyName}</h5>
-                </div>
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Prévia do App</h4>
+            <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+              <div className="bg-white p-4 rounded-2xl text-white shadow-xl" style={{ backgroundColor: primaryColor }}>
+                {(() => {
+                  const SelectedIcon = AVAILABLE_LOGOS.find(l => l.id === logoId)?.icon || LayoutGrid;
+                  return <SelectedIcon size={32} />;
+                })()}
+              </div>
+              <div className="min-w-0">
+                <h5 className="text-xl font-black text-slate-800 truncate leading-none">{companyName}</h5>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ativo</p>
               </div>
             </div>
           </div>

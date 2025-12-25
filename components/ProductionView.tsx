@@ -110,6 +110,18 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate }) => {
                <p className="text-lg font-black text-slate-900">{totalProduced.toLocaleString('pt-BR')} <span className="text-xs font-bold text-slate-400 uppercase">KG</span></p>
              </div>
           </div>
+
+          <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-1 shadow-sm w-full sm:w-auto overflow-hidden">
+            <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500 transition-all active:scale-90 shrink-0">
+              <ChevronLeft size={18} />
+            </button>
+            <button onClick={handleResetMonth} className="flex-1 px-4 py-1 flex flex-col items-center justify-center hover:bg-slate-50 rounded-xl transition-all min-w-[130px]">
+              <span className="text-xs font-bold text-slate-800 capitalize leading-tight text-center">{monthName}</span>
+            </button>
+            <button onClick={handleNextMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500 transition-all active:scale-90 shrink-0">
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </header>
 

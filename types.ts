@@ -53,7 +53,8 @@ export interface AppSettings {
   loginHeader: string;
   supportPhone: string;
   footerText: string;
-  expirationDate: string; // Nova propriedade para controle de 30 dias
+  expirationDate: string;
+  hiddenViews: string[]; // Lista de ViewTypes que devem ser ocultados
 }
 
 export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';

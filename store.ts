@@ -22,7 +22,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       loginHeader: settings?.login_header || 'Login Corporativo',
       supportPhone: settings?.support_phone || '',
       footerText: settings?.footer_text || '',
-      expirationDate: settings?.data_expiracao || '2099-12-31' // Valor padrão caso não exista
+      expirationDate: settings?.data_expiracao || '2099-12-31',
+      hiddenViews: settings?.paginas_ocultas || []
     };
   } catch (e) {
     return {
@@ -32,7 +33,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       loginHeader: 'Login Corporativo',
       supportPhone: '',
       footerText: '',
-      expirationDate: '2099-12-31'
+      expirationDate: '2099-12-31',
+      hiddenViews: []
     };
   }
 };
@@ -127,7 +129,8 @@ export const syncSettings = async (settings: AppSettings) => {
     login_header: settings.loginHeader,
     support_phone: settings.supportPhone,
     footer_text: settings.footerText,
-    data_expiracao: settings.expirationDate
+    data_expiracao: settings.expirationDate,
+    paginas_ocultas: settings.hiddenViews
   });
 };
 
