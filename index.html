@@ -7,33 +7,18 @@
     <title>Gestor Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Identity Services & GAPI -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
 
         @media print {
-            /* 1. Configuração da Página */
             @page {
                 size: A4;
                 margin: 1.5cm;
             }
-
-            /* 2. ESCONDER APENAS COMPONENTES DE INTERFACE */
-            aside, 
-            nav, 
-            header:not(.print-header), 
-            button, 
-            form, 
-            .no-print, 
-            input, 
-            select, 
-            textarea,
-            [role="button"],
-            .fixed,
-            .absolute,
-            .lg\:sticky,
-            .lg\:w-80,
-            /* Esconde a coluna do formulário (primeira coluna do grid) */
-            .lg\:col-span-1 {
+            aside, nav, header:not(.print-header), button, form, .no-print, input, select, textarea, [role="button"], .fixed, .absolute, .lg\:sticky, .lg\:w-80, .lg\:col-span-1 {
                 display: none !important;
                 visibility: hidden !important;
                 opacity: 0 !important;
@@ -42,8 +27,6 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-
-            /* 3. FORÇAR VISIBILIDADE DO CONTEÚDO */
             body, html {
                 background-color: white !important;
                 color: black !important;
@@ -53,7 +36,6 @@
                 display: block !important;
                 overflow: visible !important;
             }
-
             #root, main {
                 display: block !important;
                 width: 100% !important;
@@ -62,8 +44,6 @@
                 background: white !important;
                 position: static !important;
             }
-
-            /* Faz a área do conteúdo ocupar a tela toda */
             .max-w-7xl {
                 max-width: 100% !important;
                 width: 100% !important;
@@ -71,28 +51,22 @@
                 padding: 0 !important;
                 display: block !important;
             }
-
-            /* Forçar a coluna da tabela a expandir para 100% */
             .lg\:col-span-2, .lg\:col-span-3, .xl\:col-span-5 {
                 width: 100% !important;
                 display: block !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-
-            /* 4. ESTILO DA TABELA NO RELATÓRIO */
             .bg-white {
                 background: white !important;
                 border: none !important;
                 box-shadow: none !important;
             }
-
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 margin-top: 10px !important;
             }
-
             th {
                 background-color: #f8fafc !important;
                 border-bottom: 2px solid #000 !important;
@@ -103,20 +77,15 @@
                 text-align: left !important;
                 text-transform: uppercase !important;
             }
-
             td {
                 border-bottom: 1px solid #e2e8f0 !important;
                 padding: 10px !important;
                 font-size: 9pt !important;
                 color: #000 !important;
             }
-
-            /* Esconder coluna de ações (ícones de editar/excluir) */
             th:last-child, td:last-child {
                 display: none !important;
             }
-
-            /* 5. CABEÇALHO E RODAPÉ DO RELATÓRIO */
             .print-header {
                 display: block !important;
                 border-bottom: 3px solid #000 !important;
@@ -124,14 +93,12 @@
                 padding-bottom: 15px !important;
                 width: 100% !important;
             }
-
             .print-header h1 {
                 font-size: 22pt !important;
                 margin: 0 !important;
                 font-weight: 900 !important;
                 color: black !important;
             }
-
             .print-footer {
                 display: block !important;
                 position: fixed;
@@ -143,14 +110,10 @@
                 border-top: 1px solid #ccc;
                 padding-top: 5px;
             }
-
-            /* Garante que o grid do Tailwind não quebre o layout de impressão */
             .grid {
                 display: block !important;
             }
         }
-
-        /* Esconder elementos de impressão na visualização do navegador */
         .print-header, .print-footer {
             display: none;
         }

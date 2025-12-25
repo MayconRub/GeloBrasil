@@ -1,6 +1,25 @@
 
-import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, CheckCircle2, Search, Settings2, X, Truck, AlertCircle, StickyNote, Tag, Pencil, Users, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Plus, 
+  Trash2, 
+  CheckCircle2, 
+  Search, 
+  Settings2, 
+  X, 
+  Truck, 
+  AlertCircle, 
+  StickyNote, 
+  Tag, 
+  Pencil, 
+  Users, 
+  ChevronLeft, 
+  ChevronRight, 
+  Printer, 
+  Calendar,
+  Share2,
+  Loader2
+} from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
 
 interface Props {
@@ -12,13 +31,14 @@ interface Props {
   onUpdateCategories: (categories: string[]) => void;
 }
 
+// Configurações do Google OAuth
+const CLIENT_ID = '656844677630-1f5erne75a5svu8js73dn4bqteoomgbp.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+
 const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employees, onUpdate, onUpdateCategories }) => {
   const getTodayString = () => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   };
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -31,13 +51,103 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCategoryManager, setShowCategoryManager] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Estado para Google Auth
+  const [gapiInitialized, setGapiInitialized] = useState(false);
+  const [tokenClient, setTokenClient] = useState<any>(null);
+  const [isGoogleAuthorized, setIsGoogleAuthorized] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  // Inicializar Google API
+  useEffect(() => {
+    const initGapi = () => {
+      // Fix: Access gapi through window to avoid TS error "Cannot find name 'gapi'"
+      (window as any).gapi.load('client', async () => {
+        // Fix: Access gapi through window
+        await (window as any).gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
+        });
+        setGapiInitialized(true);
+      });
+    };
+
+    const initGis = () => {
+      // Fix: Access google through window
+      const client = (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (response: any) => {
+          if (response.error !== undefined) {
+            throw response;
+          }
+          setIsGoogleAuthorized(true);
+        },
+      });
+      setTokenClient(client);
+    };
+
+    // Fix: Access gapi through window
+    if (typeof (window as any).gapi !== 'undefined') initGapi();
+    // Fix: Access google through window
+    if (typeof (window as any).google !== 'undefined') initGis();
+  }, []);
+
+  const handleGoogleAuth = () => {
+    if (tokenClient) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+  };
+
+  const syncToGoogleCalendar = async (expense: Expense) => {
+    if (!isGoogleAuthorized) {
+      handleGoogleAuth();
+      return;
+    }
+
+    setSyncingId(expense.id);
+    try {
+      const event = {
+        'summary': `Pagar: ${expense.description}`,
+        'description': `Despesa de ${expense.category}. Valor: R$ ${expense.value.toFixed(2)}`,
+        'start': {
+          'date': expense.dueDate,
+        },
+        'end': {
+          'date': expense.dueDate,
+        },
+        'reminders': {
+          'useDefault': false,
+          'overrides': [
+            { 'method': 'popup', 'minutes': 1440 } // 1 dia antes
+          ]
+        }
+      };
+
+      // Fix: Access gapi through window
+      const request = (window as any).gapi.client.calendar.events.insert({
+        'calendarId': 'primary',
+        'resource': event
+      });
+
+      request.execute((event: any) => {
+        if (event.id) {
+          alert(`Sincronizado! Evento criado no Google Agenda.`);
+        } else {
+          alert('Erro ao sincronizar. Tente novamente.');
+        }
+        setSyncingId(null);
+      });
+    } catch (error) {
+      console.error('Erro no Google Calendar:', error);
+      alert('Falha na comunicação com o Google.');
+      setSyncingId(null);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -166,6 +276,14 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 no-print">
           <button 
+            onClick={handleGoogleAuth}
+            className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${isGoogleAuthorized ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+          >
+            <Calendar size={18} className={isGoogleAuthorized ? 'text-emerald-500' : 'text-slate-400'} />
+            <span className="text-xs uppercase tracking-wider">{isGoogleAuthorized ? 'Google Conectado' : 'Conectar Google'}</span>
+          </button>
+
+          <button 
             onClick={handlePrint}
             className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
           >
@@ -264,6 +382,14 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                       </td>
                       <td className="px-6 py-4 text-center no-print">
                         <div className="flex justify-center gap-2">
+                          <button 
+                            onClick={() => syncToGoogleCalendar(e)} 
+                            className={`p-2 transition-all ${isGoogleAuthorized ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 hover:text-slate-400'}`}
+                            title="Sincronizar com Google Agenda"
+                            disabled={syncingId === e.id}
+                          >
+                            {syncingId === e.id ? <Loader2 className="animate-spin" size={18} /> : <Share2 size={18} />}
+                          </button>
                           <button onClick={() => handleEdit(e)} className="p-2 text-slate-400 hover:text-indigo-600"><Pencil size={18} /></button>
                           <button onClick={() => onUpdate(expenses.filter(x => x.id !== e.id))} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={18} /></button>
                         </div>
