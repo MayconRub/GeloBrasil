@@ -169,7 +169,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
 
   const getDueDateLabel = (dueDate: string) => {
     if (dueDate < today) return { text: 'VENCIDO', color: 'bg-rose-600 text-white shadow-lg shadow-rose-900/50', icon: true };
-    if (dueDate === today) return { text: 'HOJE', color: 'bg-amber-500 text-white', icon: false };
+    if (dueDate === today) return { text: 'HOJE', color: 'bg-amber-500 text-white shadow-lg shadow-amber-900/30', icon: true };
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
@@ -245,7 +245,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
               <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest mb-0.5">Mês de Referência</span>
               <span className="text-xs font-black text-sky-900 capitalize text-center">{monthName}</span>
             </button>
-            <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
+            <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
           </div>
 
           <div className="flex p-1 bg-white border border-sky-100 rounded-2xl shadow-sm">
@@ -397,7 +397,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
           </div>
         </div>
 
-        {/* UPGRADED: Card de Próximas Contas com Alertas de Vencimento */}
+        {/* UPGRADED: Card de Próximas Contas com Alertas de Vencimento e Urgência Hoje */}
         <div className="bg-gradient-to-br from-[#0c1b3d] to-[#1e3a8a] p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] text-white shadow-2xl flex flex-col relative overflow-hidden group">
           <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-sky-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:bg-sky-500/20"></div>
           
@@ -427,15 +427,28 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
               stats.upcoming.map(item => {
                 const label = getDueDateLabel(item.dueDate);
                 const isOverdue = item.dueDate < today;
+                const isDueToday = item.dueDate === today;
                 
                 return (
-                  <div key={item.id} className={`p-4 rounded-[1.8rem] border transition-all cursor-pointer group/item flex items-center justify-between ${isOverdue ? 'bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                  <div key={item.id} className={`p-4 rounded-[1.8rem] border transition-all cursor-pointer group/item flex items-center justify-between ${
+                    isOverdue ? 'bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 
+                    isDueToday ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20' : 
+                    'bg-white/5 border-white/5 hover:bg-white/10'
+                  }`}>
                     <div className="flex items-center gap-4">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border transition-transform group-hover/item:scale-110 ${isOverdue ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-white/5 text-sky-400 border-white/10'}`}>
-                        {isOverdue ? <BellRing size={20} className="animate-pulse" /> : <Receipt size={20} />}
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border transition-transform group-hover/item:scale-110 ${
+                        isOverdue ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 
+                        isDueToday ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 
+                        'bg-white/5 text-sky-400 border-white/10'
+                      }`}>
+                        {(isOverdue || isDueToday) ? <BellRing size={20} className="animate-pulse" /> : <Receipt size={20} />}
                       </div>
                       <div className="min-w-0">
-                        <h5 className={`text-[11px] font-black tracking-tight uppercase truncate max-w-[120px] leading-none mb-2 ${isOverdue ? 'text-rose-100' : 'text-white'}`}>{item.description}</h5>
+                        <h5 className={`text-[11px] font-black tracking-tight uppercase truncate max-w-[120px] leading-none mb-2 ${
+                          isOverdue ? 'text-rose-100' : 
+                          isDueToday ? 'text-amber-100' : 
+                          'text-white'
+                        }`}>{item.description}</h5>
                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest ${label.color}`}>
                            {label.icon && <AlertTriangle size={8} />}
                            {label.text}
@@ -443,7 +456,11 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`font-black text-xs sm:text-sm block leading-none ${isOverdue ? 'text-rose-400' : 'text-sky-300'}`}>
+                      <span className={`font-black text-xs sm:text-sm block leading-none ${
+                        isOverdue ? 'text-rose-400' : 
+                        isDueToday ? 'text-amber-400' : 
+                        'text-sky-300'
+                      }`}>
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(item.value)}
                       </span>
                       <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter mt-1 block">{item.category}</span>

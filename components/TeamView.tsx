@@ -44,9 +44,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [salary, setSalary] = useState('');
-  const [inss, setInss] = useState('');
-  const [irrf, setIrrf] = useState('');
-  const [isDangerous, setIsDangerous] = useState(false);
   const [joinedAt, setJoinedAt] = useState(getTodayString());
   const [selectedForPrint, setSelectedForPrint] = useState<Employee | null>(null);
 
@@ -62,9 +59,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
     setName('');
     setRole('');
     setSalary('');
-    setInss('');
-    setIrrf('');
-    setIsDangerous(false);
     setJoinedAt(getTodayString());
   };
 
@@ -73,9 +67,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
     setName(emp.name);
     setRole(emp.role);
     setSalary(emp.salary?.toString() || '');
-    setInss(emp.inss?.toString() || '');
-    setIrrf(emp.irrf?.toString() || '');
-    setIsDangerous(emp.isDangerous || false);
     setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -83,8 +74,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
   const handleAddOrUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     const numericSalary = salary ? parseFloat(salary) : 0;
-    const numericInssPercent = inss ? parseFloat(inss) : 0;
-    const numericIrrfPercent = irrf ? parseFloat(irrf) : 0;
     
     if (!name || !role || !joinedAt) return;
 
@@ -93,9 +82,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
       name, 
       role, 
       salary: numericSalary, 
-      inss: numericInssPercent, 
-      irrf: numericIrrfPercent, 
-      isDangerous, 
       joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() 
     });
     
@@ -108,15 +94,6 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
       window.print();
       setSelectedForPrint(null);
     }, 100);
-  };
-
-  const calculateDangerousnessValue = (baseSalary?: number) => {
-    if (!baseSalary) return 0;
-    return baseSalary * 0.3;
-  };
-
-  const calculateDeduction = (baseSalary: number = 0, percent: number = 0) => {
-    return (baseSalary * percent) / 100;
   };
 
   const formatBRL = (val: number) => {
@@ -175,9 +152,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Salário Base (Bruto)</label>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Salário</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
                     <input 
@@ -192,53 +169,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                   </div>
                 </div>
 
-                <div className="col-span-2">
-                  <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
-                    <input 
-                      type="checkbox" 
-                      checked={isDangerous}
-                      onChange={(e) => setIsDangerous(e.target.checked)}
-                      className="w-5 h-5 rounded-md text-indigo-600 focus:ring-indigo-50 border-slate-300 transition-all"
-                    />
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-slate-700">Periculosidade (30%)</p>
-                      <p className="text-[10px] text-slate-400 font-medium">Adicional sobre o salário base</p>
-                    </div>
-                    <AlertTriangle size={16} className={isDangerous ? "text-amber-500" : "text-slate-200"} />
-                  </label>
-                </div>
-                
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">INSS (%)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold"><Percent size={12} /></span>
-                    <input 
-                      type="text" 
-                      inputMode="decimal"
-                      value={inss}
-                      onChange={(e) => handleNumericChange(e.target.value, setInss)}
-                      placeholder="9.0"
-                      className="w-full h-11 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs transition-all font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">IRRF (%)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold"><Percent size={12} /></span>
-                    <input 
-                      type="text" 
-                      inputMode="decimal"
-                      value={irrf}
-                      onChange={(e) => handleNumericChange(e.target.value, setIrrf)}
-                      placeholder="7.5"
-                      className="w-full h-11 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs transition-all font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="col-span-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Data de Admissão</label>
                   <input 
                     type="date" 
@@ -288,10 +219,10 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-4 relative z-10">
-                    <div className="col-span-2 flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div className="grid grid-cols-1 gap-2 mt-4 relative z-10">
+                    <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-700 font-bold text-xs uppercase tracking-tight">
-                        <Banknote size={14} /> Salário Bruto
+                        <Banknote size={14} /> Salário
                       </div>
                       <span className="text-slate-900 font-black text-sm">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(emp.salary || 0)}
@@ -362,39 +293,12 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                 <tbody className="font-mono text-[9px]">
                   <tr className="h-5">
                     <td className="border-r border-black text-center text-[8px]">001</td>
-                    <td className="border-r border-black pl-3 font-bold uppercase">SALARIO BASE</td>
+                    <td className="border-r border-black pl-3 font-bold uppercase">SALÁRIO</td>
                     <td className="border-r border-black text-center">220:00</td>
                     <td className="border-r border-black text-right pr-3 font-bold">{formatBRL(selectedForPrint.salary || 0)}</td>
                     <td className="text-right pr-3 font-bold"></td>
                   </tr>
-                  {selectedForPrint.isDangerous && (
-                    <tr className="h-5">
-                      <td className="border-r border-black text-center text-[8px]">050</td>
-                      <td className="border-r border-black pl-3 font-bold uppercase">ADIC. PERICULOSIDADE</td>
-                      <td className="border-r border-black text-center">30.00</td>
-                      <td className="border-r border-black text-right pr-3 font-bold">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</td>
-                      <td className="text-right pr-3 font-bold"></td>
-                    </tr>
-                  )}
-                  {selectedForPrint.inss && (
-                    <tr className="h-5">
-                      <td className="border-r border-black text-center text-[8px]">201</td>
-                      <td className="border-r border-black pl-3 font-bold uppercase">INSS</td>
-                      <td className="border-r border-black text-center">{selectedForPrint.inss?.toFixed(2)}%</td>
-                      <td className="border-r border-black text-right pr-3 font-bold"></td>
-                      <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.inss))}</td>
-                    </tr>
-                  )}
-                  {selectedForPrint.irrf && (
-                    <tr className="h-5">
-                      <td className="border-r border-black text-center text-[8px]">205</td>
-                      <td className="border-r border-black pl-3 font-bold uppercase">IRRF</td>
-                      <td className="border-r border-black text-center">{selectedForPrint.irrf?.toFixed(2)}%</td>
-                      <td className="border-r border-black text-right pr-3 font-bold"></td>
-                      <td className="text-right pr-3 font-bold">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.irrf))}</td>
-                    </tr>
-                  )}
-                  {[...Array(13)].map((_, i) => (
+                  {[...Array(16)].map((_, i) => (
                     <tr key={i} className="h-5">
                       <td className="border-r border-black"></td>
                       <td className="border-r border-black"></td>
@@ -416,11 +320,11 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                 <div className="flex border-b border-black h-10">
                   <div className="flex-1 p-1 border-r border-black text-center flex flex-col justify-center">
                     <p className="text-[7px] font-bold uppercase mb-0.5 leading-none text-[6px]">Total Vencimentos</p>
-                    <p className="font-black text-[10px]">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
+                    <p className="font-black text-[10px]">{formatBRL(selectedForPrint.salary || 0)}</p>
                   </div>
                   <div className="flex-1 p-1 text-center flex flex-col justify-center">
                     <p className="text-[7px] font-bold uppercase mb-0.5 leading-none text-[6px]">Total Descontos</p>
-                    <p className="font-black text-[10px]">{formatBRL(calculateDeduction(selectedForPrint.salary, (selectedForPrint.inss || 0) + (selectedForPrint.irrf || 0)))}</p>
+                    <p className="font-black text-[10px]">{formatBRL(0)}</p>
                   </div>
                 </div>
                 <div className="flex items-center h-12 bg-slate-50">
@@ -429,10 +333,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                   </div>
                   <div className="w-[100px] pr-2 text-right">
                     <p className="font-black text-[14px] leading-none">
-                      {formatBRL(
-                        ((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary)) - 
-                        calculateDeduction(selectedForPrint.salary, (selectedForPrint.inss || 0) + (selectedForPrint.irrf || 0))
-                      )}
+                      {formatBRL(selectedForPrint.salary || 0)}
                     </p>
                   </div>
                 </div>
@@ -441,7 +342,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
 
             <div className="grid grid-cols-6 border-t border-black bg-white text-center h-11">
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
-                <p className="text-[6px] font-bold uppercase leading-none">Salário Base</p>
+                <p className="text-[6px] font-bold uppercase leading-none">Salário</p>
                 <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
@@ -450,19 +351,19 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
               </div>
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Base Peric.</p>
-                <p className="font-black text-[8px]">{formatBRL(calculateDangerousnessValue(selectedForPrint.salary))}</p>
+                <p className="font-black text-[8px]">{formatBRL(0)}</p>
               </div>
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Base IRRF</p>
-                <p className="font-black text-[8px]">{formatBRL((selectedForPrint.salary || 0) + calculateDangerousnessValue(selectedForPrint.salary))}</p>
+                <p className="font-black text-[8px]">{formatBRL(selectedForPrint.salary || 0)}</p>
               </div>
               <div className="p-1 border-r border-black flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Vlr IRRF</p>
-                <p className="font-black text-[8px]">{formatBRL(calculateDeduction(selectedForPrint.salary, selectedForPrint.irrf))}</p>
+                <p className="font-black text-[8px]">{formatBRL(0)}</p>
               </div>
               <div className="p-1 flex flex-col justify-center gap-0.5">
                 <p className="text-[6px] font-bold uppercase leading-none">Faixa IRRF</p>
-                <p className="font-black text-[8px]">{selectedForPrint.irrf ? selectedForPrint.irrf.toFixed(1) + '%' : '0'}</p>
+                <p className="font-black text-[8px]">ISENTO</p>
               </div>
             </div>
           </div>

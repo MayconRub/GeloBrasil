@@ -44,9 +44,6 @@ export interface Employee {
   name: string;
   role: string;
   salary?: number;
-  inss?: number;
-  irrf?: number;
-  isDangerous?: boolean;
   joinedAt: string;
 }
 

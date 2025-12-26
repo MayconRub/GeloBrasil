@@ -7,13 +7,16 @@ import {
   Pencil, 
   ChevronLeft, 
   ChevronRight, 
-  CheckCircle,
+  CheckCircle2,
   ArrowDownLeft,
   Filter,
   Receipt,
   Clock,
   LayoutList,
-  Check
+  Check,
+  Settings,
+  X,
+  Tag
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
 
@@ -24,10 +27,11 @@ interface Props {
   employees: Employee[];
   onUpdate: (expense: Expense) => void;
   onDelete: (id: string) => void;
-  onUpdateCategories: (categories: string[]) => void;
+  onUpdateCategories: (categoryName: string) => void;
+  onDeleteCategory: (categoryName: string) => void;
 }
 
-const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelete }) => {
+const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelete, onUpdateCategories, onDeleteCategory }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -40,6 +44,10 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelet
   const [category, setCategory] = useState(categories[0] || 'Geral');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Estados para Gestão de Categorias
+  const [isManagingCategories, setIsManagingCategories] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
@@ -80,6 +88,13 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelet
     resetForm();
   };
 
+  const handleCreateCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    onUpdateCategories(newCategoryName.trim());
+    setNewCategoryName('');
+  };
+
   const handleEdit = (expense: Expense) => {
     setEditingId(expense.id);
     setDescription(expense.description);
@@ -115,7 +130,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelet
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="glass-card px-5 sm:px-6 py-3 rounded-2xl flex items-center gap-4 border-white">
+          <div className="glass-card px-5 sm:px-6 py-3 rounded-2xl flex items-center gap-4 border-white bg-white/50 shadow-sm border">
              <div className="bg-rose-50 p-2 rounded-xl text-rose-500">
                <ArrowDownLeft size={20} />
              </div>
@@ -136,16 +151,76 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelet
         </div>
       </header>
 
+      {/* Gerenciador de Categorias (Overlay/Modal) */}
+      {isManagingCategories && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsManagingCategories(false)}></div>
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300 p-8 border border-slate-100">
+             <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <Tag size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800 leading-none">Categorias</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gerenciar Grupos de Custo</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsManagingCategories(false)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-colors">
+                  <X size={20} />
+                </button>
+             </div>
+
+             <form onSubmit={handleCreateCategory} className="flex gap-2 mb-6">
+                <input 
+                  type="text" 
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Nova categoria..."
+                  className="flex-1 h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+                />
+                <button type="submit" className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all active:scale-90">
+                  <Plus size={20} />
+                </button>
+             </form>
+
+             <div className="space-y-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
+                {categories.map(cat => (
+                  <div key={cat} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100 group">
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{cat}</span>
+                    <button 
+                      onClick={() => onDeleteCategory(cat)}
+                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleAdd} className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        <div className="md:col-span-4 space-y-1.5">
+        <div className="md:col-span-3 space-y-1.5">
           <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Descrição da Conta</label>
           <input type="text" placeholder="Ex: Conta de Luz" value={description} onChange={e => setDescription(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-rose-50 outline-none" required />
         </div>
-        <div className="md:col-span-2 space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Categoria</label>
-          <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none">
-            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-          </select>
+        <div className="md:col-span-3 space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest flex items-center justify-between">
+            Categoria
+            <button type="button" onClick={() => setIsManagingCategories(true)} className="text-rose-400 hover:text-rose-600 transition-colors p-1">
+              <Settings size={12} />
+            </button>
+          </label>
+          <div className="relative">
+            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none appearance-none">
+              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
+               <Filter size={14} />
+            </div>
+          </div>
         </div>
         <div className="md:col-span-2 space-y-1.5">
           <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Valor</label>
@@ -253,7 +328,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelet
                   <td className="px-6 py-3 text-center">
                     <div className="flex justify-center gap-2 transition-all">
                       {e.status !== ExpenseStatus.PAGO && (
-                        <button onClick={() => handleMarkAsPaid(e)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle size={14} /></button>
+                        <button onClick={() => handleMarkAsPaid(e)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle2 size={14} /></button>
                       )}
                       <button onClick={() => handleEdit(e)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
                       <button onClick={() => onDelete(e.id)} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
