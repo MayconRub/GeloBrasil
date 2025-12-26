@@ -14,26 +14,28 @@ export interface AppData {
 
 export const fetchSettings = async (): Promise<AppSettings> => {
   try {
-    const { data: settings } = await supabase.from('configuracoes').select('*').single();
+    const { data: settings, error } = await supabase.from('configuracoes').select('*').single();
+    if (error || !settings) throw new Error('Settings not found');
+    
     return {
-      companyName: settings?.nome_empresa || 'Gestor Pro',
-      cnpj: settings?.cnpj || '',
-      address: settings?.endereco || '',
-      primaryColor: settings?.cor_primaria || '#4f46e5',
-      logoId: settings?.logo_id || 'LayoutGrid',
-      loginHeader: settings?.login_header || 'Login Corporativo',
-      supportPhone: settings?.support_phone || '',
-      footerText: settings?.footer_text || '',
-      expirationDate: settings?.data_expiracao || '2099-12-31',
-      hiddenViews: settings?.paginas_ocultas || [],
-      dashboardNotice: settings?.aviso_dashboard || '' 
+      companyName: settings.nome_empresa || 'Gestor Pro',
+      cnpj: settings.cnpj || '',
+      address: settings.endereco || '',
+      primaryColor: settings.cor_primaria || '#4f46e5',
+      logoId: settings.logo_id || 'LayoutGrid',
+      loginHeader: settings.login_header || 'Acesso Restrito',
+      supportPhone: settings.support_phone || '',
+      footerText: settings.footer_text || '',
+      expirationDate: settings.data_expiracao || '2099-12-31',
+      hiddenViews: settings.paginas_ocultas || [],
+      dashboardNotice: settings.aviso_dashboard || '' 
     };
   } catch (e) {
     return {
       companyName: 'Gestor Pro',
       primaryColor: '#4f46e5',
       logoId: 'LayoutGrid',
-      loginHeader: 'Login Corporativo',
+      loginHeader: 'Acesso Restrito',
       supportPhone: '',
       footerText: '',
       expirationDate: '2099-12-31',

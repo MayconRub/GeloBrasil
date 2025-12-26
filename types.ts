@@ -63,4 +63,4 @@ export interface AppSettings {
   dashboardNotice?: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'cashflow';

@@ -3,20 +3,29 @@ import React, { useMemo, useState } from 'react';
 import { 
   AlertCircle, 
   Receipt,
-  FileText,
   ChevronLeft,
   ChevronRight,
-  ArrowDownLeft,
-  ArrowUpRight,
   Scale,
   Clock,
-  AlertTriangle,
   Snowflake,
   TrendingUp,
   Calendar,
   CheckCircle2,
   Megaphone,
-  Bell
+  Bell,
+  BarChart3,
+  Zap,
+  QrCode,
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  Activity,
+  Target,
+  ArrowRight,
+  ArrowUpRight,
+  ArrowDownLeft,
+  CircleDollarSign,
+  Coins
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
@@ -29,10 +38,36 @@ interface Props {
   production: Production[];
   hiddenViews: string[];
   dashboardNotice?: string;
+  expirationDate?: string;
   onSwitchView: (view: ViewType) => void;
+  onOpenPayment?: () => void;
 }
 
-const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenViews, dashboardNotice, onSwitchView }) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 ring-1 ring-white/5">
+        <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-3 sm:mb-4 border-b border-white/5 pb-2">{label}</p>
+        <div className="space-y-3 sm:space-y-4">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-6 sm:gap-10">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)]" style={{ backgroundColor: entry.color }}></div>
+                <span className="text-[9px] sm:text-[10px] font-black text-white/80 uppercase tracking-tight">{entry.name}</span>
+              </div>
+              <span className="text-[10px] sm:text-xs font-black text-white font-mono">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenViews, dashboardNotice, expirationDate, onSwitchView, onOpenPayment }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   
   const getTodayLocal = () => {
@@ -49,6 +84,15 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenVie
   const handleResetMonth = () => setSelectedDate(new Date());
 
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  const daysUntilExpiration = useMemo(() => {
+    if (!expirationDate) return null;
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const expDate = new Date(expirationDate + 'T00:00:00');
+    const diffTime = expDate.getTime() - todayDate.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [expirationDate]);
 
   const stats = useMemo(() => {
     const filteredSales = sales.filter(s => {
@@ -97,180 +141,194 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenVie
     return data;
   }, [sales, expenses, currentMonth, currentYear]);
 
-  // Seção de visibilidade dinâmica
   const showSales = !hiddenViews.includes('sales');
   const showProduction = !hiddenViews.includes('production');
   const showExpenses = !hiddenViews.includes('expenses');
 
   return (
-    <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-10 sm:pb-20 relative">
       
-      {/* Dashboard Administrative Notice */}
-      {dashboardNotice && (
-        <div className="relative overflow-hidden bg-white border border-indigo-100 p-6 rounded-[2rem] shadow-xl shadow-indigo-100/30 flex flex-col md:flex-row items-center gap-6 group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
-            <Megaphone size={120} />
-          </div>
-          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover:rotate-6 transition-transform">
-            <Bell size={28} className="animate-bounce" />
-          </div>
-          <div className="flex-1 text-center md:text-left">
-            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Aviso da Administração</h4>
-            <p className="text-slate-800 font-bold leading-relaxed">{dashboardNotice}</p>
+      {/* Background Decorativo */}
+      <div className="absolute top-0 left-1/4 w-40 h-40 sm:w-[500px] sm:h-[500px] bg-indigo-500/5 rounded-full blur-[60px] sm:blur-[120px] pointer-events-none -z-10"></div>
+
+      {/* Alerta de Expiração */}
+      {daysUntilExpiration !== null && daysUntilExpiration >= 0 && daysUntilExpiration <= 7 && (
+        <div className="relative group no-print">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-[1.5rem] sm:rounded-[2rem] blur opacity-20 transition duration-1000"></div>
+          <div className="relative bg-white/80 backdrop-blur-2xl border border-white/50 px-5 py-5 sm:px-8 sm:py-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-8 overflow-hidden">
+            <div className="flex items-center gap-4 sm:gap-6 relative z-10">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl sm:rounded-[1.2rem] flex items-center justify-center shrink-0 shadow-lg shadow-amber-200">
+                <Sparkles size={24} className="sm:w-6 sm:h-6" />
+              </div>
+              <div className="text-left">
+                <h4 className="font-black text-slate-900 uppercase tracking-widest text-[9px] sm:text-xs mb-0.5">Renovação Pendente</h4>
+                <p className="text-slate-500 text-[10px] sm:text-sm font-medium leading-tight">
+                  Expira em <span className="text-amber-600 font-black">{daysUntilExpiration === 0 ? 'horas' : `${daysUntilExpiration}d`}</span>. 
+                  Regularize seu acesso.
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => onOpenPayment ? onOpenPayment() : onSwitchView('admin')}
+              className="w-full md:w-auto bg-slate-900 text-white px-6 h-12 sm:h-14 rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg flex items-center justify-center gap-2"
+            >
+              <QrCode size={16} /> Renovar
+            </button>
           </div>
         </div>
       )}
 
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-             <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Status Geral</span>
+      {/* Header */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
+        <div className="space-y-1 sm:space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 bg-indigo-50 border border-indigo-100 rounded-full">
+             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+             <span className="text-[8px] sm:text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em]">Visão Geral</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tighter">Performance</h2>
-          <p className="text-slate-400 font-medium mt-1 text-base sm:text-lg">Resultados de <span className="text-indigo-600 font-bold bg-indigo-50 px-3 py-0.5 rounded-full">{monthName}</span></p>
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none">Minha <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-sky-500">Operação</span></h2>
         </div>
         
-        <div className="flex items-center bg-white border border-slate-200 rounded-[1.5rem] sm:rounded-[2rem] p-1 shadow-xl shadow-slate-200/50 w-full sm:w-auto overflow-hidden">
-          <button onClick={handlePrevMonth} className="p-3 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
-          <button onClick={handleResetMonth} className="flex-1 px-4 py-2 flex flex-col items-center hover:bg-slate-50 rounded-xl transition-all min-w-[120px]">
-            <span className="text-[11px] sm:text-sm font-black text-slate-900 capitalize tracking-tight whitespace-nowrap">{monthName}</span>
+        <div className="flex items-center bg-white/80 backdrop-blur-md border border-slate-200 rounded-[1.5rem] sm:rounded-[2rem] p-1 shadow-lg shadow-slate-200/30 w-full sm:w-auto">
+          <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 active:scale-90"><ChevronLeft size={18} /></button>
+          <button onClick={handleResetMonth} className="flex-1 px-4 py-1 flex flex-col items-center">
+            <span className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-widest truncate">{monthName}</span>
           </button>
-          <button onClick={handleNextMonth} className="p-3 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
+          <button onClick={handleNextMonth} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 active:scale-90"><ChevronRight size={18} /></button>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-8">
+      {/* Grid de Métricas Hero */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {showSales && (
-          <StatCard 
-            title="Vendas Hoje" 
-            value={stats.todaySales} 
-            icon={<ArrowUpRight size={20} />} 
-            variant="emerald"
-            subtitle="Geral"
+          <HeroStatCard 
+            title="Vendas Hoje"
+            value={stats.todaySales}
+            icon={<TrendingUp />}
+            gradient="from-emerald-500 to-teal-600"
             isCurrency
           />
         )}
         {showProduction && (
-          <StatCard 
-            title="Produção" 
-            value={stats.todayProd} 
-            icon={<Snowflake size={20} />} 
-            variant="sky"
-            subtitle="KG Hoje"
+          <HeroStatCard 
+            title="Produção"
+            value={stats.todayProd}
+            icon={<Snowflake />}
+            gradient="from-sky-500 to-indigo-600"
             suffix=" KG"
           />
         )}
+        {showExpenses && stats.overdueCount > 0 && (
+          <HeroStatCard 
+            title="Pendências"
+            value={stats.overdueValue}
+            icon={<AlertCircle />}
+            gradient="from-rose-500 to-pink-600"
+            isCurrency
+            isAlert
+            onClick={() => onSwitchView('expenses')}
+          />
+        )}
+      </section>
+
+      {/* Grid Secundário */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        {showSales && (
+          <GlassStatCard 
+            title="Total Vendas" 
+            value={stats.monthSales} 
+            icon={<Coins className="text-indigo-500" />} 
+            isCurrency
+          />
+        )}
         {showExpenses && (
-          <StatCard 
-            title="Saídas Mês" 
+          <GlassStatCard 
+            title="Total Custos" 
             value={stats.monthExpenses} 
-            icon={<ArrowDownLeft size={20} />} 
-            variant="rose"
-            subtitle="Registrado"
+            icon={<ArrowDownLeft className="text-rose-500" />} 
             isCurrency
           />
         )}
         {(showSales || showExpenses) && (
-          <StatCard 
+          <GlassStatCard 
             title="Lucro" 
             value={stats.netProfit} 
-            icon={<Scale size={20} />} 
-            variant={stats.netProfit >= 0 ? "indigo" : "rose"}
-            subtitle="Líquido"
+            icon={<Scale className={stats.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"} />} 
             isCurrency
           />
         )}
-        {showExpenses && (
-          <StatCard 
-            title="Vencido" 
-            value={stats.overdueValue} 
-            icon={<AlertCircle size={20} />} 
-            variant="amber"
-            subtitle="A pagar"
-            isCurrency
-            isAlert={stats.overdueCount > 0}
-            className="col-span-2 xl:col-span-1"
+        {showProduction && (
+          <GlassStatCard 
+            title="Mês (KG)" 
+            value={stats.monthProd} 
+            icon={<Target className="text-sky-500" />} 
+            suffix=" KG"
           />
         )}
       </div>
 
-      <div className={`grid grid-cols-1 ${showExpenses ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8 sm:gap-10`}>
-        <div className={`${showExpenses ? 'lg:col-span-2' : ''} bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden`}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+      {/* Analytics Center */}
+      <div className={`grid grid-cols-1 ${showExpenses ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-6 sm:gap-8`}>
+        <div className={`${showExpenses ? 'lg:col-span-2' : ''} bg-white/60 backdrop-blur-3xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border border-white shadow-xl relative overflow-hidden group`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-10 relative z-10">
             <div>
-              <h3 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Tendências</h3>
-              <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Fluxo Diário</p>
+              <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Analytics</p>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">Fluxo Operacional</h3>
             </div>
-            <div className="flex items-center gap-4 sm:gap-8 bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100 self-start sm:self-auto">
-              {showSales && <LegendItem color="bg-emerald-500" label="Vendas" />}
-              {showExpenses && <LegendItem color="bg-rose-500" label="Custos" />}
+            <div className="flex items-center gap-3 p-2 bg-white/80 rounded-2xl border border-slate-100 self-start sm:self-auto">
+              {showSales && <ChartLegend color="#6366f1" label="Vendas" />}
+              {showExpenses && <ChartLegend color="#f43f5e" label="Custos" />}
             </div>
           </div>
           
-          <div className="h-64 sm:h-96 w-full">
+          <div className="h-56 sm:h-[350px] w-full relative z-10 -ml-4 sm:ml-0">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  <linearGradient id="premiumSales" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                   </linearGradient>
-                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  <linearGradient id="premiumExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} 
-                />
-                <Tooltip 
-                  cursor={{stroke: '#e2e8f0', strokeWidth: 1}}
-                  contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.1)', padding: '15px'}} 
-                  itemStyle={{fontSize: '11px', fontWeight: '800'}}
-                />
-                {showSales && <Area type="monotone" dataKey="vendas" stroke="#10b981" strokeWidth={3} fill="url(#colorSales)" />}
-                {showExpenses && <Area type="monotone" dataKey="despesas" stroke="#ef4444" strokeWidth={3} fill="url(#colorExpenses)" />}
+                <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 800}} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 800}} />
+                <Tooltip content={<CustomTooltip />} cursor={{stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4'}} />
+                {showSales && <Area type="monotone" dataKey="vendas" stroke="#6366f1" strokeWidth={4} fill="url(#premiumSales)" activeDot={{ r: 6 }} />}
+                {showExpenses && <Area type="monotone" dataKey="despesas" stroke="#f43f5e" strokeWidth={4} fill="url(#premiumExpenses)" activeDot={{ r: 6 }} />}
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {showExpenses && (
-          <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col">
-            <div className="flex items-center justify-between mb-8">
+          <div className="bg-slate-900 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-6 sm:mb-8 relative z-10">
               <div>
-                <h3 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Próximas</h3>
-                <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pendências</p>
+                <p className="text-[8px] sm:text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-0.5">Financial</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tighter">Próximos</h3>
               </div>
-              <button onClick={() => onSwitchView('expenses')} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
-                <Calendar size={18} />
+              <button onClick={() => onSwitchView('expenses')} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90">
+                <ArrowRight size={18} />
               </button>
             </div>
             
-            <div className="space-y-3 overflow-y-auto max-h-[400px] sm:max-h-[500px] pr-1 custom-scrollbar">
+            <div className="space-y-3 sm:space-y-4 overflow-y-auto max-h-[300px] sm:max-h-none pr-1 custom-scrollbar relative z-10 flex-1">
               {expenses.filter(e => e.status !== ExpenseStatus.PAGO).length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-20 opacity-20">
-                  <CheckCircle2 size={40} className="text-slate-400 mb-4" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Fluxo Limpo</p>
+                <div className="h-40 flex flex-col items-center justify-center text-center opacity-30 text-white">
+                  <CheckCircle2 size={32} className="mb-2" />
+                  <p className="text-[9px] font-black uppercase tracking-widest">Sem Pendências</p>
                 </div>
               ) : (
                 expenses
                   .filter(e => e.status !== ExpenseStatus.PAGO)
                   .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-                  .slice(0, 8)
+                  .slice(0, 6)
                   .map(expense => (
-                    <ExpenseItem key={expense.id} expense={expense} today={today} />
+                    <DarkExpenseItem key={expense.id} expense={expense} today={today} />
                   ))
               )}
             </div>
@@ -281,63 +339,79 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenVie
   );
 };
 
-const StatCard = ({ title, value, icon, variant, subtitle, isAlert, isCurrency, suffix, className }: any) => {
-  const colors: any = {
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', shadow: 'shadow-emerald-200/20' },
-    sky: { bg: 'bg-sky-50', text: 'text-sky-600', shadow: 'shadow-sky-200/20' },
-    rose: { bg: 'bg-rose-50', text: 'text-rose-600', shadow: 'shadow-rose-200/20' },
-    indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', shadow: 'shadow-indigo-200/20' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-600', shadow: 'shadow-amber-200/20' },
-  };
-  const color = colors[variant] || colors.indigo;
-
+// Componente de Card Hero
+const HeroStatCard = ({ title, value, icon, gradient, isCurrency, suffix, isAlert, onClick }: any) => {
   return (
-    <div className={`p-4 sm:p-7 bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-50 shadow-lg ${color.shadow} hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group relative overflow-hidden ${className || ''}`}>
-      <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl sm:rounded-[1.5rem] ${color.bg} flex items-center justify-center mb-4 sm:mb-6 transition-transform group-hover:scale-110 duration-500`}>
-        <div className={`${color.text}`}>{icon}</div>
+    <div 
+      onClick={onClick}
+      className={`relative group overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-8 sm:h-44 flex flex-col justify-center shadow-xl transition-all duration-500 ${onClick ? 'cursor-pointer hover:-translate-y-2 active:scale-95' : 'hover:-translate-y-1'}`}
+    >
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-95`}></div>
+      <div className="absolute top-0 right-0 p-4 sm:p-6 text-white/10 group-hover:scale-110 transition-transform duration-700">
+        {React.cloneElement(icon, { size: window.innerWidth < 640 ? 60 : 80 })}
       </div>
       
-      {isAlert && <div className="absolute top-6 right-6 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border-2 border-white"></span></div>}
-      
-      <p className="text-[8px] sm:text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">{title}</p>
-      <h4 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tighter leading-none mb-3 truncate">
-        {isCurrency 
-          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-          : `${value.toLocaleString('pt-BR')}${suffix || ''}`}
-      </h4>
-      <div className="pt-3 border-t border-slate-50 flex items-center gap-1.5 overflow-hidden">
-        <TrendingUp size={12} className={value >= 0 ? "text-emerald-500" : "text-rose-500"} />
-        <span className="text-[9px] font-bold text-slate-400 truncate tracking-tight">{subtitle}</span>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[8px] sm:text-[10px] font-black text-white/70 uppercase tracking-[0.3em]">{title}</p>
+          {isAlert && <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></div>}
+        </div>
+        <h4 className="text-xl sm:text-4xl font-black text-white tracking-tighter leading-none">
+          {isCurrency 
+            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+            : `${value.toLocaleString('pt-BR')}${suffix || ''}`}
+        </h4>
+        {onClick && (
+          <p className="text-[7px] sm:text-[9px] font-black text-white/50 uppercase tracking-widest mt-2 sm:mt-4 hidden sm:block">
+            Ver detalhes <ArrowRight size={10} className="inline ml-1" />
+          </p>
+        )}
       </div>
     </div>
   );
 };
 
-const ExpenseItem = ({ expense, today }: any) => {
+// Componente de Card Glass Slim
+const GlassStatCard = ({ title, value, icon, isCurrency, suffix }: any) => {
+  return (
+    <div className="bg-white/70 backdrop-blur-xl p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[2rem] border border-white shadow-md hover:shadow-lg transition-all duration-500 group">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
+           {React.cloneElement(icon, { size: window.innerWidth < 640 ? 16 : 18 })}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{title}</p>
+        </div>
+      </div>
+      
+      <h4 className="text-xs sm:text-xl font-black text-slate-900 tracking-tighter truncate">
+        {isCurrency 
+          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value)
+          : `${value.toLocaleString('pt-BR')}${suffix || ''}`}
+      </h4>
+    </div>
+  );
+};
+
+const DarkExpenseItem = ({ expense, today }: any) => {
   const isOverdue = expense.dueDate < today;
   const isToday = expense.dueDate === today;
   
-  let statusClass = "bg-sky-50 text-sky-600 border-sky-100";
-  if (isOverdue) statusClass = "bg-rose-50 text-rose-600 border-rose-100";
-  if (isToday) statusClass = "bg-amber-50 text-amber-600 border-amber-100";
-
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-slate-50 rounded-[1.5rem] sm:rounded-[2rem] hover:border-indigo-100 transition-all duration-300 group">
-      <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-        <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl sm:rounded-[1.2rem] flex items-center justify-center border transition-colors ${statusClass}`}>
-          <Receipt size={18} />
+    <div className="flex items-center justify-between p-3 sm:p-4 bg-white/5 border border-white/5 rounded-2xl sm:rounded-2xl hover:bg-white/10 transition-all duration-300">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-xl flex items-center justify-center shrink-0 border border-white/10 ${isOverdue ? 'bg-rose-500/10 text-rose-500' : isToday ? 'bg-amber-500/10 text-amber-500' : 'bg-indigo-500/10 text-indigo-400'}`}>
+          <Receipt size={window.innerWidth < 640 ? 16 : 18} />
         </div>
-        <div className="truncate">
-          <p className="text-xs sm:text-sm font-black text-slate-800 truncate leading-tight mb-1">{expense.description}</p>
-          <div className="flex items-center gap-2">
-            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${statusClass}`}>
-              {isOverdue ? 'Vencido' : isToday ? 'Hoje' : `Vence ${new Date(expense.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}`}
-            </span>
-          </div>
+        <div className="min-w-0">
+          <p className="text-[10px] sm:text-[11px] font-black text-white/90 truncate mb-0.5">{expense.description}</p>
+          <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${isOverdue ? 'text-rose-400' : 'text-slate-500'}`}>
+             {isOverdue ? 'Vencido' : `Vence ${new Date(expense.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}`}
+          </p>
         </div>
       </div>
       <div className="text-right ml-2 shrink-0">
-        <p className="text-xs sm:text-base font-black text-slate-900 tracking-tighter">
+        <p className="text-[10px] sm:text-xs font-black text-white tracking-tighter">
           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.value)}
         </p>
       </div>
@@ -345,10 +419,10 @@ const ExpenseItem = ({ expense, today }: any) => {
   );
 };
 
-const LegendItem = ({ color, label }: any) => (
-  <div className="flex items-center gap-2">
-    <div className={`w-2 h-2 rounded-full ${color}`}></div>
-    <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+const ChartLegend = ({ color, label }: any) => (
+  <div className="flex items-center gap-1.5 sm:gap-2">
+    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" style={{ backgroundColor: color }}></div>
+    <span className="text-[7px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tight">{label}</span>
   </div>
 );
 
