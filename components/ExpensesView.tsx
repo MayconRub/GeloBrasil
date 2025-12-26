@@ -22,11 +22,12 @@ interface Props {
   categories: string[];
   vehicles: Vehicle[];
   employees: Employee[];
-  onUpdate: (expenses: Expense[]) => void;
+  onUpdate: (expense: Expense) => void;
+  onDelete: (id: string) => void;
   onUpdateCategories: (categories: string[]) => void;
 }
 
-const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate }) => {
+const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate, onDelete }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -54,7 +55,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate }) => {
   const handleResetMonth = () => setSelectedDate(new Date());
 
   const handleMarkAsPaid = (expense: Expense) => {
-    onUpdate(expenses.map(exp => exp.id === expense.id ? { ...exp, status: ExpenseStatus.PAGO } : exp));
+    onUpdate({ ...expense, status: ExpenseStatus.PAGO });
   };
 
   const handleAdd = (e: React.FormEvent) => {
@@ -63,13 +64,19 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate }) => {
     if (!description || isNaN(numericValue) || !dueDate) return;
     
     const today = getTodayString();
-    if (editingId) {
-      onUpdate(expenses.map(exp => exp.id === editingId ? { ...exp, description, value: numericValue, dueDate, category } : exp));
-      setEditingId(null);
-    } else {
-      const status = dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER;
-      onUpdate([{ id: crypto.randomUUID(), description, value: numericValue, dueDate, status, category }, ...expenses]);
-    }
+    const status = editingId 
+      ? expenses.find(x => x.id === editingId)?.status || (dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER)
+      : (dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER);
+
+    onUpdate({ 
+      id: editingId || crypto.randomUUID(), 
+      description, 
+      value: numericValue, 
+      dueDate, 
+      status, 
+      category 
+    });
+    
     resetForm();
   };
 
@@ -195,7 +202,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate }) => {
                    <button onClick={() => handleEdit(e)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl">
                       <Pencil size={16} />
                    </button>
-                   <button onClick={() => onUpdate(expenses.filter(x => x.id !== e.id))} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl">
+                   <button onClick={() => onDelete(e.id)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl">
                       <Trash2 size={16} />
                    </button>
                 </div>
@@ -249,7 +256,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate }) => {
                         <button onClick={() => handleMarkAsPaid(e)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle size={14} /></button>
                       )}
                       <button onClick={() => handleEdit(e)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
-                      <button onClick={() => onUpdate(expenses.filter(x => x.id !== e.id))} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
+                      <button onClick={() => onDelete(e.id)} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>

@@ -68,12 +68,19 @@ export const fetchAllData = async (): Promise<AppData> => {
   };
 };
 
-// Funções de sincronização simplificadas e robustas
+// Funções de Sincronização (Upsert)
 export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value }, { onConflict: 'tipo,mes,ano' });
 export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName, cnpj: s.cnpj, endereco: s.address, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly });
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description });
-export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantidade_kg: p.quantityKg, data: p.date, observacao: p.observation });
+export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation });
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description, valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category, veiculo_id: e.vehicleId, funcionario_id: e.employeeId });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name, cargo: e.role, salario: e.salary, inss: e.inss, fgts: e.irrf, periculosidade: !!e.isDangerous, data_admissao: e.joinedAt });
 export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({ id: v.id, nome: v.name, placa: v.plate, ano_modelo: v.modelYear });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome });
+
+// Funções de Exclusão (Delete)
+export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
+export const deleteExpense = (id: string) => supabase.from('despesas').delete().eq('id', id);
+export const deleteProduction = (id: string) => supabase.from('producao').delete().eq('id', id);
+export const deleteEmployee = (id: string) => supabase.from('funcionarios').delete().eq('id', id);
+export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);

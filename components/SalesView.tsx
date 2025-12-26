@@ -23,13 +23,14 @@ import { Sale, AppSettings, MonthlyGoal } from '../types';
 
 interface Props {
   sales: Sale[];
-  onUpdate: (sales: Sale[]) => void;
+  onUpdate: (sale: Sale) => void;
+  onDelete: (id: string) => void;
   settings?: AppSettings;
   monthlyGoals: MonthlyGoal[];
   onUpdateMonthlyGoal: (goal: MonthlyGoal) => void;
 }
 
-const SalesView: React.FC<Props> = ({ sales, onUpdate, settings, monthlyGoals, onUpdateMonthlyGoal }) => {
+const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, monthlyGoals, onUpdateMonthlyGoal }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -71,11 +72,15 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, settings, monthlyGoals, o
     e.preventDefault();
     const numericValue = parseFloat(value);
     if (!description || isNaN(numericValue)) return;
-    if (editingId) {
-      onUpdate(sales.map(s => s.id === editingId ? { ...s, description, value: numericValue, date } : s));
-    } else {
-      onUpdate([{ id: crypto.randomUUID(), description, value: numericValue, date }, ...sales]);
-    }
+    
+    const saleData = { 
+      id: editingId || crypto.randomUUID(), 
+      description, 
+      value: numericValue, 
+      date 
+    };
+    
+    onUpdate(saleData);
     resetForm();
   };
 
@@ -286,7 +291,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, settings, monthlyGoals, o
                  <button onClick={() => handleEdit(sale)} className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
                    <Pencil size={14} /> Editar
                  </button>
-                 <button onClick={() => onUpdate(sales.filter(s => s.id !== sale.id))} className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                 <button onClick={() => onDelete(sale.id)} className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
                    <Trash2 size={14} /> Excluir
                  </button>
               </div>
@@ -326,7 +331,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, settings, monthlyGoals, o
                   <td className="px-6 py-3 text-center">
                     <div className="flex justify-center gap-2 transition-all">
                       <button onClick={() => handleEdit(sale)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
-                      <button onClick={() => onUpdate(sales.filter(s => s.id !== sale.id))} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
+                      <button onClick={() => onDelete(sale.id)} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
