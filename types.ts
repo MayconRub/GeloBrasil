@@ -36,7 +36,16 @@ export interface Expense {
   category: string;
   vehicleId?: string;
   employeeId?: string;
+  kmReading?: number;
   observation?: string;
+}
+
+export interface KmLog {
+  id: string;
+  veiculo_id: string;
+  km_reading: number;
+  data: string;
+  funcionario_id?: string;
 }
 
 export interface Employee {
@@ -52,6 +61,14 @@ export interface Vehicle {
   name: string;
   plate: string;
   modelYear: string;
+  kmAtual?: number;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  created_at: string;
+  last_login?: string;
 }
 
 export interface AppSettings {
@@ -70,6 +87,8 @@ export interface AppSettings {
   productionGoalMonthly?: number;
   salesGoalDaily?: number;
   salesGoalMonthly?: number;
+  adminEmail?: string;
+  adminPassword?: string;
 }
 
 export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'cashflow';
