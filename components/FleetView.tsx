@@ -5,17 +5,16 @@ import { Vehicle } from '../types';
 
 interface Props {
   vehicles: Vehicle[];
-  onUpdate: (vehicles: Vehicle[]) => void;
+  onUpdate: (vehicle: Vehicle) => void;
+  onDelete: (id: string) => void;
 }
 
-const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
+const FleetView: React.FC<Props> = ({ vehicles, onUpdate, onDelete }) => {
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
   const [year, setYear] = useState('');
 
   const handlePlateChange = (val: string) => {
-    // Remove qualquer coisa que não seja letra, número ou hífen
-    // E limita a 8 caracteres (padrão antigo com hífen)
     const sanitized = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     if (sanitized.length <= 8) {
       setPlate(sanitized);
@@ -26,21 +25,16 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
     e.preventDefault();
     if (!name || !plate) return;
 
-    const newVeh: Vehicle = {
+    onUpdate({
       id: crypto.randomUUID(),
       name,
       plate: plate.trim(),
       modelYear: year || 'N/A'
-    };
-
-    onUpdate([...vehicles, newVeh]);
+    });
+    
     setName('');
     setPlate('');
     setYear('');
-  };
-
-  const handleDelete = (id: string) => {
-    onUpdate(vehicles.filter(v => v.id !== id));
   };
 
   return (
@@ -130,7 +124,7 @@ const FleetView: React.FC<Props> = ({ vehicles, onUpdate }) => {
                         <td className="px-6 py-4 text-xs font-bold text-slate-500">{v.modelYear}</td>
                         <td className="px-6 py-4 text-center">
                           <button 
-                            onClick={() => handleDelete(v.id)}
+                            onClick={() => onDelete(v.id)}
                             className="p-2 text-slate-300 hover:text-rose-500 bg-slate-50 rounded-xl transition-all"
                           >
                             <Trash2 size={18} />

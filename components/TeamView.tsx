@@ -19,11 +19,12 @@ import { fetchSettings } from '../store';
 
 interface Props {
   employees: Employee[];
-  onUpdate: (employees: Employee[]) => void;
+  onUpdate: (employee: Employee) => void;
+  onDelete: (id: string) => void;
   companyName?: string;
 }
 
-const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName: initialCompanyName }) => {
+const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName: initialCompanyName }) => {
   const [settings, setSettings] = useState<Partial<AppSettings>>({
     companyName: initialCompanyName || 'Gelo Brasil',
     cnpj: '',
@@ -87,44 +88,18 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName: initialCo
     
     if (!name || !role || !joinedAt) return;
 
-    if (editingId) {
-      const updatedEmployees = employees.map(emp => 
-        emp.id === editingId 
-          ? { 
-              ...emp, 
-              name, 
-              role, 
-              salary: numericSalary, 
-              inss: numericInssPercent, 
-              irrf: numericIrrfPercent, 
-              isDangerous, 
-              joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() 
-            }
-          : emp
-      );
-      onUpdate(updatedEmployees);
-    } else {
-      const newEmp: Employee = {
-        id: crypto.randomUUID(),
-        name,
-        role,
-        salary: numericSalary,
-        inss: numericInssPercent,
-        irrf: numericIrrfPercent,
-        isDangerous,
-        joinedAt: new Date(joinedAt + 'T00:00:00').toISOString()
-      };
-      onUpdate([...employees, newEmp]);
-    }
+    onUpdate({ 
+      id: editingId || crypto.randomUUID(), 
+      name, 
+      role, 
+      salary: numericSalary, 
+      inss: numericInssPercent, 
+      irrf: numericIrrfPercent, 
+      isDangerous, 
+      joinedAt: new Date(joinedAt + 'T00:00:00').toISOString() 
+    });
     
     resetForm();
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Deseja realmente excluir este colaborador?')) {
-      onUpdate(employees.filter(e => e.id !== id));
-      if (editingId === id) resetForm();
-    }
   };
 
   const handlePrintPaySlip = (emp: Employee) => {
@@ -223,7 +198,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName: initialCo
                       type="checkbox" 
                       checked={isDangerous}
                       onChange={(e) => setIsDangerous(e.target.checked)}
-                      className="w-5 h-5 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300 transition-all"
+                      className="w-5 h-5 rounded-md text-indigo-600 focus:ring-indigo-50 border-slate-300 transition-all"
                     />
                     <div className="flex-1">
                       <p className="text-xs font-bold text-slate-700">Periculosidade (30%)</p>
@@ -309,7 +284,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, companyName: initialCo
                     <div className="flex gap-1">
                       <button onClick={() => handleEdit(emp)} className="p-2 text-slate-400 hover:text-amber-600 rounded-xl transition-all"><Pencil size={18} /></button>
                       <button onClick={() => handlePrintPaySlip(emp)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl transition-all"><Printer size={18} /></button>
-                      <button onClick={() => handleDelete(emp.id)} className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={18} /></button>
+                      <button onClick={() => onDelete(emp.id)} className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={18} /></button>
                     </div>
                   </div>
 

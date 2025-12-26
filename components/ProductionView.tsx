@@ -22,14 +22,15 @@ import { Production, AppSettings, MonthlyGoal } from '../types';
 
 interface Props {
   production: Production[];
-  onUpdate: (production: Production[]) => void;
+  onUpdate: (production: Production) => void;
+  onDelete: (id: string) => void;
   monthlyGoals: MonthlyGoal[];
   onUpdateMonthlyGoal: (goal: MonthlyGoal) => void;
   settings: AppSettings;
   onUpdateSettings: (settings: AppSettings) => void;
 }
 
-const ProductionView: React.FC<Props> = ({ production, onUpdate, monthlyGoals, onUpdateMonthlyGoal, settings, onUpdateSettings }) => {
+const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, monthlyGoals, onUpdateMonthlyGoal, settings, onUpdateSettings }) => {
   const getTodayString = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -71,12 +72,13 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, monthlyGoals, o
     const numericQuantity = parseFloat(quantity);
     if (isNaN(numericQuantity) || !date) return;
 
-    if (editingId) {
-      onUpdate(production.map(p => p.id === editingId ? { ...p, quantityKg: numericQuantity, date, observation } : p));
-      setEditingId(null);
-    } else {
-      onUpdate([{ id: crypto.randomUUID(), quantityKg: numericQuantity, date, observation }, ...production]);
-    }
+    onUpdate({ 
+      id: editingId || crypto.randomUUID(), 
+      quantityKg: numericQuantity, 
+      date, 
+      observation 
+    });
+    
     resetForm();
   };
 
@@ -283,7 +285,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, monthlyGoals, o
                          <button onClick={() => handleEdit(p)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl">
                             <Pencil size={16} />
                          </button>
-                         <button onClick={() => onUpdate(production.filter(x => x.id !== p.id))} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl">
+                         <button onClick={() => onDelete(p.id)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl">
                             <Trash2 size={16} />
                          </button>
                        </div>
@@ -333,7 +335,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, monthlyGoals, o
                           <button onClick={() => handleEdit(p)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => onUpdate(production.filter(x => x.id !== p.id))} className="p-2.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
+                          <button onClick={() => onDelete(p.id)} className="p-2.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
                             <Trash2 size={16} />
                           </button>
                         </div>
