@@ -1,27 +1,19 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   Trash2, 
-  CheckCircle2, 
   Search, 
-  Settings2, 
-  X, 
-  Truck, 
-  AlertCircle, 
-  StickyNote, 
-  Tag, 
   Pencil, 
-  Users, 
   ChevronLeft, 
   ChevronRight, 
-  Printer, 
-  Calendar,
-  Share2,
-  Loader2,
-  BellRing,
   CheckCircle,
-  ArrowDownLeft
+  ArrowDownLeft,
+  Filter,
+  Receipt,
+  Clock,
+  LayoutList,
+  Check
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
 
@@ -34,10 +26,7 @@ interface Props {
   onUpdateCategories: (categories: string[]) => void;
 }
 
-const CLIENT_ID = '656844677630-1f5erne75a5svu8js73dn4bqteoomgbp.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-
-const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employees, onUpdate, onUpdateCategories }) => {
+const ExpensesView: React.FC<Props> = ({ expenses, categories, onUpdate }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -47,140 +36,16 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
-  const [category, setCategory] = useState(categories[0] || 'Outros');
-  const [newCategoryInput, setNewCategoryInput] = useState('');
-  const [observation, setObservation] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [category, setCategory] = useState(categories[0] || 'Geral');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const [tokenClient, setTokenClient] = useState<any>(null);
-  const [isGoogleAuthorized, setIsGoogleAuthorized] = useState(false);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [isTestingAlarm, setIsTestingAlarm] = useState(false);
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  useEffect(() => {
-    const initGapi = () => {
-      if (!(window as any).gapi) return;
-      (window as any).gapi.load('client', async () => {
-        try {
-          await (window as any).gapi.client.init({
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
-          });
-        } catch (err) { console.error(err); }
-      });
-    };
-
-    const initGis = () => {
-      if (!(window as any).google) return;
-      const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (response: any) => {
-          if (response.error !== undefined) {
-            alert('Erro de permissão: Cadastre seu e-mail como Usuário de Teste no Google Cloud.');
-            return;
-          }
-          setIsGoogleAuthorized(true);
-        },
-      });
-      setTokenClient(client);
-    };
-
-    if (typeof (window as any).gapi !== 'undefined') initGapi();
-    if (typeof (window as any).google !== 'undefined') initGis();
-  }, []);
-
-  const handleGoogleAuth = () => {
-    if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
-  };
-
-  const testAlarmNow = async () => {
-    if (!isGoogleAuthorized) {
-      handleGoogleAuth();
-      return;
-    }
-
-    setIsTestingAlarm(true);
-    try {
-      const now = new Date();
-      const startTime = new Date(now.getTime() + 5 * 60000); 
-      const endTime = new Date(now.getTime() + 35 * 60000);
-
-      const event = {
-        'summary': '🚀 TESTE DE ALARME GESTOR PRO',
-        'description': 'Se você está vendo isso, a sincronização está funcionando!',
-        'start': { 'dateTime': startTime.toISOString() },
-        'end': { 'dateTime': endTime.toISOString() },
-        'reminders': {
-          'useDefault': false,
-          'overrides': [
-            { 'method': 'popup', 'minutes': 4 }
-          ]
-        }
-      };
-
-      const request = (window as any).gapi.client.calendar.events.insert({
-        'calendarId': 'primary',
-        'resource': event
-      });
-
-      request.execute((event: any) => {
-        if (event.id) {
-          alert('SUCESSO! Evento criado para daqui a 5 min. O alarme deve tocar em 1 MINUTO no seu celular. Verifique se as notificações do Google Agenda estão ligadas no Android/iPhone.');
-        }
-        setIsTestingAlarm(false);
-      });
-    } catch (error) {
-      alert('Erro no teste.');
-      setIsTestingAlarm(false);
-    }
-  };
-
-  const syncToGoogleCalendar = async (expense: Expense) => {
-    if (!isGoogleAuthorized) {
-      handleGoogleAuth();
-      return;
-    }
-
-    setSyncingId(expense.id);
-    try {
-      const event = {
-        'summary': `💰 Pagar: ${expense.description}`,
-        'description': `Valor: R$ ${expense.value.toFixed(2)} - Categoria: ${expense.category}`,
-        'start': { 'date': expense.dueDate },
-        'end': { 'date': expense.dueDate },
-        'reminders': {
-          'useDefault': false,
-          'overrides': [{ 'method': 'popup', 'minutes': 1440 }]
-        }
-      };
-
-      const request = (window as any).gapi.client.calendar.events.insert({
-        'calendarId': 'primary',
-        'resource': event
-      });
-
-      request.execute((event: any) => {
-        if (event.id) alert('Sincronizado!');
-        setSyncingId(null);
-      });
-    } catch (error) {
-      setSyncingId(null);
-    }
-  };
-
-  const handlePrint = () => window.print();
-
   const handleValueChange = (val: string) => {
     const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
-    const parts = sanitized.split('.');
-    if (parts.length > 2) return;
     setValue(sanitized);
   };
 
@@ -197,26 +62,13 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     const numericValue = parseFloat(value);
     if (!description || isNaN(numericValue) || !dueDate) return;
     
-    let finalCategory = category;
-    if (category === 'Outros' && newCategoryInput.trim()) {
-      finalCategory = newCategoryInput.trim();
-      if (!categories.includes(finalCategory)) onUpdateCategories([...categories, finalCategory]);
-    }
-
     const today = getTodayString();
     if (editingId) {
-      onUpdate(expenses.map(exp => {
-        if (exp.id === editingId) {
-          const status = dueDate < today && exp.status !== ExpenseStatus.PAGO ? ExpenseStatus.VENCIDO : 
-                        dueDate >= today && exp.status !== ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : exp.status;
-          return { ...exp, description, value: numericValue, dueDate, status, category: finalCategory, observation, vehicleId: selectedVehicle || undefined, employeeId: selectedEmployee || undefined };
-        }
-        return exp;
-      }));
+      onUpdate(expenses.map(exp => exp.id === editingId ? { ...exp, description, value: numericValue, dueDate, category } : exp));
       setEditingId(null);
     } else {
       const status = dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER;
-      onUpdate([{ id: crypto.randomUUID(), description, value: numericValue, dueDate, status, category: finalCategory, observation, vehicleId: selectedVehicle || undefined, employeeId: selectedEmployee || undefined }, ...expenses]);
+      onUpdate([{ id: crypto.randomUUID(), description, value: numericValue, dueDate, status, category }, ...expenses]);
     }
     resetForm();
   };
@@ -226,166 +78,185 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setDescription(expense.description);
     setValue(expense.value.toString());
     setDueDate(expense.dueDate);
-    setObservation(expense.observation || '');
-    setCategory(categories.includes(expense.category) ? expense.category : 'Outros');
-    setSelectedVehicle(expense.vehicleId || '');
-    setSelectedEmployee(expense.employeeId || '');
+    setCategory(expense.category);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
-    setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setObservation(''); setSelectedVehicle(''); setSelectedEmployee(''); setCategory(categories[0] || 'Outros');
+    setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setCategory(categories[0] || 'Geral');
   };
 
   const filteredExpenses = useMemo(() => {
-    return expenses.filter(e => {
-      const d = new Date(e.dueDate + 'T00:00:00');
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && (e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase()));
-    });
+    return expenses
+      .filter(e => {
+        const d = new Date(e.dueDate + 'T00:00:00');
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear && 
+               (e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase()));
+      })
+      .sort((a, b) => new Date(a.dueDate + 'T00:00:00').getTime() - new Date(b.dueDate + 'T00:00:00').getTime());
   }, [expenses, currentMonth, currentYear, searchTerm]);
 
-  const totalValue = useMemo(() => {
-    return filteredExpenses.reduce((sum, e) => sum + e.value, 0);
-  }, [filteredExpenses]);
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="print-header">
-        <h1 className="text-2xl font-black text-slate-900">Relatório de Despesas Mensais</h1>
-        <div className="flex justify-between items-end mt-2">
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Período: {monthName}</p>
-          <p className="text-slate-400 font-medium text-[9px]">Total de Custos: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}</p>
-        </div>
-      </div>
-
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+      
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Despesas</h2>
-          <p className="text-sm text-slate-500 font-medium">Controle financeiro mensal.</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none">Fluxo <span className="text-rose-500">Despesas</span></h2>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+            <LayoutList size={14} className="text-rose-500" /> Planilha de Contas {monthName}
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 no-print">
-          <button 
-            onClick={testAlarmNow}
-            disabled={isTestingAlarm}
-            className="flex items-center justify-center gap-2 bg-rose-50 text-rose-600 border border-rose-200 px-5 py-2.5 rounded-xl font-bold hover:bg-rose-100 transition-all shadow-sm active:scale-95"
-          >
-            {isTestingAlarm ? <Loader2 className="animate-spin" size={18} /> : <BellRing size={18} />}
-            <span className="text-xs uppercase tracking-wider">Testar Alarme Agora</span>
-          </button>
-
-          <button 
-            onClick={handleGoogleAuth}
-            className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${isGoogleAuthorized ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-          >
-            <Calendar size={18} className={isGoogleAuthorized ? 'text-emerald-500' : 'text-slate-400'} />
-            <span className="text-xs uppercase tracking-wider">{isGoogleAuthorized ? 'Google Conectado' : 'Conectar Google'}</span>
-          </button>
-
-          <button onClick={handlePrint} className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95">
-            <Printer size={18} />
-            <span className="text-xs uppercase tracking-wider">Imprimir</span>
-          </button>
-
-          <div className="bg-white px-5 py-3 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
-             <div className="bg-rose-50 p-2 rounded-xl text-rose-600">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+          <div className="glass-card px-5 sm:px-6 py-3 rounded-2xl flex items-center gap-4 border-white">
+             <div className="bg-rose-50 p-2 rounded-xl text-rose-500">
                <ArrowDownLeft size={20} />
              </div>
              <div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total no Período</p>
-               <p className="text-lg font-black text-slate-900">
-                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Saída Total</p>
+               <p className="text-lg sm:text-xl font-black text-slate-800 leading-none">
+                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(filteredExpenses.reduce((sum, e) => sum + e.value, 0))}
                </p>
              </div>
           </div>
-
-          <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-1 shadow-sm w-full sm:w-auto">
-            <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500"><ChevronLeft size={18} /></button>
-            <button onClick={handleResetMonth} className="flex-1 px-4 py-1 flex flex-col items-center hover:bg-slate-50 rounded-xl min-w-[120px]">
-              <span className="text-xs font-bold text-slate-800 capitalize">{monthName}</span>
+          <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
+            <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-slate-50 rounded-xl transition-all min-w-[130px]">
+              <span className="text-xs font-black text-slate-800 capitalize text-center">{monthName}</span>
             </button>
-            <button onClick={handleNextMonth} className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-500"><ChevronRight size={18} /></button>
+            <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
           </div>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 lg:gap-8">
-        <div className="xl:col-span-1 no-print">
-          <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-8">
-            <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2">
-              {editingId ? <Pencil className="text-indigo-600" size={18} /> : <Plus className="text-indigo-600" size={18} />}
-              {editingId ? 'Editar Despesa' : 'Nova Despesa'}
-            </h3>
-            <div className="space-y-4">
-              <input placeholder="Descrição" value={description} onChange={e => setDescription(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm" required />
-              <div className="grid grid-cols-2 gap-3">
-                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-                <input placeholder="Valor" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" required />
-              </div>
-              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm" required />
-              <button type="submit" className="w-full h-12 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all shadow-lg mt-2">
-                {editingId ? 'Atualizar' : 'Salvar Despesa'}
-              </button>
-            </div>
-          </form>
+      <form onSubmit={handleAdd} className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="md:col-span-4 space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Descrição da Conta</label>
+          <input type="text" placeholder="Ex: Conta de Luz" value={description} onChange={e => setDescription(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-rose-50 outline-none" required />
+        </div>
+        <div className="md:col-span-2 space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Categoria</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none">
+            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
+        <div className="md:col-span-2 space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Valor</label>
+          <input type="text" placeholder="R$ 0,00" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none" required />
+        </div>
+        <div className="md:col-span-2 space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Vencimento</label>
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none" required />
+        </div>
+        <div className="md:col-span-2">
+          <button type="submit" className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-600 transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
+            {editingId ? <Pencil size={16} /> : <Plus size={16} />} {editingId ? 'Salvar' : 'Lançar'}
+          </button>
+        </div>
+      </form>
+
+      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
+        <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-50 bg-slate-50/50">
+           <Search className="text-slate-300" size={20} />
+           <input type="text" placeholder="Buscar na planilha..." className="bg-transparent border-none outline-none text-xs w-full font-bold" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
         </div>
 
-        <div className="xl:col-span-3 space-y-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                    <th className="px-6 py-4">Vencimento</th>
-                    <th className="px-6 py-4">Descrição</th>
-                    <th className="px-6 py-4">Categoria</th>
-                    <th className="px-6 py-4">Valor</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-center no-print">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredExpenses.map((e) => (
-                    <tr key={e.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500">{new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-800">{e.description}</td>
-                      <td className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">{e.category}</td>
-                      <td className="px-6 py-4 text-sm font-black text-slate-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.value)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-100 text-emerald-700' : e.status === ExpenseStatus.VENCIDO ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+        {/* Mobile List View */}
+        <div className="block md:hidden divide-y divide-slate-100">
+           {filteredExpenses.map((e) => (
+             <div key={e.id} className="p-5 flex flex-col gap-4 active:bg-rose-50/20 transition-all">
+                <div className="flex items-start justify-between">
+                   <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                          e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 border-emerald-500 text-white' : 
+                          e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 border-rose-500 text-white' : 
+                          'bg-white border-amber-200 text-amber-600'
+                        }`}>
                           {e.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-center no-print">
-                        <div className="flex justify-center gap-2">
-                          {e.status !== ExpenseStatus.PAGO && (
-                            <button 
-                              onClick={() => handleMarkAsPaid(e)} 
-                              className="p-2 text-emerald-500 hover:text-emerald-700 transition-all hover:scale-110"
-                              title="Marcar como Pago"
-                            >
-                              <CheckCircle size={18} />
-                            </button>
-                          )}
-                          <button onClick={() => syncToGoogleCalendar(e)} className={`p-2 transition-all ${isGoogleAuthorized ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 hover:text-slate-400'}`} title="Sincronizar" disabled={syncingId === e.id}>
-                            {syncingId === e.id ? <Loader2 className="animate-spin" size={18} /> : <Share2 size={18} />}
-                          </button>
-                          <button onClick={() => handleEdit(e)} className="p-2 text-slate-400 hover:text-indigo-600"><Pencil size={18} /></button>
-                          <button onClick={() => onUpdate(expenses.filter(x => x.id !== e.id))} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                        <span className="text-[7px] font-black bg-slate-100 px-2 py-0.5 rounded text-slate-400 uppercase">{e.category}</span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-800 leading-tight">{e.description}</h4>
+                      <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                        <Clock size={10} /> Venc: {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                      </div>
+                   </div>
+                   <span className="text-lg font-black text-slate-900">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.value)}
+                   </span>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                   {e.status !== ExpenseStatus.PAGO && (
+                      <button onClick={() => handleMarkAsPaid(e)} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                        <Check size={14} /> Pagar
+                      </button>
+                   )}
+                   <button onClick={() => handleEdit(e)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl">
+                      <Pencil size={16} />
+                   </button>
+                   <button onClick={() => onUpdate(expenses.filter(x => x.id !== e.id))} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl">
+                      <Trash2 size={16} />
+                   </button>
+                </div>
+             </div>
+           ))}
+           {filteredExpenses.length === 0 && (
+             <div className="py-12 px-6 text-center text-slate-400 italic text-xs">Nenhuma despesa encontrada para este período.</div>
+           )}
         </div>
-      </div>
-      <div className="print-footer">
-        Gerado pelo Ice Control em {new Date().toLocaleString('pt-BR')}
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left table-fixed">
+            <thead>
+              <tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-100">
+                <th className="px-6 py-4 w-1/4">Descrição</th>
+                <th className="px-6 py-4 w-1/6">Categoria</th>
+                <th className="px-6 py-4 w-1/6">Valor</th>
+                <th className="px-6 py-4 w-1/6">Vencimento</th>
+                <th className="px-6 py-4 w-1/6">Status</th>
+                <th className="px-6 py-4 w-24 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredExpenses.map((e) => (
+                <tr key={e.id} className="group hover:bg-rose-50/20 transition-all">
+                  <td className="px-6 py-3 truncate text-xs font-black text-slate-800">{e.description}</td>
+                  <td className="px-6 py-3">
+                    <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-md text-slate-500 uppercase">{e.category}</span>
+                  </td>
+                  <td className="px-6 py-3 text-xs font-black text-slate-900">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.value)}
+                  </td>
+                  <td className="px-6 py-3">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                      <Clock size={12} /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </div>
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border ${
+                      e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 border-emerald-500 text-white' : 
+                      e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 border-rose-500 text-white' : 
+                      'bg-white border-amber-200 text-amber-600'
+                    }`}>
+                      {e.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-center">
+                    <div className="flex justify-center gap-2 transition-all">
+                      {e.status !== ExpenseStatus.PAGO && (
+                        <button onClick={() => handleMarkAsPaid(e)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle size={14} /></button>
+                      )}
+                      <button onClick={() => handleEdit(e)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
+                      <button onClick={() => onUpdate(expenses.filter(x => x.id !== e.id))} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

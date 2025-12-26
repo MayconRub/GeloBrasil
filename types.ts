@@ -19,6 +19,14 @@ export interface Production {
   observation?: string;
 }
 
+export interface MonthlyGoal {
+  id?: string;
+  type: 'production' | 'sales';
+  month: number;
+  year: number;
+  value: number;
+}
+
 export interface Expense {
   id: string;
   description: string;
@@ -61,6 +69,10 @@ export interface AppSettings {
   expirationDate: string;
   hiddenViews: string[]; 
   dashboardNotice?: string;
+  productionGoalDaily?: number;
+  productionGoalMonthly?: number;
+  salesGoalDaily?: number;
+  salesGoalMonthly?: number;
 }
 
 export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'cashflow';

@@ -1,6 +1,6 @@
 
 import { supabase } from './supabaseClient';
-import { Sale, Expense, Employee, Vehicle, ExpenseStatus, AppSettings, Production } from './types';
+import { Sale, Expense, Employee, Vehicle, ExpenseStatus, AppSettings, Production, MonthlyGoal } from './types';
 
 export interface AppData {
   sales: Sale[];
@@ -8,6 +8,7 @@ export interface AppData {
   employees: Employee[];
   vehicles: Vehicle[];
   production: Production[];
+  monthlyGoals: MonthlyGoal[];
   categories: string[];
   settings: AppSettings;
 }
@@ -28,7 +29,11 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       footerText: settings.footer_text || '',
       expirationDate: settings.data_expiracao || '2099-12-31',
       hiddenViews: settings.paginas_ocultas || [],
-      dashboardNotice: settings.aviso_dashboard || '' 
+      dashboardNotice: settings.aviso_dashboard || '',
+      productionGoalDaily: settings.meta_producao_diaria || 1000,
+      productionGoalMonthly: settings.meta_producao_mensal || 30000,
+      salesGoalDaily: settings.meta_vendas_diaria || 2000,
+      salesGoalMonthly: settings.meta_vendas_mensal || 60000
     };
   } catch (e) {
     return {
@@ -40,7 +45,11 @@ export const fetchSettings = async (): Promise<AppSettings> => {
       footerText: '',
       expirationDate: '2099-12-31',
       hiddenViews: [],
-      dashboardNotice: ''
+      dashboardNotice: '',
+      productionGoalDaily: 1000,
+      productionGoalMonthly: 30000,
+      salesGoalDaily: 2000,
+      salesGoalMonthly: 60000
     };
   }
 };
@@ -53,6 +62,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     { data: vehicles },
     { data: production },
     { data: categories },
+    { data: monthlyGoals },
     settings
   ] = await Promise.all([
     supabase.from('vendas').select('*').order('data', { ascending: false }),
@@ -61,6 +71,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     supabase.from('veiculos').select('*').order('nome'),
     supabase.from('producao').select('*').order('data', { ascending: false }),
     supabase.from('categorias').select('nome').order('nome'),
+    supabase.from('metas_mensais').select('*'),
     fetchSettings()
   ]);
 
@@ -79,6 +90,14 @@ export const fetchAllData = async (): Promise<AppData> => {
     quantityKg: p.quantidade_kg,
     date: p.data,
     observation: p.observacao
+  }));
+
+  const processedGoals = (monthlyGoals || []).map((g: any) => ({
+    id: g.id,
+    type: g.tipo,
+    month: g.mes,
+    year: g.ano,
+    value: g.valor
   }));
 
   const processedExpenses = (expenses || []).map((e: any) => {
@@ -106,7 +125,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     role: emp.cargo,
     salary: emp.salario,
     inss: emp.inss,
-    irrf: emp.fgts,
+    irrf: emp.irrf,
     isDangerous: !!emp.periculosidade,
     joinedAt: emp.data_admissao
   }));
@@ -124,9 +143,19 @@ export const fetchAllData = async (): Promise<AppData> => {
     employees: processedEmployees,
     vehicles: processedVehicles,
     production: processedProduction,
+    monthlyGoals: processedGoals,
     categories: (categories || []).map(c => c.nome),
     settings
   };
+};
+
+export const syncMonthlyGoal = async (goal: MonthlyGoal) => {
+  return supabase.from('metas_mensais').upsert({
+    tipo: goal.type,
+    mes: goal.month,
+    ano: goal.year,
+    valor: goal.value
+  }, { onConflict: 'tipo,mes,ano' });
 };
 
 export const syncSettings = async (settings: AppSettings) => {
@@ -139,10 +168,14 @@ export const syncSettings = async (settings: AppSettings) => {
     logo_id: settings.logoId,
     login_header: settings.loginHeader,
     support_phone: settings.supportPhone,
-    footer_text: settings.footerText,
+    footer_text: settings.footerText || '',
     data_expiracao: settings.expirationDate,
     paginas_ocultas: settings.hiddenViews,
-    aviso_dashboard: settings.dashboardNotice
+    aviso_dashboard: settings.dashboardNotice,
+    meta_producao_diaria: settings.productionGoalDaily,
+    meta_producao_mensal: settings.productionGoalMonthly,
+    meta_vendas_diaria: settings.salesGoalDaily,
+    meta_vendas_mensal: settings.salesGoalMonthly
   });
 };
 
@@ -174,7 +207,7 @@ export const syncExpense = async (expense: Expense, isDelete = false) => {
     valor: expense.value,
     data_vencimento: expense.dueDate,
     status: expense.status,
-    categoria: expense.category,
+    category: expense.category,
     veiculo_id: expense.vehicleId,
     funcionario_id: expense.employeeId,
     observacao: expense.observation

@@ -38,7 +38,9 @@ import {
   Info,
   MessageCircle,
   AlertTriangle,
-  QrCode
+  QrCode,
+  TrendingUp,
+  DollarSign
 } from 'lucide-react';
 import { AppSettings } from '../types';
 
@@ -85,6 +87,10 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment 
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
   const [dashboardNotice, setDashboardNotice] = useState(settings.dashboardNotice || '');
   const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
+  const [productionGoalDaily, setProductionGoalDaily] = useState(settings.productionGoalDaily || 1000);
+  const [productionGoalMonthly, setProductionGoalMonthly] = useState(settings.productionGoalMonthly || 30000);
+  const [salesGoalDaily, setSalesGoalDaily] = useState(settings.salesGoalDaily || 2000);
+  const [salesGoalMonthly, setSalesGoalMonthly] = useState(settings.salesGoalMonthly || 60000);
   const [renewDays, setRenewDays] = useState(30);
   const [isSaved, setIsSaved] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -120,7 +126,11 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment 
       footerText, 
       expirationDate, 
       hiddenViews, 
-      dashboardNotice 
+      dashboardNotice,
+      productionGoalDaily,
+      productionGoalMonthly,
+      salesGoalDaily,
+      salesGoalMonthly
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -183,7 +193,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment 
         </div>
       </header>
 
-      {/* Tabs Navigation */}
       <div className="flex items-center p-1.5 bg-slate-200/50 rounded-[2rem] w-fit overflow-x-auto no-scrollbar shadow-inner border border-slate-300/30">
         <button 
           onClick={() => setActiveTab('license')}
@@ -210,7 +219,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment 
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="bg-white p-8 sm:p-12 rounded-[3rem] border border-slate-200 shadow-sm space-y-10">
             
-            {/* TAB: LICENCIAMENTO */}
             {activeTab === 'license' && (
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
@@ -226,68 +234,11 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment 
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <button 
-                        type="button" 
-                        onClick={() => onOpenPayment && onOpenPayment()}
-                        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black transition-all shadow-lg hover:bg-indigo-700 uppercase tracking-widest flex items-center gap-2"
-                      >
-                        <QrCode size={16} /> Renovar Assinatura
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={handleSetBlock}
-                        className="text-rose-600 bg-rose-50 hover:bg-rose-100 px-6 py-3 rounded-2xl text-[10px] font-black transition-all border border-rose-100 uppercase tracking-widest"
-                      >
-                        Bloquear
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm space-y-4">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Zap size={14} className="text-amber-500" /> Renovação Rápida
-                      </p>
-                      <div className="flex flex-col gap-3">
-                        <input 
-                          type="number" 
-                          value={renewDays}
-                          onChange={(e) => setRenewDays(parseInt(e.target.value) || 0)}
-                          placeholder="Dias"
-                          className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-xl font-black outline-none focus:ring-4 focus:ring-indigo-50"
-                        />
-                        <button 
-                          type="button"
-                          onClick={handleRenewCustomDays}
-                          className="h-14 w-full bg-slate-900 text-white font-black rounded-2xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-3 shadow-xl uppercase text-xs tracking-widest"
-                        >
-                          Adicionar Dias <ArrowRight size={18} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm space-y-4">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Phone size={14} className="text-sky-500" /> Canal de Suporte
-                      </p>
-                      <div className="space-y-3">
-                        <input 
-                          type="text" 
-                          value={supportPhone} 
-                          onChange={e => setSupportPhone(e.target.value)} 
-                          placeholder="Ex: WhatsApp ou Link"
-                          className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-50" 
-                        />
-                        <p className="text-[9px] text-slate-400 font-medium italic">Visível na tela de login.</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* TAB: DADOS DA EMPRESA */}
             {activeTab === 'company' && (
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -300,147 +251,67 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment 
                     <input type="text" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-50" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><MapPin size={12} /> Endereço Completo</label>
-                  <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, Número, Bairro, Cidade - UF" className="w-full h-32 p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50 resize-none text-sm" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100 space-y-6">
+                    <h5 className="text-[11px] font-black text-sky-900 uppercase tracking-widest flex items-center gap-2 border-b border-sky-200 pb-3">
+                      <Target size={16} className="text-sky-600" /> Meta de Produção (KG)
+                    </h5>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-sky-400 uppercase tracking-widest ml-2">Meta Padrão Mensal</label>
+                        <input type="number" value={productionGoalMonthly} onChange={e => setProductionGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-6 bg-white border border-sky-100 rounded-2xl font-black outline-none" />
+                        <p className="text-[8px] text-slate-400 mt-1 font-bold">* Usada se não houver meta específica para o mês.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 space-y-6">
+                    <h5 className="text-[11px] font-black text-emerald-900 uppercase tracking-widest flex items-center gap-2 border-b border-emerald-200 pb-3">
+                      <DollarSign size={16} className="text-emerald-600" /> Metas de Vendas (R$)
+                    </h5>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest ml-2">Meta Diária</label>
+                        <input type="number" value={salesGoalDaily} onChange={e => setSalesGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-6 bg-white border border-emerald-100 rounded-2xl font-black outline-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest ml-2">Meta Padrão Mensal</label>
+                        <input type="number" value={salesGoalMonthly} onChange={e => setSalesGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-6 bg-white border border-emerald-100 rounded-2xl font-black outline-none" />
+                        <p className="text-[8px] text-slate-400 mt-1 font-bold">* Usada se não houver meta específica para o mês.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-start gap-4">
-                   <Info className="text-indigo-600 shrink-0" size={20} />
-                   <p className="text-[11px] text-indigo-700 leading-relaxed font-medium">Dados utilizados em cabeçalhos de relatórios e documentos internos do sistema.</p>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><MapPin size={12} /> Endereço</label>
+                  <textarea value={address} onChange={e => setAddress(e.target.value)} className="w-full h-24 p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none resize-none text-sm" />
                 </div>
               </div>
             )}
 
-            {/* TAB: IDENTIDADE & MÓDULOS */}
             {activeTab === 'visual' && (
               <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><Palette size={12} /> Cor do Sistema</label>
-                    <div className="flex gap-4">
-                      <div className="w-14 h-14 shrink-0 rounded-2xl border-4 border-white shadow-xl relative overflow-hidden group">
-                        <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="absolute inset-[-50%] w-[200%] h-[200%] cursor-pointer" />
-                      </div>
-                      <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="flex-1 h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-sm font-black uppercase" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><Gem size={12} /> Ícone da Marca</label>
-                    <div className="grid grid-cols-7 gap-2">
-                      {AVAILABLE_LOGOS.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setLogoId(item.id)}
-                          className={`aspect-square flex items-center justify-center rounded-xl border-2 transition-all ${logoId === item.id ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-100 bg-slate-50 text-slate-300 hover:border-slate-300'}`}
-                        >
-                          <item.icon size={18} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-6 border-t border-slate-100">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><Eye size={12} /> Visibilidade de Módulos</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {MENU_PAGES.map(page => (
-                      <button
-                        key={page.id}
-                        type="button"
-                        onClick={() => toggleViewVisibility(page.id)}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${hiddenViews.includes(page.id) ? 'bg-slate-50 border-slate-200 text-slate-300' : 'bg-white border-indigo-100 text-slate-700 shadow-sm'}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <page.icon size={18} className={hiddenViews.includes(page.id) ? 'text-slate-300' : 'text-indigo-500'} />
-                          <span className="text-[11px] font-black uppercase tracking-tight">{page.label}</span>
-                        </div>
-                        {hiddenViews.includes(page.id) ? <EyeOff size={14} /> : <Eye size={14} className="text-indigo-400" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-100">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><Megaphone size={12} /> Mural do Dashboard</label>
-                    <textarea value={dashboardNotice} onChange={e => setDashboardNotice(e.target.value)} placeholder="Aviso global para os usuários..." className="w-full h-32 p-6 bg-slate-50 border border-slate-200 rounded-2xl font-semibold outline-none focus:ring-4 focus:ring-indigo-50 resize-none text-sm" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5"><Palette size={12} /> Cor Primária</label>
+                    <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-full h-14 p-1 bg-white border border-slate-200 rounded-2xl cursor-pointer" />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* BOTÃO SALVAR GLOBAL */}
             <div className="pt-10 border-t border-slate-100 flex items-center justify-end">
               <button 
                 type="submit"
                 disabled={isUpdating}
                 className="bg-slate-900 text-white font-black px-12 py-5 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 shadow-2xl flex items-center gap-3 disabled:opacity-50 uppercase text-xs tracking-[0.2em]"
               >
-                <Save size={20} /> {isUpdating ? 'SINCRONIZANDO...' : 'Gravar Alterações'}
+                <Save size={20} /> {isUpdating ? 'Salvando...' : 'Gravar Alterações'}
               </button>
             </div>
           </form>
-        </div>
-
-        {/* SIDEBAR DE PREVIEW */}
-        <div className="space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-8 overflow-hidden">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">Prévia em Tempo Real</h4>
-            
-            <div className="space-y-10">
-               {/* Login Preview Card */}
-               <div className="p-6 bg-slate-950 rounded-[2rem] border border-white/10 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                  <div className="flex items-center gap-4 mb-4 relative z-10">
-                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20" style={{ backgroundColor: primaryColor }}>
-                        {(() => {
-                          const SelectedIcon = AVAILABLE_LOGOS.find(l => l.id === logoId)?.icon || LayoutGrid;
-                          return <SelectedIcon size={24} />;
-                        })()}
-                     </div>
-                     <div className="min-w-0">
-                        <p className="text-white font-black text-sm truncate">{companyName || 'Sua Empresa'}</p>
-                        <p className="text-indigo-400/60 font-black text-[8px] uppercase tracking-widest">Acesso ao Sistema</p>
-                     </div>
-                  </div>
-                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                     <div className="h-full bg-indigo-500 w-1/3"></div>
-                  </div>
-               </div>
-
-               {/* Holerite Preview */}
-               <div className="p-6 bg-white border-2 border-dashed border-slate-100 rounded-[2rem] space-y-4">
-                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">Visualização de Endereço</p>
-                  <div className="text-[9px] font-bold text-slate-700 leading-tight space-y-1">
-                    <p className="font-black uppercase text-indigo-600">{companyName || 'NOME DA EMPRESA'}</p>
-                    <p className="uppercase">{address || 'RUA EXEMPLO, 123 - CIDADE'}</p>
-                    <p className="text-slate-400">CNPJ: {cnpj || '00.000.000/0000-00'}</p>
-                  </div>
-               </div>
-
-               {/* Notice Preview */}
-               <div className="p-6 bg-amber-50/50 border border-amber-100 rounded-[2rem] flex items-start gap-3">
-                  <Megaphone className="text-amber-500 shrink-0" size={18} />
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Mural Dashboard</p>
-                    <p className="text-[10px] font-bold text-slate-600 truncate">{dashboardNotice || 'Sem avisos.'}</p>
-                  </div>
-               </div>
-
-               {/* Support Link Preview */}
-               {supportPhone && (
-                 <div className="p-4 bg-sky-50 border border-sky-100 rounded-2xl flex items-center gap-3">
-                   <MessageCircle className="text-sky-500" size={18} />
-                   <div className="min-w-0">
-                     <p className="text-[9px] font-black text-sky-600 uppercase tracking-widest mb-0.5">Link de Suporte</p>
-                     <p className="text-[10px] font-bold text-slate-600 truncate">{supportPhone}</p>
-                   </div>
-                 </div>
-               )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

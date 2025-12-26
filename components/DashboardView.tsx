@@ -1,75 +1,53 @@
 
 import React, { useMemo, useState } from 'react';
 import { 
-  AlertCircle, 
-  Receipt,
+  TrendingUp,
+  Snowflake,
+  ArrowUpRight,
+  ArrowDownRight,
   ChevronLeft,
   ChevronRight,
   Scale,
-  Clock,
-  Snowflake,
-  TrendingUp,
-  Calendar,
-  CheckCircle2,
-  Megaphone,
-  Bell,
-  BarChart3,
-  Zap,
-  QrCode,
-  Sparkles,
-  ArrowUp,
-  ArrowDown,
-  Activity,
+  Coins,
   Target,
   ArrowRight,
-  ArrowUpRight,
+  Star,
+  Activity,
+  Receipt,
+  Calendar,
+  Clock,
   ArrowDownLeft,
-  CircleDollarSign,
-  Coins
+  Trophy,
+  PartyPopper
 } from 'lucide-react';
 import { 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
 } from 'recharts';
-import { Sale, Expense, ExpenseStatus, ViewType, Production } from '../types';
+import { Sale, Expense, ExpenseStatus, ViewType, Production, AppSettings, MonthlyGoal } from '../types';
 
 interface Props {
   sales: Sale[];
   expenses: Expense[];
   production: Production[];
-  hiddenViews: string[];
-  dashboardNotice?: string;
-  expirationDate?: string;
+  monthlyGoals: MonthlyGoal[];
   onSwitchView: (view: ViewType) => void;
-  onOpenPayment?: () => void;
+  expirationDate: string;
+  onOpenPayment: () => void;
+  settings: AppSettings;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 ring-1 ring-white/5">
-        <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-3 sm:mb-4 border-b border-white/5 pb-2">{label}</p>
-        <div className="space-y-3 sm:space-y-4">
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-6 sm:gap-10">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)]" style={{ backgroundColor: entry.color }}></div>
-                <span className="text-[9px] sm:text-[10px] font-black text-white/80 uppercase tracking-tight">{entry.name}</span>
-              </div>
-              <span className="text-[10px] sm:text-xs font-black text-white font-mono">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
+type PeriodType = 'daily' | 'monthly';
 
-const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenViews, dashboardNotice, expirationDate, onSwitchView, onOpenPayment }) => {
+const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGoals, onSwitchView, expirationDate, onOpenPayment, settings }) => {
+  const [period, setPeriod] = useState<PeriodType>('daily');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
+
   const getTodayLocal = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -78,352 +56,389 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, hiddenVie
   const today = getTodayLocal();
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
+  const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   const handleResetMonth = () => setSelectedDate(new Date());
 
-  const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-  const daysUntilExpiration = useMemo(() => {
-    if (!expirationDate) return null;
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    const expDate = new Date(expirationDate + 'T00:00:00');
-    const diffTime = expDate.getTime() - todayDate.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }, [expirationDate]);
-
   const stats = useMemo(() => {
+    const dailySales = sales.filter(s => s.date === today).reduce((sum, s) => sum + s.value, 0);
+    const dailyProd = production.filter(p => p.date === today).reduce((sum, p) => sum + p.quantityKg, 0);
+    const dailyExpenses = expenses.filter(e => e.dueDate === today).reduce((sum, e) => sum + e.value, 0);
+
     const filteredSales = sales.filter(s => {
       const d = new Date(s.date + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
-    
-    const todaySales = sales.filter(s => s.date === today).reduce((sum, s) => sum + s.value, 0);
-    const monthSales = filteredSales.reduce((sum, s) => sum + s.value, 0);
+    const mSalesTotal = filteredSales.reduce((sum, s) => sum + s.value, 0);
 
-    const monthExpenses = expenses.filter(e => {
+    const filteredExpenses = expenses.filter(e => {
       const d = new Date(e.dueDate + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).reduce((sum, e) => sum + e.value, 0);
+    });
+    const mExpensesTotal = filteredExpenses.reduce((sum, e) => sum + e.value, 0);
 
-    const todayProd = production.filter(p => p.date === today).reduce((sum, p) => sum + p.quantityKg, 0);
-    const monthProd = production.filter(p => {
+    const mProdTotal = production.filter(p => {
       const d = new Date(p.date + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((sum, p) => sum + p.quantityKg, 0);
 
-    const overdueCount = expenses.filter(e => e.status === ExpenseStatus.VENCIDO).length;
-    const overdueValue = expenses.filter(e => e.status === ExpenseStatus.VENCIDO).reduce((sum, e) => sum + e.value, 0);
-    const netProfit = monthSales - monthExpenses;
+    const mProfit = mSalesTotal - mExpensesTotal;
+    const dProfit = dailySales - dailyExpenses;
 
-    return { todaySales, monthSales, monthExpenses, overdueValue, overdueCount, netProfit, todayProd, monthProd };
-  }, [sales, expenses, production, today, currentMonth, currentYear]);
+    const upcoming = expenses
+      .filter(e => e.status !== ExpenseStatus.PAGO)
+      .sort((a, b) => new Date(a.dueDate + 'T00:00:00').getTime() - new Date(b.dueDate + 'T00:00:00').getTime())
+      .slice(0, 1);
 
-  const chartData = useMemo(() => {
-    const data = [];
-    const isCurrentMonth = new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
-    const endDate = isCurrentMonth ? new Date() : new Date(currentYear, currentMonth + 1, 0);
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(endDate);
-      d.setDate(endDate.getDate() - i);
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const daySales = sales.filter(s => s.date === dateStr).reduce((sum, s) => sum + s.value, 0);
-      const dayExpenses = expenses.filter(e => e.dueDate === dateStr).reduce((sum, e) => sum + e.value, 0);
-      data.push({
-        name: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
-        vendas: daySales,
-        despesas: dayExpenses
-      });
+    const chartData = [];
+    if (period === 'daily') {
+      const realNow = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(realNow.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const daySales = sales.filter(s => s.date === dateStr).reduce((sum, s) => sum + s.value, 0);
+        const dayExpenses = expenses.filter(e => e.dueDate === dateStr).reduce((sum, e) => sum + e.value, 0);
+        const label = d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+        chartData.push({
+          name: label.charAt(0).toUpperCase() + label.slice(1),
+          vendas: daySales,
+          custos: dayExpenses
+        });
+      }
+    } else {
+      const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      for (let i = 1; i <= lastDayOfMonth; i++) {
+        const d = new Date(currentYear, currentMonth, i);
+        const dateStr = d.toISOString().split('T')[0];
+        const daySales = sales.filter(s => s.date === dateStr).reduce((sum, s) => sum + s.value, 0);
+        const dayExpenses = expenses.filter(e => e.dueDate === dateStr).reduce((sum, e) => sum + e.value, 0);
+        chartData.push({
+          name: i.toString(),
+          vendas: daySales,
+          custos: dayExpenses
+        });
+      }
     }
-    return data;
-  }, [sales, expenses, currentMonth, currentYear]);
 
-  const showSales = !hiddenViews.includes('sales');
-  const showProduction = !hiddenViews.includes('production');
-  const showExpenses = !hiddenViews.includes('expenses');
+    return { 
+      dailySales, dailyProd, dailyExpenses, dProfit,
+      mSalesTotal, mExpensesTotal, mProfit, mProdTotal, 
+      upcoming, chartData 
+    };
+  }, [sales, expenses, production, today, currentMonth, currentYear, period]);
+
+  const currentGoals = useMemo(() => {
+    if (period === 'daily') {
+      return {
+        sales: settings.salesGoalDaily || 2000,
+        prod: settings.productionGoalDaily || 1000,
+        label: 'Meta Diária'
+      };
+    } else {
+      const salesGoal = monthlyGoals.find(g => g.type === 'sales' && g.month === currentMonth && g.year === currentYear)?.value || settings.salesGoalMonthly || 60000;
+      const prodGoal = monthlyGoals.find(g => g.type === 'production' && g.month === currentMonth && g.year === currentYear)?.value || settings.productionGoalMonthly || 30000;
+      return {
+        sales: salesGoal,
+        prod: prodGoal,
+        label: 'Meta Mensal'
+      };
+    }
+  }, [period, settings, monthlyGoals, currentMonth, currentYear]);
+
+  const activeStats = period === 'daily' ? {
+    sales: stats.dailySales,
+    prod: stats.dailyProd,
+    expenses: stats.dailyExpenses,
+    profit: stats.dProfit,
+    labelSuffix: 'HOJE'
+  } : {
+    sales: stats.mSalesTotal,
+    prod: stats.mProdTotal,
+    expenses: stats.mExpensesTotal,
+    profit: stats.mProfit,
+    labelSuffix: `EM ${monthName.toUpperCase()}`
+  };
+
+  const salesProgress = Math.min(100, (activeStats.sales / (currentGoals.sales || 1)) * 100) || 0;
+  const prodProgress = Math.min(100, (activeStats.prod / (currentGoals.prod || 1)) * 100) || 0;
+
+  const anyGoalMet = salesProgress >= 100 || prodProgress >= 100;
+
+  const showRenewalBanner = useMemo(() => {
+    if (!expirationDate) return false;
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const expDate = new Date(expirationDate + 'T00:00:00');
+    const diffTime = expDate.getTime() - todayDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  }, [expirationDate]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-10 sm:pb-20 relative">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700">
       
-      {/* Background Decorativo */}
-      <div className="absolute top-0 left-1/4 w-40 h-40 sm:w-[500px] sm:h-[500px] bg-indigo-500/5 rounded-full blur-[60px] sm:blur-[120px] pointer-events-none -z-10"></div>
-
-      {/* Alerta de Expiração */}
-      {daysUntilExpiration !== null && daysUntilExpiration >= 0 && daysUntilExpiration <= 7 && (
-        <div className="relative group no-print">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-[1.5rem] sm:rounded-[2rem] blur opacity-20 transition duration-1000"></div>
-          <div className="relative bg-white/80 backdrop-blur-2xl border border-white/50 px-5 py-5 sm:px-8 sm:py-6 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-8 overflow-hidden">
-            <div className="flex items-center gap-4 sm:gap-6 relative z-10">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl sm:rounded-[1.2rem] flex items-center justify-center shrink-0 shadow-lg shadow-amber-200">
-                <Sparkles size={24} className="sm:w-6 sm:h-6" />
-              </div>
-              <div className="text-left">
-                <h4 className="font-black text-slate-900 uppercase tracking-widest text-[9px] sm:text-xs mb-0.5">Renovação Pendente</h4>
-                <p className="text-slate-500 text-[10px] sm:text-sm font-medium leading-tight">
-                  Expira em <span className="text-amber-600 font-black">{daysUntilExpiration === 0 ? 'horas' : `${daysUntilExpiration}d`}</span>. 
-                  Regularize seu acesso.
-                </p>
-              </div>
+      {anyGoalMet && (
+        <div className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 p-5 sm:p-6 rounded-[2.5rem] text-white flex items-center justify-between shadow-xl shadow-amber-100 animate-in zoom-in-95 duration-500">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md animate-bounce">
+              <Trophy size={28} className="text-white sm:w-8 sm:h-8" />
             </div>
-            <button 
-              onClick={() => onOpenPayment ? onOpenPayment() : onSwitchView('admin')}
-              className="w-full md:w-auto bg-slate-900 text-white px-6 h-12 sm:h-14 rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              <QrCode size={16} /> Renovar
-            </button>
+            <div>
+              <h4 className="font-black text-sm sm:text-xl uppercase tracking-tighter leading-none">
+                {period === 'daily' ? 'Excelente Trabalho Hoje!' : `Desempenho de Campeão em ${monthName}!`}
+              </h4>
+              <p className="text-white/80 text-[10px] sm:text-xs font-bold mt-1">
+                {period === 'daily' ? 'Meta diária alcançada com sucesso. 🚀' : 'Seus objetivos mensais concluídos. Parabéns! 🏆'}
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:block">
+            <PartyPopper size={48} className="opacity-40 -rotate-12" />
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
-        <div className="space-y-1 sm:space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 bg-indigo-50 border border-indigo-100 rounded-full">
-             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-             <span className="text-[8px] sm:text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em]">Visão Geral</span>
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none">Minha <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-sky-500">Operação</span></h2>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-3xl sm:text-4xl font-black text-sky-900 tracking-tighter leading-none">Minha <span className="text-sky-500">Operação</span></h2>
+          <p className="text-[10px] font-black text-sky-400 uppercase tracking-widest mt-2">Controle de Vendas & Produção</p>
         </div>
         
-        <div className="flex items-center bg-white/80 backdrop-blur-md border border-slate-200 rounded-[1.5rem] sm:rounded-[2rem] p-1 shadow-lg shadow-slate-200/30 w-full sm:w-auto">
-          <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 active:scale-90"><ChevronLeft size={18} /></button>
-          <button onClick={handleResetMonth} className="flex-1 px-4 py-1 flex flex-col items-center">
-            <span className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-widest truncate">{monthName}</span>
-          </button>
-          <button onClick={handleNextMonth} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 active:scale-90"><ChevronRight size={18} /></button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          {period === 'monthly' && (
+            <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-sky-100 overflow-hidden animate-in slide-in-from-right-4">
+              <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
+              <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-sky-50 rounded-xl transition-all min-w-[130px]">
+                <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest mb-0.5">Mês de Referência</span>
+                <span className="text-xs font-black text-sky-900 capitalize text-center">{monthName}</span>
+              </button>
+              <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
+            </div>
+          )}
+
+          <div className="flex p-1 bg-white border border-sky-100 rounded-2xl shadow-sm">
+            <button 
+              onClick={() => { setPeriod('daily'); setSelectedDate(new Date()); }}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${period === 'daily' ? 'bg-sky-600 text-white shadow-lg' : 'text-sky-300 hover:bg-sky-50'}`}
+            >
+              <Clock size={14} /> Hoje
+            </button>
+            <button 
+              onClick={() => setPeriod('monthly')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${period === 'monthly' ? 'bg-sky-600 text-white shadow-lg' : 'text-sky-300 hover:bg-sky-50'}`}
+            >
+              <Calendar size={14} /> Mensal
+            </button>
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* Grid de Métricas Hero */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {showSales && (
-          <HeroStatCard 
-            title="Vendas Hoje"
-            value={stats.todaySales}
-            icon={<TrendingUp />}
-            gradient="from-emerald-500 to-teal-600"
-            isCurrency
-          />
-        )}
-        {showProduction && (
-          <HeroStatCard 
-            title="Produção"
-            value={stats.todayProd}
-            icon={<Snowflake />}
-            gradient="from-sky-500 to-indigo-600"
-            suffix=" KG"
-          />
-        )}
-        {showExpenses && stats.overdueCount > 0 && (
-          <HeroStatCard 
-            title="Pendências"
-            value={stats.overdueValue}
-            icon={<AlertCircle />}
-            gradient="from-rose-500 to-pink-600"
-            isCurrency
-            isAlert
-            onClick={() => onSwitchView('expenses')}
-          />
-        )}
-      </section>
+      <div className={`grid grid-cols-1 ${period === 'daily' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4 sm:gap-6`}>
+        {/* Card Vendas */}
+        <div className={`${salesProgress >= 100 ? 'bg-gradient-to-br from-teal-500 to-teal-700 shadow-teal-100' : 'ice-card-teal shadow-teal-100'} p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] text-white relative overflow-hidden group transition-all duration-500 shadow-xl`}>
+          {salesProgress >= 100 && (
+            <div className="absolute top-6 right-6 z-20">
+               <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30 animate-pulse">
+                 <Trophy size={18} className="text-amber-300" />
+               </div>
+            </div>
+          )}
+          <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+          <TrendingUp size={120} className="absolute bottom-[-20px] right-[-20px] opacity-10 rotate-12" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-1 opacity-60">
+              <TrendingUp size={16} />
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">VENDAS {activeStats.labelSuffix}</span>
+            </div>
+            
+            <h3 className="text-4xl sm:text-5xl font-black tracking-tighter">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.sales)}
+            </h3>
 
-      {/* Grid Secundário */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {showSales && (
-          <GlassStatCard 
-            title="Total Vendas" 
-            value={stats.monthSales} 
-            icon={<Coins className="text-indigo-500" />} 
-            isCurrency
-          />
-        )}
-        {showExpenses && (
-          <GlassStatCard 
-            title="Total Custos" 
-            value={stats.monthExpenses} 
-            icon={<ArrowDownLeft className="text-rose-500" />} 
-            isCurrency
-          />
-        )}
-        {(showSales || showExpenses) && (
-          <GlassStatCard 
-            title="Lucro" 
-            value={stats.netProfit} 
-            icon={<Scale className={stats.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"} />} 
-            isCurrency
-          />
-        )}
-        {showProduction && (
-          <GlassStatCard 
-            title="Mês (KG)" 
-            value={stats.monthProd} 
-            icon={<Target className="text-sky-500" />} 
-            suffix=" KG"
-          />
+            <div className="mt-6 space-y-3">
+              <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${salesProgress >= 100 ? 'bg-amber-400' : 'bg-white'} rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.5)]`}
+                  style={{ width: `${salesProgress}%` }}
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                <div className={`inline-flex items-center self-start gap-2 px-3 py-1 ${salesProgress >= 100 ? 'bg-amber-400 text-teal-900' : 'bg-white/20 text-white'} rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest backdrop-blur-md`}>
+                  <Target size={12} /> {salesProgress >= 100 ? `META ${period === 'daily' ? 'DIÁRIA' : 'MENSAL'} OK` : `${salesProgress.toFixed(0)}% da meta`}
+                </div>
+                <span className="text-[8px] sm:text-[9px] font-black opacity-60 uppercase">{currentGoals.label}: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(currentGoals.sales)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card Produção */}
+        <div className={`${prodProgress >= 100 ? 'bg-gradient-to-br from-sky-600 to-indigo-800 shadow-sky-100' : 'ice-card-blue shadow-sky-100'} p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] text-white relative overflow-hidden group transition-all duration-500 shadow-xl`}>
+          {prodProgress >= 100 && (
+            <div className="absolute top-6 right-6 z-20">
+               <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30 animate-pulse">
+                 <Trophy size={18} className="text-amber-300" />
+               </div>
+            </div>
+          )}
+          <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+          <Snowflake size={120} className="absolute bottom-[-20px] right-[-20px] opacity-10 -rotate-12" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-1 opacity-60">
+              <Snowflake size={16} />
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">PRODUÇÃO {activeStats.labelSuffix}</span>
+            </div>
+            
+            <h3 className="text-4xl sm:text-5xl font-black tracking-tighter">
+              {activeStats.prod.toLocaleString('pt-BR')} <span className="text-xl sm:text-2xl opacity-60">KG</span>
+            </h3>
+
+            <div className="mt-6 space-y-3">
+              <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${prodProgress >= 100 ? 'bg-amber-400' : 'bg-white'} rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.5)]`}
+                  style={{ width: `${prodProgress}%` }}
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                <div className={`inline-flex items-center self-start gap-2 px-3 py-1 ${prodProgress >= 100 ? 'bg-amber-400 text-sky-900' : 'bg-white/20 text-white'} rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest backdrop-blur-md`}>
+                  <Target size={12} /> {prodProgress >= 100 ? 'MÁXIMA PERFORMANCE' : `${prodProgress.toFixed(0)}% da meta`}
+                </div>
+                <span className="text-[8px] sm:text-[9px] font-black opacity-60 uppercase">{currentGoals.label}: {currentGoals.prod.toLocaleString('pt-BR')} KG</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {period === 'daily' && (
+          <div className="bg-rose-500 p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] text-white relative overflow-hidden group shadow-xl shadow-rose-100/50 animate-in zoom-in-95 duration-300">
+            <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+            <ArrowDownLeft size={120} className="absolute bottom-[-20px] right-[-20px] opacity-10 rotate-45" />
+            <div className="flex items-center gap-3 mb-1 opacity-60">
+               <Receipt size={16} />
+               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">DESPESAS {activeStats.labelSuffix}</span>
+            </div>
+            <h3 className="text-4xl sm:text-5xl font-black tracking-tighter">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.expenses)}
+            </h3>
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full text-[9px] font-black uppercase tracking-widest backdrop-blur-md cursor-pointer hover:bg-white/30 transition-all active:scale-95" onClick={() => onSwitchView('expenses')}>
+              <Clock size={14} /> Ver Lançamentos
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Analytics Center */}
-      <div className={`grid grid-cols-1 ${showExpenses ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-6 sm:gap-8`}>
-        <div className={`${showExpenses ? 'lg:col-span-2' : ''} bg-white/60 backdrop-blur-3xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border border-white shadow-xl relative overflow-hidden group`}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-10 relative z-10">
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Analytics</p>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">Fluxo Operacional</h3>
+      {period === 'monthly' && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {[
+            { label: 'RECEITA', icon: Coins, value: activeStats.sales, color: 'sky', format: 'currency' },
+            { label: 'DESPESAS', icon: ArrowDownRight, value: activeStats.expenses, color: 'rose', format: 'currency' },
+            { label: 'LUCRO LÍQUIDO', icon: Scale, value: activeStats.profit, color: 'teal', format: 'currency' },
+            { label: 'FABRICADO', icon: Snowflake, value: activeStats.prod, color: 'sky', format: 'kg' }
+          ].map((item, idx) => (
+            <div key={idx} className="ice-glass p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] transition-all hover:translate-y-[-2px] flex flex-col items-center">
+              <div className={`text-${item.color}-500 bg-${item.color}-50 p-2 rounded-xl mb-3`}>
+                 <item.icon size={18} />
+              </div>
+              <p className="text-[8px] sm:text-[10px] font-black text-sky-900/40 uppercase tracking-[0.2em] mb-1">{item.label}</p>
+              <p className={`text-base sm:text-xl font-black tracking-tight leading-none text-center ${item.label === 'LUCRO LÍQUIDO' && item.value < 0 ? 'text-rose-500' : 'text-sky-900'}`}>
+                {item.format === 'currency' 
+                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(item.value) 
+                  : `${item.value.toLocaleString('pt-BR')} KG`}
+              </p>
             </div>
-            <div className="flex items-center gap-3 p-2 bg-white/80 rounded-2xl border border-slate-100 self-start sm:self-auto">
-              {showSales && <ChartLegend color="#6366f1" label="Vendas" />}
-              {showExpenses && <ChartLegend color="#f43f5e" label="Custos" />}
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
+        <div className="lg:col-span-2 ice-glass p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+            <div>
+              <h4 className="text-xl sm:text-2xl font-black text-sky-900 tracking-tighter">Fluxo {period === 'daily' ? 'Semanal' : 'Mensal'}</h4>
+              <p className="text-[9px] font-black text-sky-300 uppercase tracking-widest">{period === 'daily' ? 'Últimos 7 dias' : `Performance de ${monthName}`}</p>
+            </div>
+            <div className="flex items-center gap-3">
+               <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-sky-500"></div>
+                  <span className="text-[8px] font-black text-sky-400 uppercase">Vendas</span>
+               </div>
+               <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                  <span className="text-[8px] font-black text-rose-300 uppercase">Custos</span>
+               </div>
             </div>
           </div>
-          
-          <div className="h-56 sm:h-[350px] w-full relative z-10 -ml-4 sm:ml-0">
+
+          <div className="h-64 sm:h-72 w-full -ml-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+              <AreaChart data={stats.chartData}>
                 <defs>
-                  <linearGradient id="premiumSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="premiumExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                  <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 800}} dy={15} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 800}} />
-                <Tooltip content={<CustomTooltip />} cursor={{stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4'}} />
-                {showSales && <Area type="monotone" dataKey="vendas" stroke="#6366f1" strokeWidth={4} fill="url(#premiumSales)" activeDot={{ r: 6 }} />}
-                {showExpenses && <Area type="monotone" dataKey="despesas" stroke="#f43f5e" strokeWidth={4} fill="url(#premiumExpenses)" activeDot={{ r: 6 }} />}
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0f2fe" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fill: '#bae6fd', fontSize: 9, fontWeight: 900}} 
+                  dy={10} 
+                  interval={period === 'monthly' ? 5 : 0}
+                />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#bae6fd', fontSize: 9, fontWeight: 900}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: '900', fontSize: '10px' }}
+                  formatter={(value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
+                />
+                <Area type="monotone" dataKey="vendas" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorVendas)" />
+                <Area type="monotone" dataKey="custos" stroke="#f43f5e" strokeWidth={3} fillOpacity={0} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {showExpenses && (
-          <div className="bg-slate-900 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col relative overflow-hidden group">
-            <div className="flex items-center justify-between mb-6 sm:mb-8 relative z-10">
-              <div>
-                <p className="text-[8px] sm:text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-0.5">Financial</p>
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tighter">Próximos</h3>
-              </div>
-              <button onClick={() => onSwitchView('expenses')} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90">
-                <ArrowRight size={18} />
-              </button>
-            </div>
-            
-            <div className="space-y-3 sm:space-y-4 overflow-y-auto max-h-[300px] sm:max-h-none pr-1 custom-scrollbar relative z-10 flex-1">
-              {expenses.filter(e => e.status !== ExpenseStatus.PAGO).length === 0 ? (
-                <div className="h-40 flex flex-col items-center justify-center text-center opacity-30 text-white">
-                  <CheckCircle2 size={32} className="mb-2" />
-                  <p className="text-[9px] font-black uppercase tracking-widest">Sem Pendências</p>
-                </div>
-              ) : (
-                expenses
-                  .filter(e => e.status !== ExpenseStatus.PAGO)
-                  .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-                  .slice(0, 6)
-                  .map(expense => (
-                    <DarkExpenseItem key={expense.id} expense={expense} today={today} />
-                  ))
-              )}
-            </div>
+        <div className="bg-[#0c1b3d] p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] text-white shadow-2xl flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h4 className="text-xl sm:text-2xl font-black tracking-tighter leading-none">Próximas Contas</h4>
+            <button className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all active:scale-95" onClick={() => onSwitchView('expenses')}>
+              <ArrowRight size={20} />
+            </button>
           </div>
-        )}
+
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
+            {stats.upcoming.length === 0 ? (
+              <div className="h-full py-12 flex flex-col items-center justify-center opacity-20 italic text-xs">Sem contas pendentes</div>
+            ) : (
+              stats.upcoming.map(item => (
+                <div key={item.id} className="p-4 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-between group hover:bg-white/10 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
+                      <Receipt size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="text-[11px] font-black tracking-tight uppercase truncate max-w-[100px] sm:max-w-[120px]">{item.description}</h5>
+                      <p className="text-[8px] font-black text-sky-400/50 uppercase tracking-widest">{new Date(item.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
+                    </div>
+                  </div>
+                  <span className="font-black text-xs sm:text-sm text-sky-300">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(item.value)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 };
-
-// Componente de Card Hero
-const HeroStatCard = ({ title, value, icon, gradient, isCurrency, suffix, isAlert, onClick }: any) => {
-  return (
-    <div 
-      onClick={onClick}
-      className={`relative group overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-8 sm:h-44 flex flex-col justify-center shadow-xl transition-all duration-500 ${onClick ? 'cursor-pointer hover:-translate-y-2 active:scale-95' : 'hover:-translate-y-1'}`}
-    >
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-95`}></div>
-      <div className="absolute top-0 right-0 p-4 sm:p-6 text-white/10 group-hover:scale-110 transition-transform duration-700">
-        {React.cloneElement(icon, { size: window.innerWidth < 640 ? 60 : 80 })}
-      </div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[8px] sm:text-[10px] font-black text-white/70 uppercase tracking-[0.3em]">{title}</p>
-          {isAlert && <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></div>}
-        </div>
-        <h4 className="text-xl sm:text-4xl font-black text-white tracking-tighter leading-none">
-          {isCurrency 
-            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-            : `${value.toLocaleString('pt-BR')}${suffix || ''}`}
-        </h4>
-        {onClick && (
-          <p className="text-[7px] sm:text-[9px] font-black text-white/50 uppercase tracking-widest mt-2 sm:mt-4 hidden sm:block">
-            Ver detalhes <ArrowRight size={10} className="inline ml-1" />
-          </p>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Componente de Card Glass Slim
-const GlassStatCard = ({ title, value, icon, isCurrency, suffix }: any) => {
-  return (
-    <div className="bg-white/70 backdrop-blur-xl p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[2rem] border border-white shadow-md hover:shadow-lg transition-all duration-500 group">
-      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
-           {React.cloneElement(icon, { size: window.innerWidth < 640 ? 16 : 18 })}
-        </div>
-        <div className="min-w-0">
-          <p className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{title}</p>
-        </div>
-      </div>
-      
-      <h4 className="text-xs sm:text-xl font-black text-slate-900 tracking-tighter truncate">
-        {isCurrency 
-          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value)
-          : `${value.toLocaleString('pt-BR')}${suffix || ''}`}
-      </h4>
-    </div>
-  );
-};
-
-const DarkExpenseItem = ({ expense, today }: any) => {
-  const isOverdue = expense.dueDate < today;
-  const isToday = expense.dueDate === today;
-  
-  return (
-    <div className="flex items-center justify-between p-3 sm:p-4 bg-white/5 border border-white/5 rounded-2xl sm:rounded-2xl hover:bg-white/10 transition-all duration-300">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-xl flex items-center justify-center shrink-0 border border-white/10 ${isOverdue ? 'bg-rose-500/10 text-rose-500' : isToday ? 'bg-amber-500/10 text-amber-500' : 'bg-indigo-500/10 text-indigo-400'}`}>
-          <Receipt size={window.innerWidth < 640 ? 16 : 18} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] sm:text-[11px] font-black text-white/90 truncate mb-0.5">{expense.description}</p>
-          <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${isOverdue ? 'text-rose-400' : 'text-slate-500'}`}>
-             {isOverdue ? 'Vencido' : `Vence ${new Date(expense.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}`}
-          </p>
-        </div>
-      </div>
-      <div className="text-right ml-2 shrink-0">
-        <p className="text-[10px] sm:text-xs font-black text-white tracking-tighter">
-          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.value)}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const ChartLegend = ({ color, label }: any) => (
-  <div className="flex items-center gap-1.5 sm:gap-2">
-    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" style={{ backgroundColor: color }}></div>
-    <span className="text-[7px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tight">{label}</span>
-  </div>
-);
 
 export default DashboardView;
