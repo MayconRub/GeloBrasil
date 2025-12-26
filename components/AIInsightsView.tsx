@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-// Fix: Added missing AlertCircle icon to imports
-import { Sparkles, BrainCircuit, Lightbulb, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, BrainCircuit, Lightbulb, Loader2, AlertCircle } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { Sale, Expense } from '../types';
 
@@ -21,99 +20,83 @@ const AIInsightsView: React.FC<Props> = ({ data }) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Fix: Follow @google/genai initialization guidelines strictly using process.env.API_KEY
+      // Inicialização correta seguindo as diretrizes v3
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const salesSummary = data.sales.slice(0, 50).map(s => `Venda: ${s.value} em ${s.date}`).join('; ');
-      const expensesSummary = data.expenses.slice(0, 50).map(e => `Despesa: ${e.description}, ${e.value}, vence ${e.dueDate}, status ${e.status}`).join('; ');
+      const salesTotal = data.sales.slice(0, 30).reduce((sum, s) => sum + s.value, 0);
+      const expensesTotal = data.expenses.slice(0, 30).reduce((sum, e) => sum + e.value, 0);
 
-      const prompt = `
-        Aja como um consultor financeiro sênior. Analise os seguintes dados reais da empresa:
-        Vendas Recentes: ${salesSummary || 'Nenhuma registrada ainda.'}
-        Despesas Recentes: ${expensesSummary || 'Nenhuma registrada ainda.'}
+      const prompt = `Analise financeiramente os dados deste mês de uma fábrica de gelo: Vendas Totais R$ ${salesTotal}, Despesas Totais R$ ${expensesTotal}. Dê um diagnóstico curto e 3 dicas acionáveis para aumentar o lucro. Responda em Português (Brasil).`;
 
-        Com base nesses dados:
-        1. Dê um diagnóstico rápido do fluxo de caixa.
-        2. Aponte despesas críticas ou padrões de gastos.
-        3. Dê 3 conselhos práticos para aumentar o lucro ou reduzir custos.
-        
-        Responda em Português do Brasil, use Markdown para formatação e seja direto e profissional.
-      `;
-
-      // Fix: Use gemini-3-pro-preview for complex reasoning tasks as per guidelines
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
       });
 
-      // Fix: Use the .text property directly as per guidelines
-      setInsight(response.text || "Não foi possível gerar insights no momento.");
+      // Acesso direto à propriedade .text (propriedade, não método)
+      setInsight(response.text || "Não foi possível gerar análise no momento.");
     } catch (err: any) {
       console.error(err);
-      setError("Erro ao conectar com o Gemini AI. Verifique se o sistema possui permissões de rede.");
+      setError("Erro na conexão AI. Verifique se a chave API está configurada.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Sparkles className="text-indigo-500" /> Consultoria AI
-          </h2>
-          <p className="text-slate-500">Inteligência artificial analisando seus números reais.</p>
-        </div>
-        <button 
-          onClick={generateInsight}
-          disabled={isLoading}
-          className="bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-indigo-100"
-        >
-          {isLoading ? <Loader2 className="animate-spin" size={20} /> : <BrainCircuit size={20} />}
-          {insight ? 'Atualizar Análise' : 'Gerar Insights Agora'}
-        </button>
+    <div className="space-y-6 pb-20">
+      <header className="flex flex-col gap-2">
+        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+          <Sparkles className="text-indigo-500" /> IA Consultor
+        </h2>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Análise inteligente do seu negócio</p>
       </header>
 
-      {!insight && !isLoading && !error && (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-4">
+      {!insight && !isLoading && (
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 text-center shadow-sm">
           <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lightbulb size={32} />
           </div>
-          <h3 className="text-xl font-bold text-slate-800">Pronto para otimizar seu negócio?</h3>
-          <p className="text-slate-500 max-w-md mx-auto">
-            Clique no botão acima para que o Gemini AI analise seus lançamentos de vendas e despesas. Você receberá um diagnóstico completo e conselhos personalizados.
-          </p>
+          <h3 className="text-lg font-black text-slate-800 mb-2">Otimize seu Fluxo</h3>
+          <p className="text-xs text-slate-500 mb-6">A IA analisa suas vendas e despesas recentes para sugerir melhorias estratégicas.</p>
+          <button 
+            onClick={generateInsight}
+            className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl text-xs uppercase tracking-widest"
+          >
+            <BrainCircuit size={18} /> Gerar Análise
+          </button>
         </div>
       )}
 
       {isLoading && (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center">
-          <Loader2 className="animate-spin mx-auto text-indigo-500 mb-4" size={48} />
-          <p className="text-slate-600 font-medium animate-pulse">O cérebro digital está processando seus dados financeiros...</p>
+        <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center shadow-sm">
+          <Loader2 className="animate-spin mx-auto text-indigo-500 mb-4" size={40} />
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Consultando especialista...</p>
         </div>
       )}
 
       {error && (
-        <div className="bg-rose-50 border border-rose-200 p-6 rounded-xl text-rose-700 flex items-start gap-4">
-          {/* Fix: AlertCircle is now imported */}
-          <AlertCircle className="shrink-0" />
-          <div>
-            <h4 className="font-bold">Ops! Algo deu errado.</h4>
-            <p className="text-sm">{error}</p>
-          </div>
+        <div className="bg-rose-50 border border-rose-100 p-6 rounded-2xl text-rose-600 flex items-center gap-3">
+          <AlertCircle size={20} />
+          <p className="text-xs font-bold">{error}</p>
         </div>
       )}
 
       {insight && (
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm prose prose-indigo max-w-none">
-          <div className="flex items-center gap-2 mb-6 text-indigo-600 font-bold uppercase tracking-widest text-xs">
+        <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm animate-in fade-in zoom-in-95">
+          <div className="flex items-center gap-2 mb-6 text-indigo-600 font-black uppercase text-[10px] tracking-widest">
             <div className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></div>
-            Relatório de Performance Gerado
+            Diagnóstico Gerado
           </div>
-          <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+          <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
             {insight}
           </div>
+          <button 
+            onClick={() => setInsight(null)}
+            className="mt-8 w-full py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest border-t border-slate-50"
+          >
+            Nova Consulta
+          </button>
         </div>
       )}
     </div>

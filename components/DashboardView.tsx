@@ -62,6 +62,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
   const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   const handleResetMonth = () => setSelectedDate(new Date());
 
+  // Estatísticas computadas
   const stats = useMemo(() => {
     const dailySales = sales.filter(s => s.date === today).reduce((sum, s) => sum + s.value, 0);
     const dailyProd = production.filter(p => p.date === today).reduce((sum, p) => sum + p.quantityKg, 0);
@@ -130,23 +131,15 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
     };
   }, [sales, expenses, production, today, currentMonth, currentYear, period]);
 
-  const currentGoals = useMemo(() => {
-    if (period === 'daily') {
-      return {
-        sales: settings.salesGoalDaily || 2000,
-        prod: settings.productionGoalDaily || 1000,
-        label: 'Meta Diária'
-      };
-    } else {
-      const salesGoal = monthlyGoals.find(g => g.type === 'sales' && g.month === currentMonth && g.year === currentYear)?.value || settings.salesGoalMonthly || 60000;
-      const prodGoal = monthlyGoals.find(g => g.type === 'production' && g.month === currentMonth && g.year === currentYear)?.value || settings.productionGoalMonthly || 30000;
-      return {
-        sales: salesGoal,
-        prod: prodGoal,
-        label: 'Meta Mensal'
-      };
-    }
-  }, [period, settings, monthlyGoals, currentMonth, currentYear]);
+  // Metas Mensais (Padrão para os cards de progresso)
+  const currentMonthlyGoals = useMemo(() => {
+    const salesGoal = monthlyGoals.find(g => g.type === 'sales' && g.month === currentMonth && g.year === currentYear)?.value || settings.salesGoalMonthly || 60000;
+    const prodGoal = monthlyGoals.find(g => g.type === 'production' && g.month === currentMonth && g.year === currentYear)?.value || settings.productionGoalMonthly || 30000;
+    return {
+      sales: salesGoal,
+      prod: prodGoal
+    };
+  }, [monthlyGoals, currentMonth, currentYear, settings]);
 
   const activeStats = period === 'daily' ? {
     sales: stats.dailySales,
@@ -162,8 +155,9 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
     labelSuffix: `EM ${monthName.toUpperCase()}`
   };
 
-  const salesProgress = Math.min(100, (activeStats.sales / (currentGoals.sales || 1)) * 100) || 0;
-  const prodProgress = Math.min(100, (activeStats.prod / (currentGoals.prod || 1)) * 100) || 0;
+  // Progresso é SEMPRE baseado no acumulado do mês vs meta mensal
+  const salesProgress = Math.min(100, (stats.mSalesTotal / (currentMonthlyGoals.sales || 1)) * 100) || 0;
+  const prodProgress = Math.min(100, (stats.mProdTotal / (currentMonthlyGoals.prod || 1)) * 100) || 0;
 
   const anyGoalMet = salesProgress >= 100 || prodProgress >= 100;
 
@@ -180,6 +174,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700">
       
+      {/* Banner de Parabéns */}
       {anyGoalMet && (
         <div className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 p-5 sm:p-6 rounded-[2.5rem] text-white flex items-center justify-between shadow-xl shadow-amber-100 animate-in zoom-in-95 duration-500">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -188,16 +183,36 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
             </div>
             <div>
               <h4 className="font-black text-sm sm:text-xl uppercase tracking-tighter leading-none">
-                {period === 'daily' ? 'Excelente Trabalho Hoje!' : `Desempenho de Campeão em ${monthName}!`}
+                PARABÉNS! META ALCANÇADA! 🚀
               </h4>
               <p className="text-white/80 text-[10px] sm:text-xs font-bold mt-1">
-                {period === 'daily' ? 'Meta diária alcançada com sucesso. 🚀' : 'Seus objetivos mensais concluídos. Parabéns! 🏆'}
+                Sua operação atingiu os objetivos mensais em {monthName}. Continue o excelente trabalho! 🏆
               </p>
             </div>
           </div>
           <div className="hidden sm:block">
             <PartyPopper size={48} className="opacity-40 -rotate-12" />
           </div>
+        </div>
+      )}
+
+      {showRenewalBanner && !anyGoalMet && (
+        <div className="bg-sky-50 p-4 rounded-[2.5rem] border border-sky-100 flex items-center justify-between shadow-inner animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-sky-500 shadow-sm">
+              <Star size={20} className="fill-sky-500" />
+            </div>
+            <div>
+              <h4 className="font-black text-sky-900 text-[9px] uppercase tracking-[0.2em]">SISTEMA EM PERÍODO DE RENOVAÇÃO</h4>
+              <p className="text-sky-600/70 text-[10px] font-bold">Vencimento em: <span className="text-sky-900 font-black">{new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span></p>
+            </div>
+          </div>
+          <button 
+            onClick={onOpenPayment}
+            className="bg-sky-600 text-white px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-sky-700 transition-all shadow-md active:scale-95"
+          >
+            <Activity size={14} /> RENOVAR AGORA
+          </button>
         </div>
       )}
 
@@ -208,20 +223,18 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          {period === 'monthly' && (
-            <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-sky-100 overflow-hidden animate-in slide-in-from-right-4">
-              <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
-              <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-sky-50 rounded-xl transition-all min-w-[130px]">
-                <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest mb-0.5">Mês de Referência</span>
-                <span className="text-xs font-black text-sky-900 capitalize text-center">{monthName}</span>
-              </button>
-              <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
-            </div>
-          )}
+          <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-sky-100 overflow-hidden">
+            <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
+            <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-sky-50 rounded-xl transition-all min-w-[130px]">
+              <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest mb-0.5">Mês de Referência</span>
+              <span className="text-xs font-black text-sky-900 capitalize text-center">{monthName}</span>
+            </button>
+            <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-sky-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
+          </div>
 
           <div className="flex p-1 bg-white border border-sky-100 rounded-2xl shadow-sm">
             <button 
-              onClick={() => { setPeriod('daily'); setSelectedDate(new Date()); }}
+              onClick={() => { setPeriod('daily'); }}
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${period === 'daily' ? 'bg-sky-600 text-white shadow-lg' : 'text-sky-300 hover:bg-sky-50'}`}
             >
               <Clock size={14} /> Hoje
@@ -268,9 +281,9 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
               </div>
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                 <div className={`inline-flex items-center self-start gap-2 px-3 py-1 ${salesProgress >= 100 ? 'bg-amber-400 text-teal-900' : 'bg-white/20 text-white'} rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest backdrop-blur-md`}>
-                  <Target size={12} /> {salesProgress >= 100 ? `META ${period === 'daily' ? 'DIÁRIA' : 'MENSAL'} OK` : `${salesProgress.toFixed(0)}% da meta`}
+                  <Target size={12} /> {salesProgress >= 100 ? `META MENSAL ALCANÇADA` : `${salesProgress.toFixed(0)}% da meta mensal`}
                 </div>
-                <span className="text-[8px] sm:text-[9px] font-black opacity-60 uppercase">{currentGoals.label}: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(currentGoals.sales)}</span>
+                <span className="text-[8px] sm:text-[9px] font-black opacity-60 uppercase">Meta Mensal: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(currentMonthlyGoals.sales)}</span>
               </div>
             </div>
           </div>
@@ -307,9 +320,9 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
               </div>
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                 <div className={`inline-flex items-center self-start gap-2 px-3 py-1 ${prodProgress >= 100 ? 'bg-amber-400 text-sky-900' : 'bg-white/20 text-white'} rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest backdrop-blur-md`}>
-                  <Target size={12} /> {prodProgress >= 100 ? 'MÁXIMA PERFORMANCE' : `${prodProgress.toFixed(0)}% da meta`}
+                  <Target size={12} /> {prodProgress >= 100 ? 'META MENSAL ALCANÇADA' : `${prodProgress.toFixed(0)}% da meta mensal`}
                 </div>
-                <span className="text-[8px] sm:text-[9px] font-black opacity-60 uppercase">{currentGoals.label}: {currentGoals.prod.toLocaleString('pt-BR')} KG</span>
+                <span className="text-[8px] sm:text-[9px] font-black opacity-60 uppercase">Meta Mensal: {currentMonthlyGoals.prod.toLocaleString('pt-BR')} KG</span>
               </div>
             </div>
           </div>
