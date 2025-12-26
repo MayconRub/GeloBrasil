@@ -18,7 +18,10 @@ import {
   Clock,
   ArrowDownLeft,
   Trophy,
-  PartyPopper
+  PartyPopper,
+  AlertCircle,
+  AlertTriangle,
+  BellRing
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -90,8 +93,13 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
 
     const upcoming = expenses
       .filter(e => e.status !== ExpenseStatus.PAGO)
-      .sort((a, b) => new Date(a.dueDate + 'T00:00:00').getTime() - new Date(b.dueDate + 'T00:00:00').getTime())
-      .slice(0, 1);
+      .sort((a, b) => {
+        // Ordenação inteligente: Vencidos primeiro, depois por data
+        const dateA = new Date(a.dueDate + 'T00:00:00').getTime();
+        const dateB = new Date(b.dueDate + 'T00:00:00').getTime();
+        return dateA - dateB;
+      })
+      .slice(0, 5);
 
     const chartData = [];
     if (period === 'daily') {
@@ -131,7 +139,7 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
     };
   }, [sales, expenses, production, today, currentMonth, currentYear, period]);
 
-  // Metas Mensais (Padrão para os cards de progresso)
+  // Metas Mensais
   const currentMonthlyGoals = useMemo(() => {
     const salesGoal = monthlyGoals.find(g => g.type === 'sales' && g.month === currentMonth && g.year === currentYear)?.value || settings.salesGoalMonthly || 60000;
     const prodGoal = monthlyGoals.find(g => g.type === 'production' && g.month === currentMonth && g.year === currentYear)?.value || settings.productionGoalMonthly || 30000;
@@ -155,11 +163,19 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
     labelSuffix: `EM ${monthName.toUpperCase()}`
   };
 
-  // Progresso é SEMPRE baseado no acumulado do mês vs meta mensal
   const salesProgress = Math.min(100, (stats.mSalesTotal / (currentMonthlyGoals.sales || 1)) * 100) || 0;
   const prodProgress = Math.min(100, (stats.mProdTotal / (currentMonthlyGoals.prod || 1)) * 100) || 0;
-
   const anyGoalMet = salesProgress >= 100 || prodProgress >= 100;
+
+  const getDueDateLabel = (dueDate: string) => {
+    if (dueDate < today) return { text: 'VENCIDO', color: 'bg-rose-600 text-white shadow-lg shadow-rose-900/50', icon: true };
+    if (dueDate === today) return { text: 'HOJE', color: 'bg-amber-500 text-white', icon: false };
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    if (dueDate === tomorrowStr) return { text: 'AMANHÃ', color: 'bg-sky-400 text-white', icon: false };
+    return { text: new Date(dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), color: 'bg-white/10 text-white/60', icon: false };
+  };
 
   const showRenewalBanner = useMemo(() => {
     if (!expirationDate) return false;
@@ -252,13 +268,6 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
       <div className={`grid grid-cols-1 ${period === 'daily' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4 sm:gap-6`}>
         {/* Card Vendas */}
         <div className={`${salesProgress >= 100 ? 'bg-gradient-to-br from-teal-500 to-teal-700 shadow-teal-100' : 'ice-card-teal shadow-teal-100'} p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] text-white relative overflow-hidden group transition-all duration-500 shadow-xl`}>
-          {salesProgress >= 100 && (
-            <div className="absolute top-6 right-6 z-20">
-               <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30 animate-pulse">
-                 <Trophy size={18} className="text-amber-300" />
-               </div>
-            </div>
-          )}
           <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
           <TrendingUp size={120} className="absolute bottom-[-20px] right-[-20px] opacity-10 rotate-12" />
           
@@ -291,13 +300,6 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
 
         {/* Card Produção */}
         <div className={`${prodProgress >= 100 ? 'bg-gradient-to-br from-sky-600 to-indigo-800 shadow-sky-100' : 'ice-card-blue shadow-sky-100'} p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] text-white relative overflow-hidden group transition-all duration-500 shadow-xl`}>
-          {prodProgress >= 100 && (
-            <div className="absolute top-6 right-6 z-20">
-               <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30 animate-pulse">
-                 <Trophy size={18} className="text-amber-300" />
-               </div>
-            </div>
-          )}
           <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
           <Snowflake size={120} className="absolute bottom-[-20px] right-[-20px] opacity-10 -rotate-12" />
           
@@ -345,29 +347,6 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
           </div>
         )}
       </div>
-
-      {period === 'monthly' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {[
-            { label: 'RECEITA', icon: Coins, value: activeStats.sales, color: 'sky', format: 'currency' },
-            { label: 'DESPESAS', icon: ArrowDownRight, value: activeStats.expenses, color: 'rose', format: 'currency' },
-            { label: 'LUCRO LÍQUIDO', icon: Scale, value: activeStats.profit, color: 'teal', format: 'currency' },
-            { label: 'FABRICADO', icon: Snowflake, value: activeStats.prod, color: 'sky', format: 'kg' }
-          ].map((item, idx) => (
-            <div key={idx} className="ice-glass p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] transition-all hover:translate-y-[-2px] flex flex-col items-center">
-              <div className={`text-${item.color}-500 bg-${item.color}-50 p-2 rounded-xl mb-3`}>
-                 <item.icon size={18} />
-              </div>
-              <p className="text-[8px] sm:text-[10px] font-black text-sky-900/40 uppercase tracking-[0.2em] mb-1">{item.label}</p>
-              <p className={`text-base sm:text-xl font-black tracking-tight leading-none text-center ${item.label === 'LUCRO LÍQUIDO' && item.value < 0 ? 'text-rose-500' : 'text-sky-900'}`}>
-                {item.format === 'currency' 
-                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(item.value) 
-                  : `${item.value.toLocaleString('pt-BR')} KG`}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
         <div className="lg:col-span-2 ice-glass p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem]">
@@ -418,36 +397,73 @@ const DashboardView: React.FC<Props> = ({ sales, expenses, production, monthlyGo
           </div>
         </div>
 
-        <div className="bg-[#0c1b3d] p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] text-white shadow-2xl flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <h4 className="text-xl sm:text-2xl font-black tracking-tighter leading-none">Próximas Contas</h4>
-            <button className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all active:scale-95" onClick={() => onSwitchView('expenses')}>
+        {/* UPGRADED: Card de Próximas Contas com Alertas de Vencimento */}
+        <div className="bg-gradient-to-br from-[#0c1b3d] to-[#1e3a8a] p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] text-white shadow-2xl flex flex-col relative overflow-hidden group">
+          <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-sky-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:bg-sky-500/20"></div>
+          
+          <div className="flex items-center justify-between mb-8 relative z-10">
+            <div>
+              <h4 className="text-xl sm:text-2xl font-black tracking-tighter leading-none">Status de <span className="text-sky-400">Contas</span></h4>
+              <p className="text-[9px] font-black text-sky-400/60 uppercase tracking-[0.2em] mt-2">Visão de Vencimentos</p>
+            </div>
+            <button 
+              className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all active:scale-95 shadow-lg border border-white/5" 
+              onClick={() => onSwitchView('expenses')}
+            >
               <ArrowRight size={20} />
             </button>
           </div>
 
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] no-scrollbar">
+          <div className="space-y-3.5 flex-1 relative z-10 overflow-y-auto no-scrollbar pr-1">
             {stats.upcoming.length === 0 ? (
-              <div className="h-full py-12 flex flex-col items-center justify-center opacity-20 italic text-xs">Sem contas pendentes</div>
+              <div className="h-full py-12 flex flex-col items-center justify-center text-center">
+                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4 text-sky-400/30">
+                    <AlertCircle size={32} />
+                 </div>
+                 <p className="text-[10px] font-black uppercase text-sky-400/40 tracking-widest">Fluxo Limpo!</p>
+                 <p className="text-[9px] text-white/30 mt-1 font-bold">Nenhuma conta pendente.</p>
+              </div>
             ) : (
-              stats.upcoming.map(item => (
-                <div key={item.id} className="p-4 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-between group hover:bg-white/10 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
-                      <Receipt size={18} />
+              stats.upcoming.map(item => {
+                const label = getDueDateLabel(item.dueDate);
+                const isOverdue = item.dueDate < today;
+                
+                return (
+                  <div key={item.id} className={`p-4 rounded-[1.8rem] border transition-all cursor-pointer group/item flex items-center justify-between ${isOverdue ? 'bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border transition-transform group-hover/item:scale-110 ${isOverdue ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-white/5 text-sky-400 border-white/10'}`}>
+                        {isOverdue ? <BellRing size={20} className="animate-pulse" /> : <Receipt size={20} />}
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className={`text-[11px] font-black tracking-tight uppercase truncate max-w-[120px] leading-none mb-2 ${isOverdue ? 'text-rose-100' : 'text-white'}`}>{item.description}</h5>
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest ${label.color}`}>
+                           {label.icon && <AlertTriangle size={8} />}
+                           {label.text}
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h5 className="text-[11px] font-black tracking-tight uppercase truncate max-w-[100px] sm:max-w-[120px]">{item.description}</h5>
-                      <p className="text-[8px] font-black text-sky-400/50 uppercase tracking-widest">{new Date(item.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
+                    <div className="text-right">
+                      <span className={`font-black text-xs sm:text-sm block leading-none ${isOverdue ? 'text-rose-400' : 'text-sky-300'}`}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(item.value)}
+                      </span>
+                      <span className="text-[8px] font-black text-white/20 uppercase tracking-tighter mt-1 block">{item.category}</span>
                     </div>
                   </div>
-                  <span className="font-black text-xs sm:text-sm text-sky-300">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(item.value)}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
+
+          {stats.upcoming.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-white/10 text-center relative z-10">
+               <button 
+                onClick={() => onSwitchView('expenses')}
+                className="text-[9px] font-black text-sky-400/60 uppercase tracking-[0.2em] hover:text-sky-400 transition-colors"
+               >
+                 Ver todas as despesas
+               </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
