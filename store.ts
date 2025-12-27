@@ -58,7 +58,6 @@ export const fetchAllData = async (): Promise<AppData> => {
   const today = new Date().toISOString().split('T')[0];
   
   return {
-    // Mapeamento corrigido: usa s.descricao e p.data conforme SQL
     sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao || '' })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.data, observation: p.observacao })),
     monthlyGoals: (goals.data || []).map(g => ({ type: g.tipo, month: g.mes, year: g.ano, value: g.valor })),
@@ -88,10 +87,15 @@ export const fetchAllData = async (): Promise<AppData> => {
 export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert(v, { onConflict: 'id' });
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
+// SYNC ABASTECIMENTO COM ALERTA DE ÓLEO
 export const syncFuel = async (f: FuelLog) => {
   const { error } = await supabase.from('frota_abastecimentos').upsert(f);
   if (!error) {
+    // 1. Atualizar KM do veículo
+    const { data: v } = await supabase.from('veiculos').select('km_ultima_troca').eq('id', f.veiculo_id).single();
     await supabase.from('veiculos').update({ km_atual: f.km_registro }).eq('id', f.veiculo_id);
+    
+    // 2. Criar Despesa Automática
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
         descricao: `Abastecimento: ${f.tipo_combustivel}`,
@@ -102,24 +106,49 @@ export const syncFuel = async (f: FuelLog) => {
         veiculo_id: f.veiculo_id,
         km_reading: f.km_registro
     });
+
+    // 3. Verificação de Alerta de Óleo (1000km)
+    if (v && (f.km_registro - v.km_ultima_troca) >= 1000) {
+        await supabase.from('frota_manutencoes').insert({
+            id: crypto.randomUUID(),
+            veiculo_id: f.veiculo_id,
+            tipo: 'Preventiva',
+            servico: 'TROCA DE ÓLEO (ALERTA AUTOMÁTICO)',
+            data: f.data,
+            km_registro: f.km_registro,
+            custo: 0,
+            pago: false
+        });
+    }
   }
   return { error };
 };
 
+// SYNC MANUTENÇÃO COM INTEGRAÇÃO FINANCEIRA
 export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error } = await supabase.from('frota_manutencoes').upsert(m);
   if (!error) {
-    await supabase.from('veiculos').update({ km_atual: m.km_registro }).eq('id', m.veiculo_id);
-    await supabase.from('despesas').insert({
-        id: crypto.randomUUID(),
-        descricao: `Manutenção: ${m.servico}`,
-        valor: m.custo,
-        data_vencimento: m.data,
-        status: 'Pago',
-        categoria: 'Manutenção',
-        veiculo_id: m.veiculo_id,
-        km_reading: m.km_registro
-    });
+    // Se for uma Troca de Óleo, atualizamos a km_ultima_troca no veículo
+    if (m.servico.toUpperCase().includes('ÓLEO')) {
+        await supabase.from('veiculos').update({ 
+            km_ultima_troca: m.km_registro,
+            km_atual: m.km_registro 
+        }).eq('id', m.veiculo_id);
+    }
+
+    // Gerar Despesa Financeira
+    if (m.custo > 0) {
+        await supabase.from('despesas').insert({
+            id: crypto.randomUUID(),
+            descricao: `Manutenção: ${m.servico}`,
+            valor: m.custo,
+            data_vencimento: m.data,
+            status: m.pago ? 'Pago' : 'A Vencer',
+            categoria: 'Manutenção',
+            veiculo_id: m.veiculo_id,
+            km_reading: m.km_registro
+        });
+    }
   }
   return { error };
 };
@@ -140,21 +169,16 @@ export const syncFine = async (f: FineLog) => {
     return { error };
 };
 
-// Sincronização de Vendas: usa 'descricao'
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description });
-
-export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description, valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category, veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading, observacao: e.observation });
-
-// Sincronização de Produção: usa 'data' para combinar com 'fetch'
+export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description, valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category, veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation });
-
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name, cargo: e.role, salario: e.salary, data_admissao: e.joinedAt });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome });
 export const syncCategoriesOrder = async (orderedNames: string[]) => {
   const updates = orderedNames.map((nome, index) => supabase.from('categorias').update({ ordem: index }).eq('nome', nome));
   return Promise.all(updates);
 };
-export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value });
+export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value }, { onConflict: 'tipo,mes,ano' });
 export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName, cnpj: s.cnpj, endereco: s.address, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText, aviso_dashboard: s.dashboardNotice, meta_producao_diaria: s.productionGoalDaily, meta_vendas_diaria: s.salesGoalDaily }, { onConflict: 'id' });
 
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);

@@ -40,7 +40,6 @@ export interface Expense {
   observation?: string;
 }
 
-// NOVO MODELO DE FROTA
 export interface Vehicle {
   id: string;
   tipo: 'Caminhão' | 'Carro' | 'Moto';
@@ -48,6 +47,7 @@ export interface Vehicle {
   ano: string;
   placa: string;
   km_atual: number;
+  km_ultima_troca: number; // NOVO
   motorista_id?: string;
   icon_type?: string;
 }
@@ -72,6 +72,7 @@ export interface MaintenanceLog {
   km_registro: number;
   custo: number;
   oficina?: string;
+  pago?: boolean; // NOVO
   proxima_maint_km?: number;
   proxima_maint_data?: string;
   observacao?: string;
