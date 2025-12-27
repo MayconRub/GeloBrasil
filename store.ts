@@ -88,12 +88,12 @@ export const fetchAllData = async (): Promise<AppData> => {
 export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert(v, { onConflict: 'id' });
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
-// SYNC ABASTECIMENTO
+// SYNC ABASTECIMENTO COM INTEGRAÇÃO FINANCEIRA
 export const syncFuel = async (f: FuelLog) => {
   const { error } = await supabase.from('frota_abastecimentos').upsert(f);
   if (!error) {
     await supabase.from('veiculos').update({ km_atual: f.km_registro }).eq('id', f.veiculo_id);
-    // Cria despesa automática
+    // Cria despesa automática no financeiro
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
         descricao: `Abastecimento: ${f.tipo_combustivel}`,
@@ -108,12 +108,12 @@ export const syncFuel = async (f: FuelLog) => {
   return { error };
 };
 
-// SYNC MANUTENÇÃO
+// SYNC MANUTENÇÃO COM INTEGRAÇÃO FINANCEIRA
 export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error } = await supabase.from('frota_manutencoes').upsert(m);
   if (!error) {
     await supabase.from('veiculos').update({ km_atual: m.km_registro }).eq('id', m.veiculo_id);
-    // Cria despesa automática
+    // Cria despesa automática no financeiro
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
         descricao: `Manutenção: ${m.servico}`,
@@ -128,11 +128,10 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
   return { error };
 };
 
-// SYNC MULTAS
+// SYNC MULTAS COM INTEGRAÇÃO FINANCEIRA (SE PAGA)
 export const syncFine = async (f: FineLog) => {
     const { error } = await supabase.from('frota_multas').upsert(f);
     if (!error && f.situacao === 'Paga') {
-        // Cria despesa automática se paga
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
             descricao: `Multa: ${f.tipo_infracao}`,
