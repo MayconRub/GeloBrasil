@@ -7,14 +7,14 @@ interface Props {
   vehicles: Vehicle[];
   kmLogs: KmLog[];
   employees?: Employee[]; 
-  expenses?: Expense[]; // Adicionado para buscar custos de abastecimento
+  expenses?: Expense[]; 
   onUpdate: (vehicle: Vehicle) => Promise<void> | void;
   onDelete: (id: string) => void;
   onLogKm: (log: Omit<KmLog, 'id'>) => void;
   onRefuel: (payload: { vehicleId: string, employeeId: string, km: number, value: number, date: string, plate: string }) => Promise<any>;
 }
 
-const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses = [], onUpdate, onDelete, onLogKm, onRefuel }) => {
+const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = [], expenses = [], onUpdate, onDelete, onLogKm, onRefuel }) => {
   // Estados para Cadastro/Edição de Veículo
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -106,11 +106,12 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
   // Lógica do Relatório de Desempenho (KM Rodados)
   const performanceData = useMemo(() => {
     const report: any[] = [];
+    if (!vehicles || !kmLogs) return report;
     
     vehicles.forEach(vehicle => {
       // Pega todos os logs deste veículo ordenados por data e KM
       const vehicleLogs = kmLogs
-        .filter(log => log.veiculo_id === vehicle.id)
+        .filter(log => log && log.veiculo_id === vehicle.id)
         .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
 
       for (let i = 1; i < vehicleLogs.length; i++) {
@@ -119,10 +120,10 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
         const traveled = current.km_reading - previous.km_reading;
 
         // Tenta achar a despesa de abastecimento vinculada a este registro de KM
-        const fuelExpense = expenses.find(e => 
-          e.vehicleId === vehicle.id && 
+        const fuelExpense = (expenses || []).find(e => 
+          e && e.vehicleId === vehicle.id && 
           e.kmReading === current.km_reading &&
-          e.category.toLowerCase().includes('combustível')
+          e.category?.toLowerCase().includes('combustível')
         );
 
         if (traveled > 0) {
@@ -135,7 +136,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
             kmFinal: current.km_reading,
             distance: traveled,
             cost: fuelExpense?.value || 0,
-            driver: employees.find(e => e.id === current.funcionario_id)?.name || 'N/A'
+            driver: employees?.find(e => e.id === current.funcionario_id)?.name || 'N/A'
           });
         }
       }
@@ -218,7 +219,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Quem abasteceu?</label>
                      <select value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none focus:ring-4 focus:ring-sky-50" required>
                         <option value="">Selecione...</option>
-                        {employees.map(emp => (
+                        {(employees || []).map(emp => (
                           <option key={emp.id} value={emp.id}>{emp.name}</option>
                         ))}
                      </select>
@@ -355,7 +356,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                       {performanceData.map((row, idx) => (
+                       {(performanceData || []).map((row, idx) => (
                           <tr key={idx} className="hover:bg-indigo-50/20 transition-all group">
                              <td className="px-6 py-5 text-xs font-bold text-slate-500">
                                 {new Date(row.date + 'T00:00:00').toLocaleDateString('pt-BR')}
@@ -369,9 +370,9 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
                              <td className="px-6 py-5">
                                 <div className="flex items-center gap-3">
                                    <div className="text-[10px] text-slate-300 font-mono">
-                                      {row.kmInitial.toLocaleString()} <ArrowRight size={10} className="inline mx-1" /> {row.kmFinal.toLocaleString()}
+                                      {(row.kmInitial || 0).toLocaleString()} <ArrowRight size={10} className="inline mx-1" /> {(row.kmFinal || 0).toLocaleString()}
                                    </div>
-                                   <span className="text-sm font-black text-indigo-600">+{row.distance.toLocaleString()} KM</span>
+                                   <span className="text-sm font-black text-indigo-600">+{(row.distance || 0).toLocaleString()} KM</span>
                                 </div>
                              </td>
                              <td className="px-6 py-5">
@@ -380,7 +381,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
                                 </span>
                              </td>
                              <td className="px-6 py-5 text-right">
-                                {row.cost > 0 ? (
+                                {row.cost > 0 && row.distance > 0 ? (
                                    <div className="flex flex-col items-end">
                                       <span className="text-[10px] font-black text-emerald-600">
                                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.cost / row.distance)} / KM
@@ -435,7 +436,8 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   {kmLogs.slice(0, 100).map(log => {
+                   {(kmLogs || []).slice(0, 100).map(log => {
+                     if (!log) return null;
                      const v = vehicles.find(veh => veh.id === log.veiculo_id);
                      const emp = employees.find(e => e.id === log.funcionario_id);
                      return (
@@ -453,7 +455,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], expenses
                             </div>
                          </td>
                          <td className="px-6 py-5">
-                            <span className="text-sm font-black text-slate-800">{log.km_reading.toLocaleString()} <span className="text-[9px] text-slate-300">KM</span></span>
+                            <span className="text-sm font-black text-slate-800">{(log.km_reading || 0).toLocaleString()} <span className="text-[9px] text-slate-300">KM</span></span>
                          </td>
                          <td className="px-6 py-5">
                             <div className="flex items-center gap-2">
