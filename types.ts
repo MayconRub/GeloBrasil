@@ -84,7 +84,9 @@ export interface MaintenanceLog {
 export interface FineLog {
   id: string;
   veiculo_id: string;
+  funcionario_id: string;
   data: string;
+  data_vencimento: string;
   tipo_infracao: string;
   local?: string;
   valor: number;

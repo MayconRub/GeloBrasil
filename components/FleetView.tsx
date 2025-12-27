@@ -94,7 +94,7 @@ const FleetView: React.FC<Props> = ({
       {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} employees={employees} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
       {activeTab === 'fuel' && <FuelTab logs={fuelLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateFuel} onDelete={onDeleteFuel} />}
       {activeTab === 'maintenance' && <MaintenanceTab logs={maintenanceLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateMaintenance} onDelete={onDeleteMaintenance} />}
-      {activeTab === 'fines' && <FinesTab logs={fineLogs} vehicles={vehicles} onUpdate={onUpdateFine} onDelete={onDeleteFine} />}
+      {activeTab === 'fines' && <FinesTab logs={fineLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateFine} onDelete={onDeleteFine} />}
       {activeTab === 'reports' && <ReportsTab vehicles={vehicles} fuel={fuelLogs} maints={maintenanceLogs} fines={fineLogs} />}
     </div>
   );
@@ -510,7 +510,7 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
                     </select>
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">MECÂNICO / RESPONSÁVEL</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">FUNCIONÁRIO</label>
                     <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
                         <option value="">SELECIONAR FUNCIONÁRIO...</option>
                         {(employees || []).map((e:any) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
@@ -560,13 +560,26 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
   );
 };
 
-const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
+const FinesTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<FineLog>>({ situacao: 'Em aberto', data: new Date().toISOString().split('T')[0] });
+  const [form, setForm] = useState<Partial<FineLog>>({ 
+    situacao: 'Em aberto', 
+    data: new Date().toISOString().split('T')[0],
+    data_vencimento: new Date().toISOString().split('T')[0],
+    funcionario_id: ''
+  });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdate({ ...form, id: form.id || crypto.randomUUID(), tipo_infracao: form.tipo_infracao?.toUpperCase() } as FineLog);
+    if (!form.funcionario_id) {
+        alert("POR FAVOR, SELECIONE O FUNCIONÁRIO RESPONSÁVEL.");
+        return;
+    }
+    onUpdate({ 
+        ...form, 
+        id: form.id || crypto.randomUUID(), 
+        tipo_infracao: form.tipo_infracao?.toUpperCase() 
+    } as FineLog);
     setIsOpen(false);
   };
 
@@ -576,14 +589,19 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">INFRAÇÃO</th><th className="px-6 py-5">VALOR</th><th className="px-6 py-5">SITUAÇÃO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">INFRAÇÃO / VENC.</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">VALOR</th><th className="px-6 py-5">SITUAÇÃO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: FineLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
-                <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
-                <td className="px-6 py-4 uppercase truncate max-w-[180px] font-bold">{l.tipo_infracao.toUpperCase()}</td>
+                <td className="px-6 py-4">
+                    <p className="uppercase truncate max-w-[180px] font-bold">{l.tipo_infracao.toUpperCase()}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black">VENC: {new Date(l.data_vencimento + 'T00:00:00').toLocaleDateString()}</p>
+                </td>
+                <td className="px-6 py-4">
+                    <p className="text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</p>
+                    <p className="text-[10px] text-slate-400 uppercase">{(employees || []).find((e:any) => e.id === l.funcionario_id)?.name || 'NÃO IDENTIFICADO'}</p>
+                </td>
                 <td className="px-6 py-4 text-rose-500 font-black">R$ {l.valor.toLocaleString()}</td>
                 <td className="px-6 py-4">
                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${l.situacao === 'Paga' ? 'bg-emerald-500 text-white' : l.situacao === 'Em aberto' ? 'bg-amber-500 text-white' : 'bg-slate-500 text-white'}`}>
@@ -599,23 +617,30 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       {isOpen && (
         <Modal title="LANÇAR MULTA" onClose={() => setIsOpen(false)}>
            <form onSubmit={handleSave} className="space-y-5">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
-                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">SELECIONAR VEÍCULO...</option>
-                  {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
+                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
+                    <option value="">SELECIONAR VEÍCULO...</option>
+                    {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">FUNCIONÁRIO</label>
+                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
+                        <option value="">SELECIONAR...</option>
+                        {(employees || []).map((e:any) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
+                    </select>
+                  </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DATA</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DATA DA INFRAÇÃO</label>
                   <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">STATUS</label>
-                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.situacao} onChange={e => setForm({...form, situacao: e.target.value as any})}>
-                    <option>Em aberto</option><option>Paga</option><option>Recurso</option>
-                  </select>
+                  <label className="text-[9px] font-black text-sky-500 uppercase ml-2 tracking-widest">DATA DE VENCIMENTO</label>
+                  <input type="date" className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl font-black text-xs outline-none" value={form.data_vencimento} onChange={e => setForm({...form, data_vencimento: e.target.value})} required />
                 </div>
               </div>
               <div className="space-y-1">
@@ -628,8 +653,12 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
                   <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.valor || 0} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">PONTOS CNH</label>
-                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.pontos || 0} onChange={e => setForm({...form, pontos: parseInt(e.target.value) || 0})} />
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">STATUS</label>
+                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.situacao} onChange={e => setForm({...form, situacao: e.target.value as any})}>
+                    <option value="Em aberto">EM ABERTO</option>
+                    <option value="Paga">PAGA</option>
+                    <option value="Recurso">RECURSO</option>
+                  </select>
                 </div>
               </div>
               <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">

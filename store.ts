@@ -166,23 +166,31 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
 };
 
 export const syncFine = async (f: FineLog) => {
-    const { error } = await supabase.from('frota_multas').upsert({...f, tipo_infracao: f.tipo_infracao.toUpperCase()});
-    if (!error && f.situacao === 'Paga') {
+    const { error } = await supabase.from('frota_multas').upsert({
+        ...f, 
+        tipo_infracao: f.tipo_infracao.toUpperCase()
+    });
+    
+    if (!error && (f.situacao === 'Paga' || f.situacao === 'Em aberto')) {
         const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', f.veiculo_id).single();
+        const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', f.funcionario_id).single();
+        
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            descricao: `MULTA: ${vData?.placa || ''} - ${f.tipo_infracao.toUpperCase()}`,
+            descricao: `MULTA: ${vData?.placa || ''} - ${eData?.nome || ''} - ${f.tipo_infracao.toUpperCase()}`,
             valor: f.valor,
-            data_vencimento: f.data,
-            status: 'Pago',
+            data_vencimento: f.data_vencimento, // Usa a data de vencimento para o financeiro
+            status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer',
             categoria: 'MULTAS',
-            veiculo_id: f.veiculo_id
+            veiculo_id: f.veiculo_id,
+            funcionario_id: f.funcionario_id
         });
     }
     return { error };
 };
 
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description.toUpperCase() });
+// Fix: Corrected property access from e.km_reading to e.kmReading to match the Expense interface
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description.toUpperCase(), valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category.toUpperCase(), veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation?.toUpperCase() });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: e.salary, data_admissao: e.joinedAt });
