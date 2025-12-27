@@ -91,7 +91,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       plate: v.placa, 
       modelYear: v.ano_modelo,
       kmAtual: v.km_atual,
-      iconType: v.icon_type
+      iconType: v.icon_type || 'truck'
     })),
     categories: (cats.data || []).map(c => c.nome),
     settings,
@@ -184,7 +184,7 @@ export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({
   placa: v.plate, 
   ano_modelo: v.modelYear, 
   km_atual: v.kmAtual || 0, 
-  icon_type: v.iconType 
+  icon_type: v.iconType || 'truck'
 }, { onConflict: 'id' });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome });
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
