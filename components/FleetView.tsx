@@ -1,7 +1,29 @@
 
 import React, { useState, useMemo } from 'react';
-import { Truck, Plus, Trash2, Gauge, History, Fuel, Pencil, X, Car, Bike, Save, Loader2, UserCircle, CreditCard, ChevronDown, ChevronUp, BarChart3, ArrowRight, Printer, Calculator } from 'lucide-react';
+import { Truck, Plus, Trash2, Gauge, History, Fuel, Pencil, X, Car, Bike, Save, Loader2, UserCircle, CreditCard, ChevronDown, ChevronUp, BarChart3, ArrowRight, Printer, Calculator } from 'lucide-center';
 import { Vehicle, KmLog, Employee, Expense } from '../types';
+
+// O lucide-react é importado via esm.sh no index.html, corrigindo o erro de digitação no import anterior
+import { 
+  Truck as TruckIcon, 
+  Plus as PlusIcon, 
+  Trash2 as TrashIcon, 
+  Gauge as GaugeIcon, 
+  History as HistoryIcon, 
+  Fuel as FuelIcon, 
+  Pencil as PencilIcon, 
+  X as XIcon, 
+  Car as CarIcon, 
+  Bike as BikeIcon, 
+  Save as SaveIcon, 
+  Loader2 as LoaderIcon, 
+  UserCircle as UserIcon, 
+  CreditCard as CardIcon, 
+  BarChart3 as ChartIcon, 
+  ArrowRight as ArrowIcon, 
+  Printer as PrintIcon, 
+  Calculator as CalcIcon 
+} from 'lucide-react';
 
 interface Props {
   vehicles: Vehicle[];
@@ -110,14 +132,14 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
     
     vehicles.forEach(vehicle => {
       // Pega todos os logs deste veículo ordenados por data e KM
-      const vehicleLogs = kmLogs
+      const vehicleLogs = (kmLogs || [])
         .filter(log => log && log.veiculo_id === vehicle.id)
         .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
 
       for (let i = 1; i < vehicleLogs.length; i++) {
         const current = vehicleLogs[i];
         const previous = vehicleLogs[i - 1];
-        const traveled = current.km_reading - previous.km_reading;
+        const traveled = (current?.km_reading || 0) - (previous?.km_reading || 0);
 
         // Tenta achar a despesa de abastecimento vinculada a este registro de KM
         const fuelExpense = (expenses || []).find(e => 
@@ -136,7 +158,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
             kmFinal: current.km_reading,
             distance: traveled,
             cost: fuelExpense?.value || 0,
-            driver: employees?.find(e => e.id === current.funcionario_id)?.name || 'N/A'
+            driver: (employees || []).find(e => e.id === current.funcionario_id)?.name || 'N/A'
           });
         }
       }
@@ -145,11 +167,11 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
     return report.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [vehicles, kmLogs, expenses, employees]);
 
-  const getVehicleIcon = (type: string | undefined) => {
+  const getVehicleIconComponent = (type: string | undefined) => {
     switch (type) {
-      case 'car': return Car;
-      case 'bike': return Bike;
-      default: return Truck;
+      case 'car': return CarIcon;
+      case 'bike': return BikeIcon;
+      default: return TruckIcon;
     }
   };
 
@@ -165,7 +187,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
              onClick={() => isFormOpen ? resetVehicleForm() : setIsFormOpen(true)} 
              className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 ${isFormOpen ? 'bg-rose-500 text-white shadow-rose-100' : 'bg-sky-500 text-white shadow-sky-100'}`}
            >
-             {isFormOpen ? <X size={18} /> : (editingId ? <Pencil size={18} /> : <Plus size={18} />)} 
+             {isFormOpen ? <XIcon size={18} /> : (editingId ? <PencilIcon size={18} /> : <PlusIcon size={18} />)} 
              {isFormOpen ? 'Cancelar' : (editingId ? 'Editando...' : 'Novo Veículo')}
            </button>
            
@@ -194,14 +216,14 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
 
       {viewMode === 'fleet' && !isFormOpen && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-           {/* FORMULÁRIO DE ABASTECIMENTO (FIXO/LATERAL) */}
+           {/* FORMULÁRIO DE ABASTECIMENTO */}
            <aside className="lg:col-span-4 space-y-6 no-print">
               <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl relative overflow-hidden sticky top-8">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
                 
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-600 mb-8 flex items-center gap-3 relative z-10">
                   <div className="w-10 h-10 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-sky-100">
-                    <Fuel size={20} />
+                    <FuelIcon size={20} />
                   </div>
                   Lançar Abastecimento
                 </h3>
@@ -245,7 +267,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                    </div>
 
                    <button type="submit" disabled={isSubmittingFuel} className="w-full h-14 bg-sky-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest shadow-xl shadow-sky-100 active:scale-95 transition-all flex items-center justify-center gap-3">
-                     {isSubmittingFuel ? <Loader2 className="animate-spin" size={18} /> : <CreditCard size={18} />}
+                     {isSubmittingFuel ? <LoaderIcon className="animate-spin" size={18} /> : <CardIcon size={18} />}
                      Confirmar Lançamento
                    </button>
                 </form>
@@ -254,7 +276,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
 
            <main className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
               {vehicles.map(v => {
-                const Icon = getVehicleIcon(v.iconType);
+                const Icon = getVehicleIconComponent(v.iconType);
                 return (
                   <div key={v.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
                      <div className="flex justify-between items-start mb-6">
@@ -262,8 +284,8 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                           <Icon size={32} />
                         </div>
                         <div className="flex gap-2">
-                           <button onClick={() => handleEditVehicle(v)} className="p-3 bg-slate-50 text-slate-400 hover:text-sky-600 hover:bg-sky-100 rounded-2xl transition-all"><Pencil size={18} /></button>
-                           <button onClick={() => { if(confirm('Excluir este veículo?')) onDelete(v.id) }} className="p-3 bg-slate-50 text-slate-300 hover:text-rose-600 hover:bg-rose-100 rounded-2xl transition-all"><Trash2 size={18} /></button>
+                           <button onClick={() => handleEditVehicle(v)} className="p-3 bg-slate-50 text-slate-400 hover:text-sky-600 hover:bg-sky-100 rounded-2xl transition-all"><PencilIcon size={18} /></button>
+                           <button onClick={() => { if(confirm('Excluir este veículo?')) onDelete(v.id) }} className="p-3 bg-slate-50 text-slate-300 hover:text-rose-600 hover:bg-rose-100 rounded-2xl transition-all"><TrashIcon size={18} /></button>
                         </div>
                      </div>
                      <h4 className="text-2xl font-black text-slate-800 tracking-tighter">{v.name}</h4>
@@ -275,7 +297,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                           <span className="font-black text-slate-800 text-xl tracking-tight">{(v.kmAtual || 0).toLocaleString()} <span className="text-[10px] text-sky-400">KM</span></span>
                         </div>
                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-200 border border-slate-100 shadow-sm group-hover:text-sky-300">
-                           <Gauge size={24} />
+                           <GaugeIcon size={24} />
                         </div>
                      </div>
                   </div>
@@ -292,7 +314,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">
                 {editingId ? 'Editando Veículo' : 'Cadastrar Veículo'}
               </h3>
-              <button type="button" onClick={resetVehicleForm} className="p-2 text-slate-300 hover:text-rose-500"><X size={24} /></button>
+              <button type="button" onClick={resetVehicleForm} className="p-2 text-slate-300 hover:text-rose-500"><XIcon size={24} /></button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
@@ -310,16 +332,19 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tipo</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {['truck', 'car', 'bike'].map(type => (
-                    <button key={type} type="button" onClick={() => setIconType(type)} className={`h-12 flex items-center justify-center rounded-2xl border-2 transition-all ${iconType === type ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                      {type === 'truck' ? <Truck size={18} /> : type === 'car' ? <Car size={18} /> : <Bike size={18} />}
-                    </button>
-                  ))}
+                  {['truck', 'car', 'bike'].map(type => {
+                    const TypeIcon = getVehicleIconComponent(type);
+                    return (
+                      <button key={type} type="button" onClick={() => setIconType(type)} className={`h-12 flex items-center justify-center rounded-2xl border-2 transition-all ${iconType === type ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                        <TypeIcon size={18} />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
             <button type="submit" disabled={isSavingVehicle} className="w-full h-14 bg-slate-900 text-white font-black rounded-2xl uppercase text-[10px] tracking-[0.2em] shadow-xl mt-8 flex items-center justify-center gap-3 active:scale-95 transition-all">
-              {isSavingVehicle ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+              {isSavingVehicle ? <LoaderIcon className="animate-spin" size={18} /> : <SaveIcon size={18} />}
               {editingId ? 'Salvar Alterações' : 'Finalizar Cadastro'}
             </button>
           </form>
@@ -332,7 +357,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
               <div className="flex items-center justify-between mb-10 px-4 flex-wrap gap-4">
                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
-                       <BarChart3 size={24} />
+                       <ChartIcon size={24} />
                     </div>
                     <div>
                        <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Relatório de Rodagem</h3>
@@ -340,7 +365,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                     </div>
                  </div>
                  <button onClick={() => window.print()} className="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all no-print flex items-center gap-2">
-                    <Printer size={16} /> Imprimir
+                    <PrintIcon size={16} /> Imprimir
                  </button>
               </div>
 
@@ -370,7 +395,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                              <td className="px-6 py-5">
                                 <div className="flex items-center gap-3">
                                    <div className="text-[10px] text-slate-300 font-mono">
-                                      {(row.kmInitial || 0).toLocaleString()} <ArrowRight size={10} className="inline mx-1" /> {(row.kmFinal || 0).toLocaleString()}
+                                      {(row.kmInitial || 0).toLocaleString()} <ArrowIcon size={10} className="inline mx-1" /> {(row.kmFinal || 0).toLocaleString()}
                                    </div>
                                    <span className="text-sm font-black text-indigo-600">+{(row.distance || 0).toLocaleString()} KM</span>
                                 </div>
@@ -397,7 +422,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                        {performanceData.length === 0 && (
                           <tr>
                              <td colSpan={5} className="py-20 text-center">
-                                <Calculator size={48} className="mx-auto text-slate-100 mb-4" />
+                                <CalcIcon size={48} className="mx-auto text-slate-100 mb-4" />
                                 <p className="text-xs font-black text-slate-300 uppercase tracking-widest">
                                    Aguardando o segundo registro de KM para calcular rodagem...
                                 </p>
@@ -416,7 +441,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
            <div className="flex items-center justify-between mb-10 px-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center shadow-inner">
-                  <History size={24} />
+                  <HistoryIcon size={24} />
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Histórico Geral</h3>
@@ -436,21 +461,24 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   {(kmLogs || []).slice(0, 100).map(log => {
-                     if (!log) return null;
+                   {(kmLogs || []).filter(log => !!log).slice(0, 100).map(log => {
                      const v = vehicles.find(veh => veh.id === log.veiculo_id);
-                     const emp = employees.find(e => e.id === log.funcionario_id);
+                     const emp = (employees || []).find(e => e.id === log.funcionario_id);
+                     const VehicleIcon = getVehicleIconComponent(v?.iconType);
+                     
                      return (
                        <tr key={log.id} className="hover:bg-sky-50/20 transition-all group">
-                         <td className="px-6 py-5 text-xs font-bold text-slate-500">{new Date(log.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                         <td className="px-6 py-5 text-xs font-bold text-slate-500">
+                            {log.data ? new Date(log.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'Data Inválida'}
+                         </td>
                          <td className="px-6 py-5">
                             <div className="flex items-center gap-3">
                                <div className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-sky-500 transition-colors">
-                                  {v ? getVehicleIcon(v.iconType)({size: 16}) : <Truck size={16} />}
+                                  <VehicleIcon size={16} />
                                </div>
                                <div>
-                                  <span className="text-xs font-black text-slate-800 block leading-none">{v?.name || 'Excluído'}</span>
-                                  <span className="text-[9px] font-bold text-sky-500 uppercase tracking-tighter">{v?.plate}</span>
+                                  <span className="text-xs font-black text-slate-800 block leading-none">{v?.name || 'Veículo Removido'}</span>
+                                  <span className="text-[9px] font-bold text-sky-500 uppercase tracking-tighter">{v?.plate || 'S/P'}</span>
                                </div>
                             </div>
                          </td>
@@ -459,7 +487,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                          </td>
                          <td className="px-6 py-5">
                             <div className="flex items-center gap-2">
-                               <UserCircle size={14} className="text-slate-200" />
+                               <UserIcon size={14} className="text-slate-200" />
                                <span className="text-xs font-bold text-slate-500">{emp?.name || 'Sistema'}</span>
                             </div>
                          </td>

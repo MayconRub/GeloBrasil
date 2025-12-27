@@ -115,6 +115,7 @@ export const syncKmLog = async (log: Omit<KmLog, 'id'>) => {
 };
 
 export const syncRefuel = async (payload: { vehicleId: string, employeeId: string, km: number, value: number, date: string, plate: string }) => {
+  // 1. Registrar no Histórico de KM
   const { error: kmError } = await supabase.from('historico_km').insert([{
     veiculo_id: payload.vehicleId,
     km_reading: payload.km,
@@ -123,8 +124,11 @@ export const syncRefuel = async (payload: { vehicleId: string, employeeId: strin
   }]);
 
   if (kmError) return { error: kmError };
+
+  // 2. Atualizar o odômetro do veículo
   await supabase.from('veiculos').update({ km_atual: payload.km }).eq('id', payload.vehicleId);
 
+  // 3. Registrar a Despesa como PAGO no Fluxo de Caixa
   const { error: expError } = await supabase.from('despesas').insert([{
     descricao: `Abastecimento - ${payload.plate}`,
     valor: payload.value,
