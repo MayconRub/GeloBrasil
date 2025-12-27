@@ -1,9 +1,5 @@
 
 import React, { useState, useMemo } from 'react';
-import { Truck, Plus, Trash2, Gauge, History, Fuel, Pencil, X, Car, Bike, Save, Loader2, UserCircle, CreditCard, ChevronDown, ChevronUp, BarChart3, ArrowRight, Printer, Calculator } from 'lucide-center';
-import { Vehicle, KmLog, Employee, Expense } from '../types';
-
-// O lucide-react é importado via esm.sh no index.html, corrigindo o erro de digitação no import anterior
 import { 
   Truck as TruckIcon, 
   Plus as PlusIcon, 
@@ -22,8 +18,11 @@ import {
   BarChart3 as ChartIcon, 
   ArrowRight as ArrowIcon, 
   Printer as PrintIcon, 
-  Calculator as CalcIcon 
+  Calculator as CalcIcon,
+  Filter as FilterIcon,
+  Search as SearchIcon
 } from 'lucide-react';
+import { Vehicle, KmLog, Employee, Expense } from '../types';
 
 interface Props {
   vehicles: Vehicle[];
@@ -36,7 +35,16 @@ interface Props {
   onRefuel: (payload: { vehicleId: string, employeeId: string, km: number, value: number, date: string, plate: string }) => Promise<any>;
 }
 
-const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = [], expenses = [], onUpdate, onDelete, onLogKm, onRefuel }) => {
+const FleetView: React.FC<Props> = ({ 
+  vehicles = [], 
+  kmLogs = [], 
+  employees = [], 
+  expenses = [], 
+  onUpdate, 
+  onDelete, 
+  onLogKm, 
+  onRefuel 
+}) => {
   // Estados para Cadastro/Edição de Veículo
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -55,8 +63,9 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmittingFuel, setIsSubmittingFuel] = useState(false);
 
-  // Modos de Visualização
+  // Estados de Filtro e Visualização
   const [viewMode, setViewMode] = useState<'fleet' | 'history' | 'performance'>('fleet');
+  const [filterVehicleId, setFilterVehicleId] = useState<string>('all');
 
   const resetVehicleForm = () => {
     setName(''); 
@@ -125,13 +134,16 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
     }
   };
 
-  // Lógica do Relatório de Desempenho (KM Rodados)
+  // Lógica do Relatório de Desempenho (Filtrado por veículo)
   const performanceData = useMemo(() => {
     const report: any[] = [];
     if (!vehicles || !kmLogs) return report;
     
-    vehicles.forEach(vehicle => {
-      // Pega todos os logs deste veículo ordenados por data e KM
+    const targetVehicles = filterVehicleId === 'all' 
+      ? vehicles 
+      : vehicles.filter(v => v.id === filterVehicleId);
+
+    targetVehicles.forEach(vehicle => {
       const vehicleLogs = (kmLogs || [])
         .filter(log => log && log.veiculo_id === vehicle.id)
         .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
@@ -141,7 +153,6 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
         const previous = vehicleLogs[i - 1];
         const traveled = (current?.km_reading || 0) - (previous?.km_reading || 0);
 
-        // Tenta achar a despesa de abastecimento vinculada a este registro de KM
         const fuelExpense = (expenses || []).find(e => 
           e && e.vehicleId === vehicle.id && 
           e.kmReading === current.km_reading &&
@@ -151,6 +162,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
         if (traveled > 0) {
           report.push({
             id: current.id,
+            vehicleId: vehicle.id,
             vehicleName: vehicle.name,
             plate: vehicle.plate,
             date: current.data,
@@ -165,7 +177,14 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
     });
 
     return report.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [vehicles, kmLogs, expenses, employees]);
+  }, [vehicles, kmLogs, expenses, employees, filterVehicleId]);
+
+  const filteredKmLogs = useMemo(() => {
+    if (!kmLogs) return [];
+    return kmLogs
+      .filter(log => log && (filterVehicleId === 'all' || log.veiculo_id === filterVehicleId))
+      .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  }, [kmLogs, filterVehicleId]);
 
   const getVehicleIconComponent = (type: string | undefined) => {
     switch (type) {
@@ -182,7 +201,26 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
           <h2 className="text-3xl font-black text-slate-800 tracking-tighter leading-none">Gestão de <span className="text-sky-500">Frota</span></h2>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Logística, Manutenção e Desempenho</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        
+        <div className="flex flex-wrap items-center gap-3">
+           {(viewMode === 'history' || viewMode === 'performance') && (
+             <div className="flex items-center bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm animate-in zoom-in-95 duration-300">
+                <div className="px-3 text-slate-400">
+                  <FilterIcon size={16} />
+                </div>
+                <select 
+                  value={filterVehicleId} 
+                  onChange={e => setFilterVehicleId(e.target.value)}
+                  className="bg-transparent border-none text-[10px] font-black uppercase tracking-tight outline-none pr-4 min-w-[120px]"
+                >
+                  <option value="all">Todos os Veículos</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
+                  ))}
+                </select>
+             </div>
+           )}
+
            <button 
              onClick={() => isFormOpen ? resetVehicleForm() : setIsFormOpen(true)} 
              className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 ${isFormOpen ? 'bg-rose-500 text-white shadow-rose-100' : 'bg-sky-500 text-white shadow-sky-100'}`}
@@ -194,19 +232,19 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
            <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
               <button 
                 onClick={() => setViewMode('fleet')} 
-                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${viewMode === 'fleet' ? 'bg-slate-900 text-white' : 'text-slate-400'}`}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${viewMode === 'fleet' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
               >
                 Frota
               </button>
               <button 
                 onClick={() => setViewMode('performance')} 
-                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${viewMode === 'performance' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${viewMode === 'performance' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
               >
                 Desempenho
               </button>
               <button 
                 onClick={() => setViewMode('history')} 
-                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${viewMode === 'history' ? 'bg-slate-900 text-white' : 'text-slate-400'}`}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${viewMode === 'history' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
               >
                 Histórico
               </button>
@@ -231,7 +269,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                 <form onSubmit={handleRefuelAction} className="space-y-5 relative z-10">
                    <div className="space-y-1.5">
                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Veículo</label>
-                     <select value={selectedVehicleId} onChange={e => setSelectedVehicleId(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none focus:ring-4 focus:ring-sky-50" required>
+                     <select value={selectedVehicleId} onChange={e => setSelectedVehicleId(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none focus:ring-4 focus:ring-sky-50 transition-all" required>
                         <option value="">Selecione...</option>
                         {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>)}
                      </select>
@@ -239,7 +277,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
 
                    <div className="space-y-1.5">
                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Quem abasteceu?</label>
-                     <select value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none focus:ring-4 focus:ring-sky-50" required>
+                     <select value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none focus:ring-4 focus:ring-sky-50 transition-all" required>
                         <option value="">Selecione...</option>
                         {(employees || []).map(emp => (
                           <option key={emp.id} value={emp.id}>{emp.name}</option>
@@ -250,13 +288,13 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                    <div className="grid grid-cols-2 gap-3">
                      <div className="space-y-1.5">
                        <label className="text-[9px] font-black text-slate-400 uppercase ml-2">KM Atual</label>
-                       <input type="number" value={kmReading} onChange={e => setKmReading(e.target.value)} placeholder="0" className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" required />
+                       <input type="number" value={kmReading} onChange={e => setKmReading(e.target.value)} placeholder="0" className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none focus:ring-4 focus:ring-sky-50 transition-all" required />
                      </div>
                      <div className="space-y-1.5">
                        <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Valor Total</label>
                        <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">R$</span>
-                         <input type="number" step="0.01" value={fuelValue} onChange={e => setFuelValue(e.target.value)} placeholder="0.00" className="w-full h-12 pl-8 pr-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" required />
+                         <input type="number" step="0.01" value={fuelValue} onChange={e => setFuelValue(e.target.value)} placeholder="0.00" className="w-full h-12 pl-8 pr-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none focus:ring-4 focus:ring-sky-50 transition-all" required />
                        </div>
                      </div>
                    </div>
@@ -314,20 +352,20 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">
                 {editingId ? 'Editando Veículo' : 'Cadastrar Veículo'}
               </h3>
-              <button type="button" onClick={resetVehicleForm} className="p-2 text-slate-300 hover:text-rose-500"><XIcon size={24} /></button>
+              <button type="button" onClick={resetVehicleForm} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><XIcon size={24} /></button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nome</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: VW Delivery" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" required />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: VW Delivery" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-sky-50 transition-all" required />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Placa</label>
-                <input type="text" value={plate} onChange={e => setPlate(e.target.value)} placeholder="ABC-1234" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-mono uppercase font-black" required />
+                <input type="text" value={plate} onChange={e => setPlate(e.target.value)} placeholder="ABC-1234" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-mono uppercase font-black outline-none focus:ring-4 focus:ring-sky-50 transition-all" required />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">KM Inicial / Atual</label>
-                <input type="number" value={initialKm} onChange={e => setInitialKm(e.target.value)} placeholder="0" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" />
+                <input type="number" value={initialKm} onChange={e => setInitialKm(e.target.value)} placeholder="0" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-sky-50 transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tipo</label>
@@ -361,7 +399,9 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                     </div>
                     <div>
                        <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Relatório de Rodagem</h3>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cálculo de KM rodados entre abastecimentos</p>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {filterVehicleId === 'all' ? 'Cálculo de KM rodados entre abastecimentos (Geral)' : 'Análise de KM rodados (Veículo Filtrado)'}
+                       </p>
                     </div>
                  </div>
                  <button onClick={() => window.print()} className="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all no-print flex items-center gap-2">
@@ -381,7 +421,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                       {(performanceData || []).map((row, idx) => (
+                       {performanceData.length > 0 ? performanceData.map((row, idx) => (
                           <tr key={idx} className="hover:bg-indigo-50/20 transition-all group">
                              <td className="px-6 py-5 text-xs font-bold text-slate-500">
                                 {new Date(row.date + 'T00:00:00').toLocaleDateString('pt-BR')}
@@ -414,17 +454,16 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                                       <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Custo por KM</span>
                                    </div>
                                 ) : (
-                                   <span className="text-[9px] text-slate-300 font-bold uppercase">Sem dado financeiro</span>
+                                   <span className="text-[9px] text-slate-300 font-bold uppercase tracking-tight italic">Dados insuficientes</span>
                                 )}
                              </td>
                           </tr>
-                       ))}
-                       {performanceData.length === 0 && (
+                       )) : (
                           <tr>
                              <td colSpan={5} className="py-20 text-center">
                                 <CalcIcon size={48} className="mx-auto text-slate-100 mb-4" />
                                 <p className="text-xs font-black text-slate-300 uppercase tracking-widest">
-                                   Aguardando o segundo registro de KM para calcular rodagem...
+                                   Aguardando registros de KM {filterVehicleId !== 'all' ? 'deste veículo' : ''} para calcular rodagem...
                                 </p>
                              </td>
                           </tr>
@@ -437,7 +476,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
       )}
 
       {viewMode === 'history' && (
-        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden p-8 animate-in zoom-in-95">
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden p-8 animate-in zoom-in-95 duration-300">
            <div className="flex items-center justify-between mb-10 px-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center shadow-inner">
@@ -445,9 +484,14 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Histórico Geral</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lista completa de medições e eventos</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {filterVehicleId === 'all' ? 'Lista completa de medições e eventos' : 'Histórico isolado do veículo selecionado'}
+                  </p>
                 </div>
               </div>
+              <button onClick={() => window.print()} className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-sky-500 no-print transition-all">
+                <PrintIcon size={20} />
+              </button>
            </div>
            
            <div className="overflow-x-auto">
@@ -461,7 +505,7 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   {(kmLogs || []).filter(log => !!log).slice(0, 100).map(log => {
+                   {filteredKmLogs.length > 0 ? filteredKmLogs.slice(0, 100).map(log => {
                      const v = vehicles.find(veh => veh.id === log.veiculo_id);
                      const emp = (employees || []).find(e => e.id === log.funcionario_id);
                      const VehicleIcon = getVehicleIconComponent(v?.iconType);
@@ -493,7 +537,13 @@ const FleetView: React.FC<Props> = ({ vehicles = [], kmLogs = [], employees = []
                          </td>
                        </tr>
                      );
-                   })}
+                   }) : (
+                    <tr>
+                      <td colSpan={4} className="py-20 text-center text-slate-300 font-black uppercase text-[10px] tracking-widest">
+                        Nenhum registro encontrado para este filtro.
+                      </td>
+                    </tr>
+                   )}
                 </tbody>
              </table>
            </div>

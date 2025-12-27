@@ -41,9 +41,10 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Definido como true para pular o login temporariamente
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>('root@adm.app');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,23 +62,8 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const hasSession = !!session;
-      setIsAuthenticated(hasSession);
-      setUserEmail(session?.user?.email || null);
-      if (hasSession) await loadAppData();
-      else setIsLoading(false);
-    };
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const hasSession = !!session;
-      setIsAuthenticated(hasSession);
-      setUserEmail(session?.user?.email || null);
-      if (hasSession) loadAppData();
-      else { setIsLoading(false); setView('dashboard'); }
-    });
-    checkSession();
-    return () => subscription.unsubscribe();
+    // Carrega os dados diretamente sem checar sessão de login
+    loadAppData();
   }, []);
 
   const loadAppData = async () => {
@@ -85,24 +71,17 @@ const App: React.FC = () => {
       setIsLoading(true);
       const remoteData = await fetchAllData();
       setData(remoteData);
-    } catch (e) { console.error(e); }
-    finally { setIsLoading(false); }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    setErrorMessage(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setErrorMessage(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message); setIsLoggingIn(false); }
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // Apenas reinicia o estado simulando logout
     setIsAuthenticated(false);
-    setView('dashboard');
-    setEmail('');
-    setPassword('');
+    await supabase.auth.signOut();
   };
 
   const wrap = (fn: any) => async (payload: any) => {
@@ -123,7 +102,8 @@ const App: React.FC = () => {
     return today > expDate;
   };
 
-  const isAdminUser = userEmail === 'root@adm.app';
+  // Por padrão root@adm.app para ver aba Admin se necessário
+  const isAdminUser = true; 
 
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
@@ -157,37 +137,6 @@ const App: React.FC = () => {
       <a href={`tel:${data.settings.supportPhone || ''}`} className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-xl">
         <PhoneCall size={18} /> Contatar Suporte
       </a>
-    </div>
-  );
-
-  if (!isAuthenticated) return (
-    <div className="min-h-screen bg-[#f0f9ff] flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="w-full max-w-md bg-white/70 backdrop-blur-2xl p-10 rounded-[3rem] border border-white shadow-2xl relative z-10">
-        <div className="flex flex-col items-center text-center mb-10">
-          <div className="w-20 h-20 bg-sky-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl mb-6">
-            <Snowflake size={40} className="animate-pulse" />
-          </div>
-          <h2 className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em] mb-2">{data.settings.loginHeader || 'Controle de Acesso'}</h2>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">{data.settings.companyName}</h1>
-        </div>
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div className="relative">
-            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="w-full h-14 pl-14 pr-8 bg-white border-2 rounded-2xl font-bold outline-none border-slate-100 focus:border-sky-400" required />
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" className="w-full h-14 pl-14 pr-14 bg-white border-2 rounded-2xl font-bold outline-none border-slate-100 focus:border-sky-400" required />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300">
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-          {errorMessage && <p className="text-rose-500 text-xs font-bold text-center">{errorMessage}</p>}
-          <button type="submit" disabled={isLoggingIn} className="w-full h-16 bg-slate-900 text-white rounded-[1.8rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3">
-            {isLoggingIn ? <Loader2 className="animate-spin" size={18} /> : <>Acessar Sistema <ChevronRight size={18} /></>}
-          </button>
-        </form>
-      </div>
     </div>
   );
 
