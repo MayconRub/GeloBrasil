@@ -58,9 +58,10 @@ export const fetchAllData = async (): Promise<AppData> => {
   const today = new Date().toISOString().split('T')[0];
   
   return {
-    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.description })),
-    production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.date, observation: p.observation })),
-    monthlyGoals: (goals.data || []).map(g => ({ id: g.id, type: g.tipo, month: g.mes, year: g.ano, value: g.valor })),
+    // Mapeamento corrigido: usa s.descricao e p.data conforme SQL
+    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao || '' })),
+    production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.data, observation: p.observacao })),
+    monthlyGoals: (goals.data || []).map(g => ({ type: g.tipo, month: g.mes, year: g.ano, value: g.valor })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
       description: e.descricao, 
@@ -84,16 +85,13 @@ export const fetchAllData = async (): Promise<AppData> => {
   };
 };
 
-// SYNC VEÍCULOS
 export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert(v, { onConflict: 'id' });
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
-// SYNC ABASTECIMENTO COM INTEGRAÇÃO FINANCEIRA
 export const syncFuel = async (f: FuelLog) => {
   const { error } = await supabase.from('frota_abastecimentos').upsert(f);
   if (!error) {
     await supabase.from('veiculos').update({ km_atual: f.km_registro }).eq('id', f.veiculo_id);
-    // Cria despesa automática no financeiro
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
         descricao: `Abastecimento: ${f.tipo_combustivel}`,
@@ -108,12 +106,10 @@ export const syncFuel = async (f: FuelLog) => {
   return { error };
 };
 
-// SYNC MANUTENÇÃO COM INTEGRAÇÃO FINANCEIRA
 export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error } = await supabase.from('frota_manutencoes').upsert(m);
   if (!error) {
     await supabase.from('veiculos').update({ km_atual: m.km_registro }).eq('id', m.veiculo_id);
-    // Cria despesa automática no financeiro
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
         descricao: `Manutenção: ${m.servico}`,
@@ -128,7 +124,6 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
   return { error };
 };
 
-// SYNC MULTAS COM INTEGRAÇÃO FINANCEIRA (SE PAGA)
 export const syncFine = async (f: FineLog) => {
     const { error } = await supabase.from('frota_multas').upsert(f);
     if (!error && f.situacao === 'Paga') {
@@ -145,16 +140,21 @@ export const syncFine = async (f: FineLog) => {
     return { error };
 };
 
+// Sincronização de Vendas: usa 'descricao'
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description });
+
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description, valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category, veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading, observacao: e.observation });
+
+// Sincronização de Produção: usa 'data' para combinar com 'fetch'
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation });
+
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name, cargo: e.role, salario: e.salary, data_admissao: e.joinedAt });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome });
 export const syncCategoriesOrder = async (orderedNames: string[]) => {
   const updates = orderedNames.map((nome, index) => supabase.from('categorias').update({ ordem: index }).eq('nome', nome));
   return Promise.all(updates);
 };
-export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value }, { onConflict: 'tipo,mes,ano' });
+export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value });
 export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName, cnpj: s.cnpj, endereco: s.address, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText, aviso_dashboard: s.dashboardNotice, meta_producao_diaria: s.productionGoalDaily, meta_vendas_diaria: s.salesGoalDaily }, { onConflict: 'id' });
 
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
