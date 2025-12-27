@@ -163,7 +163,11 @@ export const syncExpense = async (e: Expense) => {
   });
 
   if (!expenseError && e.vehicleId) {
-    if (e.category === 'Manutenção' && (e.description.toLowerCase().includes('óleo') || e.description.toLowerCase().includes('oleo'))) {
+    // Integração Inteligente: Se for manutenção de óleo, reseta o rastreador
+    const isOil = e.category === 'Manutenção' && 
+                 (e.description.toLowerCase().includes('óleo') || e.description.toLowerCase().includes('oleo'));
+    
+    if (isOil) {
       const { data: veh } = await supabase.from('veiculos').select('km_atual').eq('id', e.vehicleId).single();
       const kmRef = e.kmReading || veh?.km_atual || 0;
       await supabase.from('veiculos').update({ ultimo_km_oleo: kmRef }).eq('id', e.vehicleId);
