@@ -66,7 +66,7 @@ export const fetchAllData = async (): Promise<AppData> => {
   const today = new Date().toISOString().split('T')[0];
   
   return {
-    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao })),
+    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.description })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.date, observation: p.observation })),
     monthlyGoals: (goals.data || []).map(g => ({ id: g.id, type: g.tipo, month: g.mes, year: g.ano, value: g.valor })),
     expenses: (expenses.data || []).map(e => ({
@@ -91,7 +91,8 @@ export const fetchAllData = async (): Promise<AppData> => {
       plate: v.placa, 
       modelYear: v.ano_modelo,
       kmAtual: v.km_atual,
-      iconType: v.icon_type || 'truck'
+      iconType: v.icon_type || 'truck',
+      lastOilChangeKm: v.ultimo_km_oleo || 0
     })),
     categories: (cats.data || []).map(c => c.nome),
     settings,
@@ -101,36 +102,40 @@ export const fetchAllData = async (): Promise<AppData> => {
       veiculo_id: k.veiculo_id, 
       km_reading: k.km_reading, 
       data: k.data,
-      funcionario_id: k.funcionario_id
+      funcionario_id: k.funcionario_id,
+      liters: k.litros
     }))
   };
 };
 
-export const syncKmLog = async (log: Omit<KmLog, 'id'>) => {
-  const { data, error } = await supabase.from('historico_km').insert([log]);
-  if (!error) {
-    await supabase.from('veiculos').update({ km_atual: log.km_reading }).eq('id', log.veiculo_id);
-  }
-  return { data, error };
+export const syncVehicle = async (v: Vehicle) => {
+  return await supabase.from('veiculos').upsert({ 
+    id: v.id, 
+    nome: v.name, 
+    placa: v.plate, 
+    ano_modelo: v.modelYear, 
+    km_atual: v.kmAtual || 0, 
+    icon_type: v.iconType || 'truck',
+    ultimo_km_oleo: v.lastOilChangeKm || 0
+  }, { onConflict: 'id' });
 };
 
-export const syncRefuel = async (payload: { vehicleId: string, employeeId: string, km: number, value: number, date: string, plate: string }) => {
-  // 1. Registrar no Histórico de KM
+export const syncRefuel = async (payload: { vehicleId: string, employeeId: string, km: number, value: number, liters?: number, date: string, plate: string }) => {
   const { error: kmError } = await supabase.from('historico_km').insert([{
     veiculo_id: payload.vehicleId,
     km_reading: payload.km,
     data: payload.date,
-    funcionario_id: payload.employeeId
+    funcionario_id: payload.employeeId,
+    litros: payload.liters
   }]);
 
   if (kmError) return { error: kmError };
 
-  // 2. Atualizar o odômetro do veículo
   await supabase.from('veiculos').update({ km_atual: payload.km }).eq('id', payload.vehicleId);
 
-  // 3. Registrar a Despesa como PAGO no Fluxo de Caixa
   const { error: expError } = await supabase.from('despesas').insert([{
-    descricao: `Abastecimento - ${payload.plate}`,
+    id: crypto.randomUUID(),
+    descricao: `Abastecimento - ${payload.plate}${payload.liters ? ` (${payload.liters}L)` : ''}`,
     valor: payload.value,
     data_vencimento: payload.date,
     status: 'Pago',
@@ -157,17 +162,29 @@ export const syncExpense = async (e: Expense) => {
     observacao: e.observation
   });
 
-  if (!expenseError && e.kmReading && e.vehicleId) {
-    await supabase.from('historico_km').insert([{
-      veiculo_id: e.vehicleId,
-      km_reading: e.kmReading,
-      data: e.dueDate,
-      funcionario_id: e.employeeId
-    }]);
-    await supabase.from('veiculos').update({ km_atual: e.kmReading }).eq('id', e.vehicleId);
+  if (!expenseError && e.vehicleId) {
+    if (e.category === 'Manutenção' && (e.description.toLowerCase().includes('óleo') || e.description.toLowerCase().includes('oleo'))) {
+      const { data: veh } = await supabase.from('veiculos').select('km_atual').eq('id', e.vehicleId).single();
+      const kmRef = e.kmReading || veh?.km_atual || 0;
+      await supabase.from('veiculos').update({ ultimo_km_oleo: kmRef }).eq('id', e.vehicleId);
+    }
   }
   
   return { error: expenseError };
+};
+
+export const syncKmLog = async (log: Omit<KmLog, 'id'>) => {
+  const { data, error } = await supabase.from('historico_km').insert([{
+    veiculo_id: log.veiculo_id,
+    km_reading: log.km_reading,
+    data: log.data,
+    funcionario_id: log.funcionario_id,
+    litros: log.liters
+  }]);
+  if (!error) {
+    await supabase.from('veiculos').update({ km_atual: log.km_reading }).eq('id', log.veiculo_id);
+  }
+  return { data, error };
 };
 
 export const syncCategoriesOrder = async (orderedNames: string[]) => {
@@ -182,14 +199,6 @@ export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').u
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name, cargo: e.role, salario: e.salary, data_admissao: e.joinedAt });
-export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({ 
-  id: v.id, 
-  nome: v.name, 
-  placa: v.plate, 
-  ano_modelo: v.modelYear, 
-  km_atual: v.kmAtual || 0, 
-  icon_type: v.iconType || 'truck'
-}, { onConflict: 'id' });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome });
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
 export const deleteExpense = (id: string) => supabase.from('despesas').delete().eq('id', id);

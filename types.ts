@@ -46,6 +46,7 @@ export interface KmLog {
   km_reading: number;
   data: string;
   funcionario_id?: string;
+  liters?: number;
 }
 
 export interface Employee {
@@ -56,7 +57,6 @@ export interface Employee {
   joinedAt: string;
 }
 
-// Added iconType property to match usage in store.ts
 export interface Vehicle {
   id: string;
   name: string;
@@ -64,6 +64,7 @@ export interface Vehicle {
   modelYear: string;
   kmAtual?: number;
   iconType?: string;
+  lastOilChangeKm?: number;
 }
 
 export interface UserProfile {
