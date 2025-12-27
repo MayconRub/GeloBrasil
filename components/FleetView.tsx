@@ -299,7 +299,8 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
                 </div>
               </div>
 
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+              {/* Seção Oficina: Removida da impressão se estiver vazia */}
+              <div className={`bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden ${selectedVehicle.vMaint.length === 0 ? 'print:hidden' : ''}`}>
                 <div className="p-6 border-b border-slate-50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Wrench size={20} className="text-indigo-500" />
@@ -338,15 +339,15 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                 <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6">Custos do Período</h4>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-end">
+                  <div className={`flex justify-between items-end ${selectedVehicle.totalSpentFuel === 0 ? 'print:hidden' : ''}`}>
                     <p className="text-[9px] font-black text-slate-500">COMBUSTÍVEL</p>
                     <p className="text-lg font-black text-emerald-600">R$ {selectedVehicle.totalSpentFuel.toLocaleString()}</p>
                   </div>
-                  <div className="flex justify-between items-end">
+                  <div className={`flex justify-between items-end ${selectedVehicle.totalSpentMaint === 0 ? 'print:hidden' : ''}`}>
                     <p className="text-[9px] font-black text-slate-500">MANUTENÇÃO</p>
                     <p className="text-lg font-black text-indigo-600">R$ {selectedVehicle.totalSpentMaint.toLocaleString()}</p>
                   </div>
-                  <div className="flex justify-between items-end">
+                  <div className={`flex justify-between items-end ${selectedVehicle.totalSpentFines === 0 ? 'print:hidden' : ''}`}>
                     <p className="text-[9px] font-black text-slate-500">MULTAS</p>
                     <p className="text-lg font-black text-rose-500">R$ {selectedVehicle.totalSpentFines.toLocaleString()}</p>
                   </div>
@@ -357,7 +358,8 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
                 </div>
               </div>
 
-              <div className="bg-sky-50 p-8 rounded-[2.5rem] border border-sky-100">
+              {/* Card de Eficiência: Oculto se não houver KM para economizar espaço */}
+              <div className={`bg-sky-50 p-8 rounded-[2.5rem] border border-sky-100 ${selectedVehicle.totalKmPeriod === 0 ? 'print:hidden' : ''}`}>
                 <div className="flex items-center gap-3 mb-4">
                   <Gauge size={20} className="text-sky-600" />
                   <h4 className="text-[11px] font-black uppercase text-sky-900">Eficiência Mês</h4>
