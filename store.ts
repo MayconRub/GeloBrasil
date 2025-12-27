@@ -108,14 +108,12 @@ export const syncFuel = async (f: FuelLog) => {
   const { error } = await supabase.from('frota_abastecimentos').upsert(payload);
   
   if (!error) {
-    const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', f.veiculo_id).single();
-    const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', f.funcionario_id).single();
-
     await supabase.from('veiculos').update({ km_atual: payload.km_registro }).eq('id', f.veiculo_id);
     
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
-        descricao: `ABASTECIMENTO: ${vData?.placa || ''} - ${eData?.nome || ''} - ${payload.tipo_combustivel} (${payload.litros}L)`.toUpperCase(),
+        // Descrição ultra limpa para o financeiro
+        descricao: `ABASTECIMENTO (${payload.litros}L)`.toUpperCase(),
         valor: payload.valor_total,
         data_vencimento: payload.data,
         status: 'Pago',
@@ -139,9 +137,6 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error: maintError } = await supabase.from('frota_manutencoes').upsert(maintPayload);
   
   if (!maintError) {
-    const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', m.veiculo_id).single();
-    const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', m.funcionario_id).single();
-
     if (maintPayload.servico.includes('ÓLEO')) {
         await supabase.from('veiculos').update({ 
             km_ultima_troca: maintPayload.km_registro 
@@ -151,7 +146,8 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
     if (maintPayload.custo > 0) {
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            descricao: `OFICINA: ${vData?.placa || ''} - ${eData?.nome || ''} - ${maintPayload.servico}`.toUpperCase(),
+            // Remove funcionário da descrição, o vínculo já existe no banco
+            descricao: `OFICINA: ${maintPayload.servico}`.toUpperCase(),
             valor: maintPayload.custo,
             data_vencimento: maintPayload.data,
             status: m.pago ? 'Pago' : 'A Vencer',
@@ -172,14 +168,12 @@ export const syncFine = async (f: FineLog) => {
     });
     
     if (!error && (f.situacao === 'Paga' || f.situacao === 'Em aberto')) {
-        const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', f.veiculo_id).single();
-        const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', f.funcionario_id).single();
-        
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            descricao: `MULTA: ${vData?.placa || ''} - ${eData?.nome || ''} - ${f.tipo_infracao.toUpperCase()}`,
+            // Apenas o fato: MULTA + INFRAÇÃO
+            descricao: `MULTA: ${f.tipo_infracao.toUpperCase()}`,
             valor: f.valor,
-            data_vencimento: f.data_vencimento, // Usa a data de vencimento para o financeiro
+            data_vencimento: f.data_vencimento,
             status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer',
             categoria: 'MULTAS',
             veiculo_id: f.veiculo_id,
@@ -190,7 +184,6 @@ export const syncFine = async (f: FineLog) => {
 };
 
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description.toUpperCase() });
-// Fix: Corrected property access from e.km_reading to e.kmReading to match the Expense interface
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description.toUpperCase(), valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category.toUpperCase(), veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation?.toUpperCase() });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: e.salary, data_admissao: e.joinedAt });

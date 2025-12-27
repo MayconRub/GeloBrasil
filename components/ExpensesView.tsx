@@ -20,7 +20,8 @@ import {
   Truck,
   UserCircle,
   Gauge,
-  GripVertical
+  GripVertical,
+  User
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
 
@@ -47,7 +48,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
   
-  // Filtro de categorias para remover combustível das opções manuais
   const filteredCategoryOptions = useMemo(() => {
     return categories.filter(cat => 
       !cat.toLowerCase().includes('combustível') && 
@@ -72,7 +72,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setLocalCategories(categories);
   }, [categories]);
 
-  // Garantir que a categoria inicial não seja combustível se houver outras opções
   useEffect(() => {
     if (!editingId && (category.toLowerCase().includes('combustível') || category.toLowerCase().includes('combustivel'))) {
       if (filteredCategoryOptions.length > 0) {
@@ -101,7 +100,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         if (isFuelCategory) {
           setDescription('Abastecimento');
         } else if (isPayrollCategory) {
-          setDescription('Vale/Adiantamento - ');
+          setDescription('Vale/Adiantamento');
         } else {
           setDescription('');
         }
@@ -139,7 +138,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     }
     
     if (showVehicleField && !vehicleId) {
-      alert("⚠️ Seleção de veículo é obrigatória para esta categoria.");
+      alert("⚠️ Seleção de veículo é obrigatória.");
       return;
     }
 
@@ -228,7 +227,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   }, [expenses, currentMonth, currentYear, searchTerm]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 uppercase">
       
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div>
@@ -253,7 +252,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
             <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-slate-50 rounded-xl transition-all min-w-[130px]">
-              <span className="text-xs font-black text-slate-800 capitalize text-center">{monthName}</span>
+              <span className="text-[10px] font-black text-slate-800 capitalize text-center">{monthName}</span>
             </button>
             <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
           </div>
@@ -270,7 +269,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                     <Tag size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-slate-800 leading-none">Categorias</h3>
+                    <h3 className="text-lg font-black text-slate-800 leading-none uppercase">Categorias</h3>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gerenciar Ordem e Grupos</p>
                   </div>
                 </div>
@@ -283,9 +282,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 <input 
                   type="text" 
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onChange={(e) => setNewCategoryName(e.target.value.toUpperCase())}
                   placeholder="Nova categoria..."
-                  className="flex-1 h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+                  className="flex-1 h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none focus:ring-4 focus:ring-indigo-50 transition-all uppercase"
                 />
                 <button type="submit" className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all active:scale-90">
                   <Plus size={20} />
@@ -304,7 +303,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                   >
                     <div className="flex items-center gap-3">
                        <GripVertical className="text-slate-300 group-hover:text-indigo-400 transition-colors" size={16} />
-                       <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{cat}</span>
+                       <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{cat}</span>
                     </div>
                     <button 
                       onClick={() => onDeleteCategory(cat)}
@@ -314,13 +313,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                     </button>
                   </div>
                 ))}
-             </div>
-             
-             <div className="mt-6 flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100">
-                <Settings size={14} className="text-amber-500 shrink-0" />
-                <p className="text-[9px] font-bold text-amber-700 uppercase leading-relaxed tracking-tight">
-                  Arraste as categorias para mudar a ordem em que aparecem nos formulários.
-                </p>
              </div>
           </div>
         </div>
@@ -336,8 +328,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
             </button>
           </label>
           <div className="relative">
-            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none appearance-none">
-              {/* Se estiver editando uma despesa de combustível, permite que ela apareça. Se for novo, usa apenas as filtradas */}
+            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none appearance-none">
               {isFuelCategory && <option value={category}>{category}</option>}
               {filteredCategoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
@@ -354,23 +345,23 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
               type="text" 
               placeholder="Ex: Conta de Luz" 
               value={description} 
-              onChange={e => setDescription(e.target.value)} 
-              className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 outline-none transition-all focus:ring-rose-50" 
+              onChange={e => setDescription(e.target.value.toUpperCase())} 
+              className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black focus:ring-4 outline-none transition-all focus:ring-rose-50 uppercase" 
               required={shouldShowDescription}
             />
           </div>
         )}
         
         {shouldShowEmployeeSelect && (
-          <div className="md:col-span-3 space-y-1.5 animate-in slide-in-from-left-2 duration-300">
+          <div className="md:col-span-3 space-y-1.5">
             <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest flex items-center gap-1.5">
-              <UserCircle size={10} className="text-indigo-500" /> {isFuelCategory ? 'Quem abasteceu?' : 'Funcionário'}
+              <UserCircle size={10} className="text-indigo-500" /> Funcionário
             </label>
             <div className="relative">
               <select 
                 value={employeeId} 
                 onChange={e => setEmployeeId(e.target.value)} 
-                className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl text-xs font-black outline-none appearance-none text-indigo-900 shadow-sm"
+                className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl text-[10px] font-black outline-none appearance-none text-indigo-900 shadow-sm"
                 required={shouldShowEmployeeSelect}
               >
                 <option value="">Selecionar Funcionário...</option>
@@ -386,21 +377,21 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         )}
 
         {showVehicleField && (
-          <div className="md:col-span-2 space-y-1.5 animate-in slide-in-from-left-2 duration-300">
+          <div className="md:col-span-2 space-y-1.5">
             <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest flex items-center gap-1.5">
-              <Truck size={10} className="text-sky-500" /> Veículo (Obrig.)
+              <Truck size={10} className="text-sky-500" /> Veículo
             </label>
             <div className="relative">
               <select 
                 value={vehicleId} 
                 onChange={e => setVehicleId(e.target.value)} 
-                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none"
+                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none appearance-none"
                 required={showVehicleField}
-                disabled={isFuelCategory} // Impede alterar veículo de abastecimento vindo da frota
+                disabled={isFuelCategory}
               >
                 <option value="">Selecionar...</option>
                 {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
+                  <option key={v.id} value={v.id}>{v.modelo} ({v.placa})</option>
                 ))}
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
@@ -410,29 +401,13 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           </div>
         )}
 
-        {isFuelCategory && (
-          <div className="md:col-span-2 space-y-1.5 animate-in slide-in-from-bottom-2 duration-300">
-             <label className="text-[9px] font-black text-sky-500 uppercase ml-2 tracking-widest flex items-center gap-1.5">
-               <Gauge size={10} /> KM Atual (Obrig.)
-             </label>
-             <input 
-              type="number" 
-              placeholder="0" 
-              value={kmReading} 
-              onChange={e => setKmReading(e.target.value)} 
-              className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl text-sm font-black focus:ring-4 focus:ring-sky-200 outline-none transition-all cursor-not-allowed opacity-70" 
-              readOnly={isFuelCategory}
-             />
-          </div>
-        )}
-
         <div className="md:col-span-2 space-y-1.5">
           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor</label>
-          <input type="text" placeholder="R$ 0,00" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none" required />
+          <input type="text" placeholder="R$ 0,00" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none" required />
         </div>
         <div className="md:col-span-2 space-y-1.5">
           <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Vencimento</label>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none" required />
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none" required />
         </div>
         <div className="md:col-span-1">
           <button type="submit" className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-600 transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
@@ -444,7 +419,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
         <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-50 bg-slate-50/50">
            <Search className="text-slate-300" size={20} />
-           <input type="text" placeholder="Buscar na planilha..." className="bg-transparent border-none outline-none text-xs w-full font-bold" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+           <input type="text" placeholder="Buscar na planilha..." className="bg-transparent border-none outline-none text-[10px] w-full font-black uppercase" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
         </div>
 
         <div className="hidden md:block overflow-x-auto">
@@ -467,33 +442,37 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 
                 return (
                   <tr key={e.id} className="group hover:bg-rose-50/20 transition-all">
-                    <td className="px-6 py-3 truncate text-xs font-black text-slate-800">{e.description}</td>
-                    <td className="px-6 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase w-fit ${isSystemFuel ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <td className="px-6 py-4 truncate text-[11px] font-black text-slate-800 uppercase">{e.description}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1.5">
+                        <span className={`text-[8px] font-black px-2 py-1 rounded-md uppercase w-fit ${isSystemFuel ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
                           {e.category}
                         </span>
-                        {vehicle && (
-                          <span className="text-[8px] font-black text-sky-600 flex items-center gap-1 uppercase">
-                            <Truck size={10} /> {vehicle.plate}
-                          </span>
-                        )}
-                        {employee && (
-                          <span className="text-[8px] font-black text-indigo-600 flex items-center gap-1 uppercase">
-                            <UserCircle size={10} /> {employee.name}
-                          </span>
+                        {(vehicle || employee) && (
+                          <div className="flex flex-wrap gap-1">
+                            {vehicle && (
+                              <span className="text-[8px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100 flex items-center gap-1 uppercase">
+                                <Truck size={8} /> {vehicle.placa}
+                              </span>
+                            )}
+                            {employee && (
+                              <span className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1 uppercase">
+                                <User size={8} /> {employee.name.split(' ')[0]}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-3 text-xs font-black text-slate-900">
+                    <td className="px-6 py-4 text-[11px] font-black text-slate-900">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.value)}
                     </td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-400">
                         <Clock size={12} /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </div>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-6 py-4">
                       <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border ${
                         e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 border-emerald-500 text-white' : 
                         e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 border-rose-500 text-white' : 
@@ -502,13 +481,13 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                         {e.status}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-center">
+                    <td className="px-6 py-4 text-center">
                       <div className="flex justify-center gap-2 transition-all">
                         {e.status !== ExpenseStatus.PAGO && (
                           <button onClick={() => handleMarkAsPaid(e)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle2 size={14} /></button>
                         )}
                         <button onClick={() => handleEdit(e)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
-                        <button onClick={() => onDelete(e.id)} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
+                        <button onClick={() => onDelete(e.id)} className="p-1.5 text-rose-300 hover:text-rose-500 rounded-lg"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
