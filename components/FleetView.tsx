@@ -72,6 +72,7 @@ const FleetView: React.FC<Props> = ({
         </div>
       </header>
 
+      {/* ALERTAS AUTOMÁTICOS (REQUISITO 8) */}
       {stats.oilAlerts > 0 && (
          <div className="bg-amber-50 border border-amber-200 p-5 rounded-3xl flex items-center gap-4 animate-bounce">
             <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200">
@@ -91,7 +92,7 @@ const FleetView: React.FC<Props> = ({
         <SummaryCard label="TROCA ÓLEO" value={stats.oilAlerts} icon={Droplets} color="amber" />
       </div>
 
-      {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} employees={employees} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
+      {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
       {activeTab === 'fuel' && <FuelTab logs={fuelLogs} vehicles={vehicles} onUpdate={onUpdateFuel} onDelete={onDeleteFuel} />}
       {activeTab === 'maintenance' && <MaintenanceTab logs={maintenanceLogs} vehicles={vehicles} onUpdate={onUpdateMaintenance} onDelete={onDeleteMaintenance} />}
       {activeTab === 'fines' && <FinesTab logs={fineLogs} vehicles={vehicles} onUpdate={onUpdateFine} onDelete={onDeleteFine} />}
@@ -131,13 +132,14 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
     const v = vehicles.find((veh:any) => veh.id === oilForm.veiculo_id);
     if (!v) return;
 
+    // REQUISITO 3 & 4: SÓ REGISTRA NA OFICINA AO CONFIRMAR AQUI
     onUpdateMaintenance({
         id: crypto.randomUUID(),
         veiculo_id: v.id,
         tipo: 'Preventiva',
         servico: 'TROCA DE ÓLEO EFETUADA',
         data: oilForm.data,
-        km_registro: v.km_atual,
+        km_registro: v.km_atual, // Usa a KM atual para o registro
         custo: oilForm.custo,
         pago: oilForm.pago
     } as MaintenanceLog);
@@ -155,6 +157,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(vehicles || []).map((v: Vehicle) => {
+          // REQUISITO 1: CONTABILIZA KM DESDE A ÚLTIMA TROCA
           const kmSinceOil = v.km_atual - v.km_ultima_troca;
           const oilLifePercent = Math.max(0, 100 - (kmSinceOil / 10));
 
@@ -172,6 +175,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
                <h4 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{v.modelo.toUpperCase()}</h4>
                <span className="inline-block font-mono text-xs font-black text-sky-500 bg-sky-50 px-3 py-1 rounded-lg border border-sky-100 uppercase mt-1">{v.placa.toUpperCase()}</span>
                
+               {/* OIL TRACKER REQUISITO 1 & 8 */}
                <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">VIDA ÚTIL ÓLEO ({kmSinceOil} / 1000 KM)</p>
@@ -203,6 +207,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
         })}
       </div>
 
+      {/* MODAL DE TROCA DE ÓLEO (REQUISITO 2, 4, 5) */}
       {isOilModalOpen && (
         <Modal title="CONFIRMAR TROCA DE ÓLEO" onClose={() => setIsOilModalOpen(false)}>
            <form onSubmit={handleOilChange} className="space-y-6">
@@ -210,7 +215,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
                  <AlertCircle size={24} className="text-amber-500 shrink-0" />
                  <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight leading-relaxed">
                     A KM ÚLTIMA TROCA SERÁ ATUALIZADA PARA O VALOR ATUAL DO HODÔMETRO. 
-                    O HISTÓRICO SERÁ SALVO NA OFICINA E NO FINANCEIRO.
+                    O HISTÓRICO SERÁ SALVO NA OFICINA E NO FINANCEIRO AUTOMATICAMENTE.
                  </p>
               </div>
               <div className="space-y-4">
@@ -221,11 +226,11 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
                     </div>
                     <div className="space-y-1">
                         <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">CUSTO TOTAL R$</label>
-                        <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.custo} onChange={e => setOilForm({...oilForm, custo: parseFloat(e.target.value)})} required />
+                        <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.custo} onChange={e => setOilForm({...oilForm, custo: parseFloat(e.target.value) || 0})} required />
                     </div>
                  </div>
                  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p className="flex-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">STATUS DE PAGAMENTO (FINANCEIRO)</p>
+                    <p className="flex-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">STATUS FINANCEIRO</p>
                     <div className="flex gap-2">
                        <button type="button" onClick={() => setOilForm({...oilForm, pago: true})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${oilForm.pago ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>PAGO</button>
                        <button type="button" onClick={() => setOilForm({...oilForm, pago: false})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${!oilForm.pago ? 'bg-rose-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>A VENCER</button>
@@ -233,7 +238,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
                  </div>
               </div>
               <button type="submit" className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
-                <CheckCircle2 size={18} /> CONFIRMAR E INTEGRAR DADOS
+                <CheckCircle2 size={18} /> CONFIRMAR TROCA E GERAR DESPESA
               </button>
            </form>
         </Modal>
@@ -266,7 +271,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
             </div>
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">HODÔMETRO ATUAL (KM)</label>
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">HODÔMETRO INICIAL (KM)</label>
                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_atual || 0} onChange={e => setForm({...form, km_atual: parseInt(e.target.value) || 0})} />
                </div>
                <div className="space-y-1">
@@ -286,13 +291,25 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
 
 const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<FuelLog>>({ data: new Date().toISOString().split('T')[0], tipo_combustivel: 'DIESEL' });
+  const [form, setForm] = useState<Partial<FuelLog>>({ 
+    data: new Date().toISOString().split('T')[0], 
+    tipo_combustivel: 'DIESEL',
+    km_registro: 0,
+    litros: 0,
+    valor_litro: 0
+  });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const l = parseFloat(String(form.litros || 0));
     const v = parseFloat(String(form.valor_litro || 0));
-    onUpdate({ ...form, id: form.id || crypto.randomUUID(), valor_total: l * v } as FuelLog);
+    // REQUISITO 1: O KM REGISTRO AQUI ATUALIZARÁ O HODÔMETRO NO STORE.TS
+    onUpdate({ 
+        ...form, 
+        id: form.id || crypto.randomUUID(), 
+        valor_total: l * v,
+        km_registro: form.km_registro || 0 // Garante que nunca envie nulo
+    } as FuelLog);
     setIsOpen(false);
   };
 
@@ -308,9 +325,9 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
             {(logs || []).map((l: FuelLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
+                <td className="px-6 py-4 text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
                 <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] uppercase">{l.tipo_combustivel.toUpperCase()}</span>
+                    <span className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] uppercase font-black">{l.tipo_combustivel.toUpperCase()}</span>
                 </td>
                 <td className="px-6 py-4">{l.litros}L</td>
                 <td className="px-6 py-4 text-emerald-600 font-black">R$ {l.valor_total.toLocaleString()}</td>
@@ -326,8 +343,11 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
            <form onSubmit={handleSave} className="space-y-5">
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VEÍCULO</label>
-                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">SELECIONAR...</option>
+                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.veiculo_id} onChange={e => {
+                    const v = vehicles.find((v:any) => v.id === e.target.value);
+                    setForm({...form, veiculo_id: e.target.value, km_registro: v?.km_atual || 0});
+                }} required>
+                  <option value="">SELECIONAR VEÍCULO...</option>
                   {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                 </select>
               </div>
@@ -337,7 +357,7 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
                   <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">TIPO DE COMBUSTÍVEL</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">TIPO COMBUSTÍVEL (REQUISITO 6)</label>
                   <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value})} required>
                     <option value="DIESEL">DIESEL</option>
                     <option value="GASOLINA">GASOLINA</option>
@@ -348,19 +368,19 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 ml-2">QTD LITROS</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value)})} required />
+                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value) || 0})} required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VALOR LITRO R$</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value)})} required />
+                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value) || 0})} required />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">HODÔMETRO ATUAL (KM)</label>
-                <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro || 0} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
+                <label className="text-[9px] font-black uppercase text-sky-500 ml-2">HODÔMETRO NO ATO (KM)</label>
+                <input type="number" className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl font-black text-xs" value={form.km_registro} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
               </div>
               <button className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
-                 <CheckCircle2 size={18} /> CONFIRMAR ABASTECIMENTO
+                 <CheckCircle2 size={18} /> CONFIRMAR E ATUALIZAR KM
               </button>
            </form>
         </Modal>
@@ -385,7 +405,7 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">KM REGISTRO</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5">FINANCEIRO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">KM REGISTRO</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: MaintenanceLog) => (
@@ -395,11 +415,6 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
                 <td className="px-6 py-4 uppercase truncate max-w-[150px] font-black">{l.servico.toUpperCase()}</td>
                 <td className="px-6 py-4 font-mono">{l.km_registro.toLocaleString()} KM</td>
                 <td className="px-6 py-4 text-rose-500 font-black">R$ {l.custo.toLocaleString()}</td>
-                <td className="px-6 py-4">
-                   <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${l.pago ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-                      {l.pago ? 'PAGO' : 'A VENCER'}
-                   </span>
-                </td>
                 <td className="px-6 py-4 text-center"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
               </tr>
             ))}
@@ -411,8 +426,11 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
            <form onSubmit={handleSave} className="space-y-5">
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VEÍCULO</label>
-                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">SELECIONAR...</option>
+                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => {
+                    const v = vehicles.find((v:any) => v.id === e.target.value);
+                    setForm({...form, veiculo_id: e.target.value, km_registro: v?.km_atual || 0});
+                }} required>
+                  <option value="">SELECIONAR VEÍCULO...</option>
                   {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                 </select>
               </div>
@@ -481,7 +499,7 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
             {(logs || []).map((l: FineLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
+                <td className="px-6 py-4 text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
                 <td className="px-6 py-4 uppercase truncate max-w-[180px] font-bold">{l.tipo_infracao.toUpperCase()}</td>
                 <td className="px-6 py-4 text-rose-500 font-black">R$ {l.valor.toLocaleString()}</td>
                 <td className="px-6 py-4">
@@ -501,7 +519,7 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VEÍCULO</label>
                 <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">SELECIONAR...</option>
+                  <option value="">SELECIONAR VEÍCULO...</option>
                   {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                 </select>
               </div>
@@ -527,7 +545,7 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
                   <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor || 0} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">PONTOS</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">PONTOS CNH</label>
                   <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.pontos || 0} onChange={e => setForm({...form, pontos: parseInt(e.target.value) || 0})} />
                 </div>
               </div>

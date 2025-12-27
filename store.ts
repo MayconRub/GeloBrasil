@@ -73,10 +73,10 @@ export const fetchAllData = async (): Promise<AppData> => {
       kmReading: e.km_reading, 
       observation: e.observacao?.toUpperCase()
     })),
-    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.nome.toUpperCase(), role: emp.cargo?.toUpperCase() || 'FUNCIONÁRIO', salary: emp.salario, joinedAt: emp.data_admissao })),
+    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.name.toUpperCase(), role: emp.role?.toUpperCase() || 'FUNCIONÁRIO', salary: emp.salario, joinedAt: emp.data_admissao })),
     vehicles: (vehicles.data || []).map(v => ({...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase()})),
     fuelLogs: (fuels.data || []).map(f => ({...f, tipo_combustivel: f.tipo_combustivel.toUpperCase()})),
-    maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase(), oficina: m.oficina?.toUpperCase()})),
+    maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase()})),
     fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: f.tipo_infracao.toUpperCase()})),
     categories: (cats.data || []).map(c => c.nome.toUpperCase()),
     settings,
@@ -87,44 +87,59 @@ export const fetchAllData = async (): Promise<AppData> => {
 export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase()}, { onConflict: 'id' });
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
-// SYNC ABASTECIMENTO (ATUALIZA KM ATUAL)
+// SYNC ABASTECIMENTO (REQUISITO 1 E 6)
 export const syncFuel = async (f: FuelLog) => {
-  const { error } = await supabase.from('frota_abastecimentos').upsert({...f, tipo_combustivel: f.tipo_combustivel.toUpperCase()});
+  // Garantir que campos numéricos não sejam nulos para evitar erro Not-Null Constraint
+  const payload = {
+    ...f,
+    tipo_combustivel: f.tipo_combustivel.toUpperCase(),
+    km_registro: f.km_registro || 0,
+    litros: f.litros || 0,
+    valor_litro: f.valor_litro || 0,
+    valor_total: f.valor_total || 0
+  };
+
+  const { error } = await supabase.from('frota_abastecimentos').upsert(payload);
+  
   if (!error) {
-    // 1. ATUALIZAR KM ATUAL DO VEÍCULO
-    await supabase.from('veiculos').update({ km_atual: f.km_registro }).eq('id', f.veiculo_id);
+    // 1. ATUALIZAR KM ATUAL DO VEÍCULO (HODÔMETRO)
+    // Isso fará com que o cálculo (km_atual - km_ultima_troca) reflita o desgaste do óleo
+    await supabase.from('veiculos').update({ km_atual: payload.km_registro }).eq('id', f.veiculo_id);
     
-    // 2. CRIAR DESPESA FINANCEIRA AUTOMÁTICA
+    // 2. CRIAR DESPESA FINANCEIRA AUTOMÁTICA (INTEGRAÇÃO REQUISITO 5)
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
-        descricao: `ABASTECIMENTO: ${f.tipo_combustivel.toUpperCase()}`,
-        valor: f.valor_total,
-        data_vencimento: f.data,
+        descricao: `ABASTECIMENTO: ${payload.tipo_combustivel} (${payload.litros}L)`,
+        valor: payload.valor_total,
+        data_vencimento: payload.data,
         status: 'Pago',
         categoria: 'COMBUSTÍVEL',
         veiculo_id: f.veiculo_id,
-        km_reading: f.km_registro
+        km_reading: payload.km_registro
     });
   }
   return { error };
 };
 
-// SYNC MANUTENÇÃO (RESET DE ÓLEO E FINANCEIRO)
+// SYNC MANUTENÇÃO (REQUISITO 2, 3 E 4)
 export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error } = await supabase.from('frota_manutencoes').upsert({...m, servico: m.servico.toUpperCase()});
+  
   if (!error) {
-    // SE FOR TROCA DE ÓLEO, RESETAMOS A KM_ULTIMA_TROCA PARA A KM DO REGISTRO
+    // REQUISITO 2: SE FOR TROCA DE ÓLEO, RESETAMOS A CONTAGEM
+    // Igualamos km_ultima_troca ao km_registro da manutenção.
+    // Assim, o cálculo km_atual - km_ultima_troca volta a ser 0.
     if (m.servico.toUpperCase().includes('ÓLEO')) {
         await supabase.from('veiculos').update({ 
             km_ultima_troca: m.km_registro 
         }).eq('id', m.veiculo_id);
     }
 
-    // GERAR DESPESA FINANCEIRA SE HOUVER CUSTO
+    // REQUISITO 4 & 5: INTEGRAR AO FINANCEIRO
     if (m.custo > 0) {
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            descricao: `MANUTENÇÃO: ${m.servico.toUpperCase()}`,
+            descricao: `OFICINA: ${m.servico.toUpperCase()}`,
             valor: m.custo,
             data_vencimento: m.data,
             status: m.pago ? 'Pago' : 'A Vencer',
