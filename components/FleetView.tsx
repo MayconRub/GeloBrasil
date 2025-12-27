@@ -91,7 +91,7 @@ const FleetView: React.FC<Props> = ({
         <SummaryCard label="TROCA ÓLEO" value={stats.oilAlerts} icon={Droplets} color="amber" />
       </div>
 
-      {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
+      {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} employees={employees} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
       {activeTab === 'fuel' && <FuelTab logs={fuelLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateFuel} onDelete={onDeleteFuel} />}
       {activeTab === 'maintenance' && <MaintenanceTab logs={maintenanceLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateMaintenance} onDelete={onDeleteMaintenance} />}
       {activeTab === 'fines' && <FinesTab logs={fineLogs} vehicles={vehicles} onUpdate={onUpdateFine} onDelete={onDeleteFine} />}
@@ -112,7 +112,7 @@ const SummaryCard = ({ label, value, icon: Icon, color }: any) => (
   </div>
 );
 
-const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any) => {
+const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintenance }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isOilModalOpen, setIsOilModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<Vehicle>>({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX' });
@@ -130,7 +130,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
     const v = vehicles.find((veh:any) => veh.id === oilForm.veiculo_id);
     if (!v) return;
     if (!oilForm.funcionario_id) {
-        alert("SELECIONE O FUNCIONÁRIO QUE REALIZOU A TROCA.");
+        alert("POR FAVOR, SELECIONE O RESPONSÁVEL PELA TROCA.");
         return;
     }
 
@@ -223,11 +223,12 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
               </div>
               <div className="space-y-4">
                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">FUNCIONÁRIO</label>
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">FUNCIONÁRIO RESPONSÁVEL</label>
                     <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={oilForm.funcionario_id} onChange={e => setOilForm({...oilForm, funcionario_id: e.target.value})} required>
                         <option value="">SELECIONAR...</option>
-                        {vehicles.find(v => v.id === oilForm.veiculo_id) && (vehicles.find(v => v.id === oilForm.veiculo_id)?.motorista_id ? <option value={vehicles.find(v => v.id === oilForm.veiculo_id)?.motorista_id}>MOTORISTA PADRÃO</option> : null)}
-                        {/* Simula lista de funcionários (Assumindo que estão vindo das props via FleetView) */}
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.name.toUpperCase()}</option>
+                        ))}
                     </select>
                  </div>
                  <div className="grid grid-cols-2 gap-4">

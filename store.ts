@@ -108,7 +108,6 @@ export const syncFuel = async (f: FuelLog) => {
   const { error } = await supabase.from('frota_abastecimentos').upsert(payload);
   
   if (!error) {
-    // Busca info complementar para a descrição
     const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', f.veiculo_id).single();
     const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', f.funcionario_id).single();
 
@@ -140,7 +139,6 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error: maintError } = await supabase.from('frota_manutencoes').upsert(maintPayload);
   
   if (!maintError) {
-    // Busca info complementar para a descrição
     const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', m.veiculo_id).single();
     const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', m.funcionario_id).single();
 
