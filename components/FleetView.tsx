@@ -2,10 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Truck, Car, Bike, Plus, Trash2, Fuel, Wrench, AlertOctagon, 
-  BarChart3, Gauge, Calendar, User, DollarSign, 
-  History, Pencil, Save, X, CheckCircle2, AlertTriangle, Droplets,
-  // Fix: Added missing AlertCircle import
-  AlertCircle
+  BarChart3, X, CheckCircle2, AlertTriangle, Droplets, Pencil, Save, AlertCircle
 } from 'lucide-react';
 import { Vehicle, Employee, FuelLog, MaintenanceLog, FineLog } from '../types';
 
@@ -35,34 +32,34 @@ const FleetView: React.FC<Props> = ({
   const [activeTab, setActiveTab] = useState<TabType>('vehicles');
 
   const stats = useMemo(() => {
-    const totalV = vehicles.length;
-    const totalFuel = fuelLogs.reduce((sum, l) => sum + l.valor_total, 0);
-    const totalMaint = maintenanceLogs.reduce((sum, l) => sum + l.custo, 0);
-    const totalFines = fineLogs.reduce((sum, l) => sum + l.valor, 0);
-    const oilAlerts = vehicles.filter(v => (v.km_atual - v.km_ultima_troca) >= 1000).length;
+    const totalV = vehicles?.length || 0;
+    const totalFuel = (fuelLogs || []).reduce((sum, l) => sum + l.valor_total, 0);
+    const totalMaint = (maintenanceLogs || []).reduce((sum, l) => sum + l.custo, 0);
+    const totalFines = (fineLogs || []).reduce((sum, l) => sum + l.valor, 0);
+    const oilAlerts = (vehicles || []).filter(v => (v.km_atual - v.km_ultima_troca) >= 1000).length;
     return { totalV, totalFuel, totalMaint, totalFines, oilAlerts };
   }, [vehicles, fuelLogs, maintenanceLogs, fineLogs]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20 uppercase">
       <header className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 bg-slate-900 rounded-[1.8rem] flex items-center justify-center text-white shadow-xl">
             <Truck size={32} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tighter leading-none uppercase">Gestão de <span className="text-sky-500">Frota</span></h2>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Central Operacional Ice Control</p>
+            <h2 className="text-3xl font-black text-slate-800 tracking-tighter leading-none uppercase">GESTÃO DE <span className="text-sky-500">FROTA</span></h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">CENTRAL OPERACIONAL ICE CONTROL</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-[1.8rem]">
           {[
-            { id: 'vehicles', label: 'Frota', icon: Truck },
-            { id: 'fuel', label: 'Combustível', icon: Fuel },
-            { id: 'maintenance', label: 'Oficina', icon: Wrench },
-            { id: 'fines', label: 'Multas', icon: AlertOctagon },
-            { id: 'reports', label: 'Custos', icon: BarChart3 },
+            { id: 'vehicles', label: 'FROTA', icon: Truck },
+            { id: 'fuel', label: 'COMBUSTÍVEL', icon: Fuel },
+            { id: 'maintenance', label: 'OFICINA', icon: Wrench },
+            { id: 'fines', label: 'MULTAS', icon: AlertOctagon },
+            { id: 'reports', label: 'CUSTOS', icon: BarChart3 },
           ].map(tab => (
             <button 
               key={tab.id} 
@@ -75,25 +72,23 @@ const FleetView: React.FC<Props> = ({
         </div>
       </header>
 
-      {/* Alerta Geral de Óleo */}
       {stats.oilAlerts > 0 && (
          <div className="bg-amber-50 border border-amber-200 p-5 rounded-3xl flex items-center gap-4 animate-bounce">
             <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200">
                <Droplets size={24} />
             </div>
             <div>
-               <h4 className="text-sm font-black text-amber-900 uppercase">Atenção: Troca de Óleo Necessária</h4>
-               <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tight">Existem {stats.oilAlerts} veículo(s) que atingiram o limite de 1.000km.</p>
+               <h4 className="text-sm font-black text-amber-900 uppercase">ATENÇÃO: TROCA DE ÓLEO NECESSÁRIA</h4>
+               <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tight">EXISTEM {stats.oilAlerts} VEÍCULO(S) QUE ATINGIRAM O LIMITE DE 1.000KM.</p>
             </div>
          </div>
       )}
 
-      {/* Grid de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard label="Veículos" value={stats.totalV} icon={Truck} color="sky" />
-        <SummaryCard label="Combustível" value={`R$ ${stats.totalFuel.toLocaleString()}`} icon={Fuel} color="emerald" />
-        <SummaryCard label="Manutenção" value={`R$ ${stats.totalMaint.toLocaleString()}`} icon={Wrench} color="indigo" />
-        <SummaryCard label="Troca Óleo" value={stats.oilAlerts} icon={Droplets} color="amber" />
+        <SummaryCard label="VEÍCULOS" value={stats.totalV} icon={Truck} color="sky" />
+        <SummaryCard label="COMBUSTÍVEL" value={`R$ ${stats.totalFuel.toLocaleString()}`} icon={Fuel} color="emerald" />
+        <SummaryCard label="MANUTENÇÃO" value={`R$ ${stats.totalMaint.toLocaleString()}`} icon={Wrench} color="indigo" />
+        <SummaryCard label="TROCA ÓLEO" value={stats.oilAlerts} icon={Droplets} color="amber" />
       </div>
 
       {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} employees={employees} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
@@ -105,7 +100,6 @@ const FleetView: React.FC<Props> = ({
   );
 };
 
-// COMPONENTES AUXILIARES
 const SummaryCard = ({ label, value, icon: Icon, color }: any) => (
   <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
     <div className={`w-12 h-12 bg-${color}-50 text-${color}-500 rounded-2xl flex items-center justify-center`}>
@@ -118,7 +112,7 @@ const SummaryCard = ({ label, value, icon: Icon, color }: any) => (
   </div>
 );
 
-const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any) => {
+const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isOilModalOpen, setIsOilModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<Vehicle>>({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0 });
@@ -141,7 +135,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any)
         veiculo_id: v.id,
         tipo: 'Preventiva',
         servico: 'TROCA DE ÓLEO EFETUADA',
-        data: new Date().toISOString().split('T00:00:00').split('T')[0],
+        data: new Date().toISOString().split('T')[0],
         km_registro: v.km_atual,
         custo: oilForm.custo,
         pago: oilForm.pago
@@ -154,12 +148,12 @@ const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any)
     <div className="space-y-4">
       <div className="flex justify-end">
         <button onClick={() => setIsOpen(true)} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-sky-600 transition-all">
-          <Plus size={16} /> Novo Veículo
+          <Plus size={16} /> NOVO VEÍCULO
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vehicles.map((v: Vehicle) => {
+        {(vehicles || []).map((v: Vehicle) => {
           const kmSinceOil = v.km_atual - v.km_ultima_troca;
           const oilLifePercent = Math.max(0, 100 - (kmSinceOil / 10));
 
@@ -174,13 +168,12 @@ const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any)
                      <button onClick={() => onDelete(v.id)} className="p-3 bg-slate-50 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={18} /></button>
                   </div>
                </div>
-               <h4 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{v.modelo}</h4>
-               <span className="inline-block font-mono text-xs font-black text-sky-500 bg-sky-50 px-3 py-1 rounded-lg border border-sky-100 uppercase mt-1">{v.placa}</span>
+               <h4 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{v.modelo.toUpperCase()}</h4>
+               <span className="inline-block font-mono text-xs font-black text-sky-500 bg-sky-50 px-3 py-1 rounded-lg border border-sky-100 uppercase mt-1">{v.placa.toUpperCase()}</span>
                
-               {/* OIL TRACKER */}
                <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Saúde do Óleo ({kmSinceOil} / 1000 KM)</p>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">SAÚDE DO ÓLEO ({kmSinceOil} / 1000 KM)</p>
                     {kmSinceOil >= 1000 && <AlertTriangle size={12} className="text-amber-500 animate-pulse" />}
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
@@ -190,17 +183,17 @@ const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any)
                     onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }}
                     className="mt-3 w-full py-2 bg-white border border-slate-200 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:bg-sky-500 hover:text-white transition-all flex items-center justify-center gap-2"
                   >
-                    <Droplets size={10} /> Realizar Troca de Óleo
+                    <Droplets size={10} /> REALIZAR TROCA DE ÓLEO
                   </button>
                </div>
 
                <div className="grid grid-cols-2 gap-3 mt-4">
                   <div className="bg-slate-50 p-4 rounded-2xl text-center">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Ano</p>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ANO</p>
                     <p className="text-sm font-black text-slate-700">{v.ano}</p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-2xl text-center">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">KM Atual</p>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">KM ATUAL</p>
                     <p className="text-sm font-black text-slate-700">{v.km_atual.toLocaleString()}</p>
                   </div>
                </div>
@@ -210,71 +203,71 @@ const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any)
       </div>
 
       {isOilModalOpen && (
-        <Modal title="Confirmar Troca de Óleo" onClose={() => setIsOilModalOpen(false)}>
+        <Modal title="CONFIRMAR TROCA DE ÓLEO" onClose={() => setIsOilModalOpen(false)}>
            <form onSubmit={handleOilChange} className="space-y-6">
               <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-start gap-3">
                  <AlertCircle size={24} className="text-amber-500 shrink-0" />
                  <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight leading-relaxed">
-                    A km do veículo será atualizada e o contador de óleo será resetado para 0km rodados. 
+                    A KM DO VEÍCULO SERÁ ATUALIZADA E O CONTADOR DE ÓLEO SERÁ RESETADO PARA 0KM RODADOS. 
                  </p>
               </div>
               <div className="space-y-4">
                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">Custo da Troca R$</label>
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">CUSTO DA TROCA R$</label>
                     <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.custo} onChange={e => setOilForm({...oilForm, custo: parseFloat(e.target.value)})} required />
                  </div>
                  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p className="flex-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">A manutenção já foi paga?</p>
+                    <p className="flex-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">A MANUTENÇÃO JÁ FOI PAGA?</p>
                     <div className="flex gap-2">
-                       <button type="button" onClick={() => setOilForm({...oilForm, pago: true})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${oilForm.pago ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>Sim</button>
-                       <button type="button" onClick={() => setOilForm({...oilForm, pago: false})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${!oilForm.pago ? 'bg-rose-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>Não (Pendentes)</button>
+                       <button type="button" onClick={() => setOilForm({...oilForm, pago: true})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${oilForm.pago ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>SIM</button>
+                       <button type="button" onClick={() => setOilForm({...oilForm, pago: false})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${!oilForm.pago ? 'bg-rose-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>NÃO</button>
                     </div>
                  </div>
               </div>
               <button type="submit" className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
-                <CheckCircle2 size={18} /> Finalizar Troca
+                <CheckCircle2 size={18} /> FINALIZAR TROCA
               </button>
            </form>
         </Modal>
       )}
 
       {isOpen && (
-        <Modal title={form.id ? "Editar Veículo" : "Cadastrar Veículo"} onClose={() => setIsOpen(false)}>
+        <Modal title={form.id ? "EDITAR VEÍCULO" : "CADASTRAR VEÍCULO"} onClose={() => setIsOpen(false)}>
           <form onSubmit={handleSave} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Tipo</label>
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">TIPO</label>
                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value as any})}>
                     <option>Caminhão</option><option>Carro</option><option>Moto</option>
                  </select>
                </div>
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Placa</label>
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">PLACA</label>
                  <input className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} required placeholder="ABC1D23" />
                </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Modelo</label>
-                 <input className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} required placeholder="Ex: Mercedes Accelo" />
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">MODELO</label>
+                 <input className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value.toUpperCase()})} required placeholder="EX: MERCEDES ACCELO" />
                </div>
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Ano</label>
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">ANO</label>
                  <input className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.ano} onChange={e => setForm({...form, ano: e.target.value})} placeholder="2024" />
                </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Odômetro Atual (KM)</label>
-                 <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_atual} onChange={e => setForm({...form, km_atual: parseInt(e.target.value)})} />
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">ODÔMETRO ATUAL (KM)</label>
+                 <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_atual || 0} onChange={e => setForm({...form, km_atual: parseInt(e.target.value) || 0})} />
                </div>
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">KM Última Troca Óleo</label>
-                 <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_ultima_troca} onChange={e => setForm({...form, km_ultima_troca: parseInt(e.target.value)})} />
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">KM ÚLTIMA TROCA</label>
+                 <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_ultima_troca || 0} onChange={e => setForm({...form, km_ultima_troca: parseInt(e.target.value) || 0})} />
                </div>
             </div>
             <button type="submit" className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
-              <Save size={18} /> Salvar Veículo
+              <Save size={18} /> SALVAR VEÍCULO
             </button>
           </form>
         </Modal>
@@ -285,7 +278,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onUpdateMaintenance, onDelete }: any)
 
 const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<FuelLog>>({ data: new Date().toISOString().split('T00:00:00').split('T')[0] });
+  const [form, setForm] = useState<Partial<FuelLog>>({ data: new Date().toISOString().split('T')[0] });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,17 +290,17 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-emerald-600 transition-all"><Plus size={16} /> Novo Abastecimento</button></div>
+      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-emerald-600 transition-all"><Plus size={16} /> NOVO ABASTECIMENTO</button></div>
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">Data</th><th className="px-6 py-5">Veículo</th><th className="px-6 py-5">Litros</th><th className="px-6 py-5">Custo Litro</th><th className="px-6 py-5">Total</th><th className="px-6 py-5">KM</th><th className="px-6 py-5 text-center">Ação</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">LITROS</th><th className="px-6 py-5">CUSTO LITRO</th><th className="px-6 py-5">TOTAL</th><th className="px-6 py-5">KM</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
-            {logs.map((l: FuelLog) => (
+            {(logs || []).map((l: FuelLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa}</td>
+                <td className="px-6 py-4 text-sky-500">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
                 <td className="px-6 py-4">{l.litros}L</td>
                 <td className="px-6 py-4">R$ {l.valor_litro.toFixed(2)}</td>
                 <td className="px-6 py-4 text-emerald-600">R$ {l.valor_total.toLocaleString()}</td>
@@ -319,41 +312,41 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
         </table>
       </div>
       {isOpen && (
-        <Modal title="Lançar Abastecimento" onClose={() => setIsOpen(false)}>
+        <Modal title="LANÇAR ABASTECIMENTO" onClose={() => setIsOpen(false)}>
            <form onSubmit={handleSave} className="space-y-5">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Veículo</label>
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VEÍCULO</label>
                 <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">Selecionar...</option>
-                  {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa} - {v.modelo}</option>)}
+                  <option value="">SELECIONAR...</option>
+                  {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">DATA</label>
                   <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Combustível</label>
-                  <input placeholder="Ex: Diesel S10" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value})} />
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">COMBUSTÍVEL</label>
+                  <input placeholder="EX: DIESEL S10" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value.toUpperCase()})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Qtd Litros</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">QTD LITROS</label>
                   <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value)})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Valor Litro R$</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VALOR LITRO R$</label>
                   <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value)})} required />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Odômetro (KM)</label>
-                <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro} onChange={e => setForm({...form, km_registro: parseInt(e.target.value)})} required />
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">ODÔMETRO (KM)</label>
+                <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro || 0} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
               </div>
               <button className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
-                 <CheckCircle2 size={18} /> Confirmar Lançamento
+                 <CheckCircle2 size={18} /> CONFIRMAR LANÇAMENTO
               </button>
            </form>
         </Modal>
@@ -364,7 +357,7 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
 
 const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<MaintenanceLog>>({ tipo: 'Preventiva', data: new Date().toISOString().split('T00:00:00').split('T')[0], pago: true });
+  const [form, setForm] = useState<Partial<MaintenanceLog>>({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -374,18 +367,18 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-indigo-600 transition-all"><Plus size={16} /> Nova Manutenção</button></div>
+      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-indigo-600 transition-all"><Plus size={16} /> NOVA MANUTENÇÃO</button></div>
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">Data</th><th className="px-6 py-5">Veículo</th><th className="px-6 py-5">Serviço</th><th className="px-6 py-5">KM</th><th className="px-6 py-5">Custo</th><th className="px-6 py-5">Pago?</th><th className="px-6 py-5 text-center">Ação</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">KM</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5">PAGO?</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
-            {logs.map((l: MaintenanceLog) => (
+            {(logs || []).map((l: MaintenanceLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa}</td>
-                <td className="px-6 py-4 uppercase truncate max-w-[150px]">{l.servico}</td>
+                <td className="px-6 py-4 text-sky-500">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
+                <td className="px-6 py-4 uppercase truncate max-w-[150px]">{l.servico.toUpperCase()}</td>
                 <td className="px-6 py-4">{l.km_registro.toLocaleString()}</td>
                 <td className="px-6 py-4 text-rose-500">R$ {l.custo.toLocaleString()}</td>
                 <td className="px-6 py-4">
@@ -400,50 +393,50 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
         </table>
       </div>
       {isOpen && (
-        <Modal title="Agendar Manutenção" onClose={() => setIsOpen(false)}>
+        <Modal title="AGENDAR MANUTENÇÃO" onClose={() => setIsOpen(false)}>
            <form onSubmit={handleSave} className="space-y-5">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Veículo</label>
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VEÍCULO</label>
                 <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">Selecionar...</option>
-                  {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa} - {v.modelo}</option>)}
+                  <option value="">SELECIONAR...</option>
+                  {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Tipo</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">TIPO</label>
                   <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value as any})}>
                     <option>Preventiva</option><option>Corretiva</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">DATA</label>
                   <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Descrição do Serviço</label>
-                <input placeholder="Ex: Troca de Óleo e Filtros" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.servico} onChange={e => setForm({...form, servico: e.target.value})} required />
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">DESCRIÇÃO DO SERVIÇO</label>
+                <input placeholder="EX: TROCA DE ÓLEO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.servico} onChange={e => setForm({...form, servico: e.target.value.toUpperCase()})} required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">KM no Ato</label>
-                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro} onChange={e => setForm({...form, km_registro: parseInt(e.target.value)})} required />
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">KM NO ATO</label>
+                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro || 0} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Custo Total R$</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.custo} onChange={e => setForm({...form, custo: parseFloat(e.target.value)})} required />
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">CUSTO TOTAL R$</label>
+                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.custo || 0} onChange={e => setForm({...form, custo: parseFloat(e.target.value) || 0})} required />
                 </div>
               </div>
               <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="flex-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">Já foi pago?</p>
+                  <p className="flex-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">JÁ FOI PAGO?</p>
                   <div className="flex gap-2">
-                     <button type="button" onClick={() => setForm({...form, pago: true})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${form.pago ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>Sim</button>
-                     <button type="button" onClick={() => setForm({...form, pago: false})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${!form.pago ? 'bg-rose-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>Não</button>
+                     <button type="button" onClick={() => setForm({...form, pago: true})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${form.pago ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>SIM</button>
+                     <button type="button" onClick={() => setForm({...form, pago: false})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${!form.pago ? 'bg-rose-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>NÃO</button>
                   </div>
               </div>
               <button className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
-                 <Wrench size={18} /> Registrar Manutenção
+                 <Wrench size={18} /> REGISTRAR MANUTENÇÃO
               </button>
            </form>
         </Modal>
@@ -454,7 +447,7 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
 
 const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<FineLog>>({ situacao: 'Em aberto', data: new Date().toISOString().split('T00:00:00').split('T')[0] });
+  const [form, setForm] = useState<Partial<FineLog>>({ situacao: 'Em aberto', data: new Date().toISOString().split('T')[0] });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -464,22 +457,22 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-rose-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-rose-600 transition-all"><Plus size={16} /> Registrar Multa</button></div>
+      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-rose-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-rose-600 transition-all"><Plus size={16} /> REGISTRAR MULTA</button></div>
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">Data</th><th className="px-6 py-5">Veículo</th><th className="px-6 py-5">Infração</th><th className="px-6 py-5">Valor</th><th className="px-6 py-5">Situação</th><th className="px-6 py-5 text-center">Ação</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">INFRAÇÃO</th><th className="px-6 py-5">VALOR</th><th className="px-6 py-5">SITUAÇÃO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
-            {logs.map((l: FineLog) => (
+            {(logs || []).map((l: FineLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa}</td>
-                <td className="px-6 py-4 uppercase truncate max-w-[180px]">{l.tipo_infracao}</td>
+                <td className="px-6 py-4 text-sky-500">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
+                <td className="px-6 py-4 uppercase truncate max-w-[180px]">{l.tipo_infracao.toUpperCase()}</td>
                 <td className="px-6 py-4 text-rose-500">R$ {l.valor.toLocaleString()}</td>
                 <td className="px-6 py-4">
                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${l.situacao === 'Paga' ? 'bg-emerald-500 text-white' : l.situacao === 'Em aberto' ? 'bg-amber-500 text-white' : 'bg-slate-500 text-white'}`}>
-                     {l.situacao}
+                     {l.situacao.toUpperCase()}
                    </span>
                 </td>
                 <td className="px-6 py-4 text-center"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
@@ -489,43 +482,43 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
         </table>
       </div>
       {isOpen && (
-        <Modal title="Lançar Multa/Infração" onClose={() => setIsOpen(false)}>
+        <Modal title="LANÇAR MULTA" onClose={() => setIsOpen(false)}>
            <form onSubmit={handleSave} className="space-y-5">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Veículo</label>
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VEÍCULO</label>
                 <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                  <option value="">Selecionar...</option>
-                  {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa} - {v.modelo}</option>)}
+                  <option value="">SELECIONAR...</option>
+                  {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data da Infração</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">DATA</label>
                   <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Status</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">STATUS</label>
                   <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.situacao} onChange={e => setForm({...form, situacao: e.target.value as any})}>
                     <option>Em aberto</option><option>Paga</option><option>Recurso</option>
                   </select>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Natureza da Infração</label>
-                <input placeholder="Ex: Excesso de Velocidade" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo_infracao} onChange={e => setForm({...form, tipo_infracao: e.target.value})} required />
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">NATUREZA DA INFRAÇÃO</label>
+                <input placeholder="EX: EXCESSO DE VELOCIDADE" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo_infracao} onChange={e => setForm({...form, tipo_infracao: e.target.value.toUpperCase()})} required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Valor R$</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor} onChange={e => setForm({...form, valor: parseFloat(e.target.value)})} required />
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">VALOR R$</label>
+                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor || 0} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Pontuação CNH</label>
-                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.pontos} onChange={e => setForm({...form, pontos: parseInt(e.target.value)})} />
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">PONTOS</label>
+                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.pontos || 0} onChange={e => setForm({...form, pontos: parseInt(e.target.value) || 0})} />
                 </div>
               </div>
               <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
-                 <AlertOctagon size={18} /> Registrar Infração
+                 <AlertOctagon size={18} /> REGISTRAR INFRAÇÃO
               </button>
            </form>
         </Modal>
@@ -536,10 +529,10 @@ const FinesTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
 
 const ReportsTab = ({ vehicles, fuel, maints, fines }: any) => {
   const reportData = useMemo(() => {
-    return vehicles.map((v: Vehicle) => {
-      const vFuel = fuel.filter((l:any) => l.veiculo_id === v.id).reduce((sum:number, l:any) => sum + l.valor_total, 0);
-      const vMaint = maints.filter((l:any) => l.veiculo_id === v.id).reduce((sum:number, l:any) => sum + l.custo, 0);
-      const vFines = fines.filter((l:any) => l.veiculo_id === v.id).reduce((sum:number, l:any) => sum + l.valor, 0);
+    return (vehicles || []).map((v: Vehicle) => {
+      const vFuel = (fuel || []).filter((l:any) => l.veiculo_id === v.id).reduce((sum:number, l:any) => sum + l.valor_total, 0);
+      const vMaint = (maints || []).filter((l:any) => l.veiculo_id === v.id).reduce((sum:number, l:any) => sum + l.custo, 0);
+      const vFines = (fines || []).filter((l:any) => l.veiculo_id === v.id).reduce((sum:number, l:any) => sum + l.valor, 0);
       const total = vFuel + vMaint + vFines;
       return { ...v, vFuel, vMaint, vFines, total };
     });
@@ -552,20 +545,20 @@ const ReportsTab = ({ vehicles, fuel, maints, fines }: any) => {
           <div key={row.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="flex items-center gap-4 min-w-[220px]">
               <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black shadow-lg">
-                {row.placa.slice(-3)}
+                {row.placa.slice(-3).toUpperCase()}
               </div>
               <div>
-                <h5 className="font-black text-slate-800 uppercase tracking-tight">{row.modelo}</h5>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.placa}</p>
+                <h5 className="font-black text-slate-800 uppercase tracking-tight">{row.modelo.toUpperCase()}</h5>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.placa.toUpperCase()}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 flex-1">
-               <ReportStat label="Combustível" value={row.vFuel} color="emerald" />
-               <ReportStat label="Manutenção" value={row.vMaint} color="indigo" />
-               <ReportStat label="Multas" value={row.vFines} color="rose" />
+               <ReportStat label="COMBUSTÍVEL" value={row.vFuel} color="emerald" />
+               <ReportStat label="MANUTENÇÃO" value={row.vMaint} color="indigo" />
+               <ReportStat label="MULTAS" value={row.vFines} color="rose" />
                <div className="text-right bg-slate-50 p-4 rounded-2xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Total</p>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">CUSTO TOTAL</p>
                   <p className="text-lg font-black text-slate-900">R$ {row.total.toLocaleString()}</p>
                </div>
             </div>

@@ -15,11 +15,9 @@ import AdminView from './components/AdminView';
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [],
-    settings: { companyName: 'Ice Control', primaryColor: '#0ea5e9', logoId: 'Snowflake', loginHeader: 'Admin', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [] }
+    settings: { companyName: 'ICE CONTROL', primaryColor: '#0ea5e9', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [] }
   });
 
   useEffect(() => { loadAppData(); }, []);
@@ -31,28 +29,28 @@ const App: React.FC = () => {
 
   const wrap = (fn: any) => async (payload: any) => {
     const result = await fn(payload);
-    if (result?.error) { alert("Erro: " + result.error.message); return; }
+    if (result?.error) { alert("ERRO: " + result.error.message.toUpperCase()); return; }
     loadAppData();
   };
 
   const menuItems = [
-    { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
-    { id: 'sales', label: 'Vendas', icon: CircleDollarSign },
-    { id: 'expenses', label: 'Despesas', icon: Receipt },
-    { id: 'production', label: 'Produção', icon: Snowflake },
-    { id: 'team', label: 'Equipe', icon: Users },
-    { id: 'fleet', label: 'Frota', icon: Truck },
-    { id: 'admin', label: 'Admin', icon: Shield },
+    { id: 'dashboard', label: 'INÍCIO', icon: LayoutDashboard },
+    { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
+    { id: 'expenses', label: 'DESPESAS', icon: Receipt },
+    { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
+    { id: 'team', label: 'EQUIPE', icon: Users },
+    { id: 'fleet', label: 'FROTA', icon: Truck },
+    { id: 'admin', label: 'ADMIN', icon: Shield },
   ].filter(item => !data.settings.hiddenViews.includes(item.id));
 
-  if (isLoading) return <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center"><Loader2 className="animate-spin text-sky-500 mb-4" size={40} /><p className="text-[10px] font-black text-sky-600 uppercase tracking-widest">Carregando...</p></div>;
+  if (isLoading) return <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center"><Loader2 className="animate-spin text-sky-500 mb-4" size={40} /><p className="text-[10px] font-black text-sky-600 uppercase tracking-widest">CARREGANDO...</p></div>;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#f8fafc]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#f8fafc] uppercase">
       <aside className="hidden lg:flex w-64 flex-col bg-white border-r py-10 px-4 sticky top-0 h-screen">
         <div className="flex items-center gap-3 px-4 mb-12">
           <div className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-xl"><Snowflake size={20} /></div>
-          <h1 className="text-xs font-black uppercase tracking-tight truncate">{data.settings.companyName}</h1>
+          <h1 className="text-xs font-black uppercase tracking-tight truncate">{data.settings.companyName.toUpperCase()}</h1>
         </div>
         <nav className="flex-1 space-y-1">
           {menuItems.map(item => (
