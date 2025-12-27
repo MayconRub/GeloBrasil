@@ -40,13 +40,53 @@ export interface Expense {
   observation?: string;
 }
 
-export interface KmLog {
+// NOVO MODELO DE FROTA
+export interface Vehicle {
+  id: string;
+  tipo: 'Caminhão' | 'Carro' | 'Moto';
+  modelo: string;
+  ano: string;
+  placa: string;
+  km_atual: number;
+  motorista_id?: string;
+  icon_type?: string;
+}
+
+export interface FuelLog {
   id: string;
   veiculo_id: string;
-  km_reading: number;
   data: string;
-  funcionario_id?: string;
-  liters?: number;
+  tipo_combustivel: string;
+  litros: number;
+  valor_litro: number;
+  valor_total: number;
+  km_registro: number;
+}
+
+export interface MaintenanceLog {
+  id: string;
+  veiculo_id: string;
+  tipo: 'Preventiva' | 'Corretiva';
+  servico: string;
+  data: string;
+  km_registro: number;
+  custo: number;
+  oficina?: string;
+  proxima_maint_km?: number;
+  proxima_maint_data?: string;
+  observacao?: string;
+}
+
+export interface FineLog {
+  id: string;
+  veiculo_id: string;
+  data: string;
+  tipo_infracao: string;
+  local?: string;
+  valor: number;
+  pontos: number;
+  situacao: 'Paga' | 'Em aberto' | 'Recurso';
+  observacao?: string;
 }
 
 export interface Employee {
@@ -55,16 +95,6 @@ export interface Employee {
   role: string;
   salary?: number;
   joinedAt: string;
-}
-
-export interface Vehicle {
-  id: string;
-  name: string;
-  plate: string;
-  modelYear: string;
-  kmAtual?: number;
-  iconType?: string;
-  lastOilChangeKm?: number;
 }
 
 export interface UserProfile {
@@ -94,4 +124,4 @@ export interface AppSettings {
   adminPassword?: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'cashflow';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';

@@ -27,7 +27,6 @@ import {
   Loader2,
   Users,
   Truck,
-  BarChart3,
   Receipt,
   Mail,
   ExternalLink,
@@ -467,8 +466,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                     { id: 'expenses', label: 'Despesas', icon: Receipt },
                     { id: 'production', label: 'Produção', icon: Snowflake },
                     { id: 'team', label: 'Equipe', icon: Users },
-                    { id: 'fleet', label: 'Frota/Frota', icon: Truck },
-                    { id: 'cashflow', label: 'Fluxo/Caixa', icon: BarChart3 }
+                    { id: 'fleet', label: 'Frota/Frota', icon: Truck }
                   ].map(mod => (
                     <button 
                       key={mod.id}

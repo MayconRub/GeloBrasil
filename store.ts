@@ -1,23 +1,24 @@
 
 import { supabase } from './supabaseClient';
-import { Sale, Expense, Employee, Vehicle, ExpenseStatus, AppSettings, Production, MonthlyGoal, UserProfile, KmLog } from './types';
+import { Sale, Expense, Employee, Vehicle, FuelLog, MaintenanceLog, FineLog, ExpenseStatus, AppSettings, Production, MonthlyGoal, UserProfile } from './types';
 
 export interface AppData {
   sales: Sale[];
   expenses: Expense[];
   employees: Employee[];
   vehicles: Vehicle[];
+  fuelLogs: FuelLog[];
+  maintenanceLogs: MaintenanceLog[];
+  fineLogs: FineLog[];
   production: Production[];
   monthlyGoals: MonthlyGoal[];
   categories: string[];
   settings: AppSettings;
   users: UserProfile[];
-  kmLogs: KmLog[];
 }
 
 export const fetchSettings = async (): Promise<AppSettings> => {
   const { data: settings } = await supabase.from('configuracoes').select('*').single();
-  
   return {
     companyName: settings?.nome_empresa || 'Ice Control',
     cnpj: settings?.cnpj || '',
@@ -39,28 +40,19 @@ export const fetchSettings = async (): Promise<AppSettings> => {
   };
 };
 
-export const fetchUsers = async (): Promise<UserProfile[]> => {
-  const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false });
-  return (data || []).map(u => ({
-    id: u.id,
-    email: u.email,
-    created_at: u.created_at,
-    last_login: u.ultimo_login
-  }));
-};
-
 export const fetchAllData = async (): Promise<AppData> => {
-  const [sales, expenses, employees, vehicles, prod, cats, goals, settings, users, kmLogs] = await Promise.all([
+  const [sales, expenses, employees, vehicles, fuels, maints, fines, prod, cats, goals, settings] = await Promise.all([
     supabase.from('vendas').select('*').order('data', { ascending: false }),
     supabase.from('despesas').select('*').order('data_vencimento', { ascending: false }),
     supabase.from('funcionarios').select('*').order('nome'),
-    supabase.from('veiculos').select('*').order('nome'),
+    supabase.from('veiculos').select('*').order('modelo'),
+    supabase.from('frota_abastecimentos').select('*').order('data', { ascending: false }),
+    supabase.from('frota_manutencoes').select('*').order('data', { ascending: false }),
+    supabase.from('frota_multas').select('*').order('data', { ascending: false }),
     supabase.from('producao').select('*').order('data', { ascending: false }),
     supabase.from('categorias').select('nome').order('ordem', { ascending: true }),
     supabase.from('metas_mensais').select('*'),
     fetchSettings(),
-    fetchUsers(),
-    supabase.from('historico_km').select('*').order('data', { ascending: false })
   ]);
 
   const today = new Date().toISOString().split('T')[0];
@@ -81,132 +73,96 @@ export const fetchAllData = async (): Promise<AppData> => {
       kmReading: e.km_reading, 
       observation: e.observacao
     })),
-    employees: (employees.data || []).map(emp => ({
-      id: emp.id, name: emp.nome, role: emp.cargo || 'Funcionário', salary: emp.salario,
-      joinedAt: emp.data_admissao
-    })),
-    vehicles: (vehicles.data || []).map(v => ({ 
-      id: v.id, 
-      name: v.nome, 
-      plate: v.placa, 
-      modelYear: v.ano_modelo,
-      kmAtual: v.km_atual,
-      iconType: v.icon_type || 'truck',
-      lastOilChangeKm: v.ultimo_km_oleo || 0
-    })),
+    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.nome, role: emp.cargo || 'Funcionário', salary: emp.salario, joinedAt: emp.data_admissao })),
+    vehicles: (vehicles.data || []),
+    fuelLogs: (fuels.data || []),
+    maintenanceLogs: (maints.data || []),
+    fineLogs: (fines.data || []),
     categories: (cats.data || []).map(c => c.nome),
     settings,
-    users,
-    kmLogs: (kmLogs.data || []).map(k => ({ 
-      id: k.id, 
-      veiculo_id: k.veiculo_id, 
-      km_reading: k.km_reading, 
-      data: k.data,
-      funcionario_id: k.funcionario_id,
-      liters: k.litros
-    }))
+    users: [] 
   };
 };
 
-export const syncVehicle = async (v: Vehicle) => {
-  return await supabase.from('veiculos').upsert({ 
-    id: v.id, 
-    nome: v.name, 
-    placa: v.plate, 
-    ano_modelo: v.modelYear, 
-    km_atual: v.kmAtual || 0, 
-    icon_type: v.iconType || 'truck',
-    ultimo_km_oleo: v.lastOilChangeKm || 0
-  }, { onConflict: 'id' });
-};
+// SYNC VEÍCULOS
+export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert(v, { onConflict: 'id' });
+export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
-export const syncRefuel = async (payload: { vehicleId: string, employeeId: string, km: number, value: number, liters?: number, date: string, plate: string }) => {
-  const { error: kmError } = await supabase.from('historico_km').insert([{
-    veiculo_id: payload.vehicleId,
-    km_reading: payload.km,
-    data: payload.date,
-    funcionario_id: payload.employeeId,
-    litros: payload.liters
-  }]);
-
-  if (kmError) return { error: kmError };
-
-  await supabase.from('veiculos').update({ km_atual: payload.km }).eq('id', payload.vehicleId);
-
-  const { error: expError } = await supabase.from('despesas').insert([{
-    id: crypto.randomUUID(),
-    descricao: `Abastecimento - ${payload.plate}${payload.liters ? ` (${payload.liters}L)` : ''}`,
-    valor: payload.value,
-    data_vencimento: payload.date,
-    status: 'Pago',
-    categoria: 'Combustível',
-    veiculo_id: payload.vehicleId,
-    funcionario_id: payload.employeeId,
-    km_reading: payload.km
-  }]);
-
-  return { error: expError };
-};
-
-export const syncExpense = async (e: Expense) => {
-  const { error: expenseError } = await supabase.from('despesas').upsert({ 
-    id: e.id, 
-    descricao: e.description, 
-    valor: e.value, 
-    data_vencimento: e.dueDate, 
-    status: e.status, 
-    categoria: e.category, 
-    veiculo_id: e.vehicleId, 
-    funcionario_id: e.employeeId,
-    km_reading: e.kmReading,
-    observacao: e.observation
-  });
-
-  if (!expenseError && e.vehicleId) {
-    // Integração Inteligente: Se for manutenção de óleo, reseta o rastreador
-    const isOil = e.category === 'Manutenção' && 
-                 (e.description.toLowerCase().includes('óleo') || e.description.toLowerCase().includes('oleo'));
-    
-    if (isOil) {
-      const { data: veh } = await supabase.from('veiculos').select('km_atual').eq('id', e.vehicleId).single();
-      const kmRef = e.kmReading || veh?.km_atual || 0;
-      await supabase.from('veiculos').update({ ultimo_km_oleo: kmRef }).eq('id', e.vehicleId);
-    }
-  }
-  
-  return { error: expenseError };
-};
-
-export const syncKmLog = async (log: Omit<KmLog, 'id'>) => {
-  const { data, error } = await supabase.from('historico_km').insert([{
-    veiculo_id: log.veiculo_id,
-    km_reading: log.km_reading,
-    data: log.data,
-    funcionario_id: log.funcionario_id,
-    litros: log.liters
-  }]);
+// SYNC ABASTECIMENTO
+export const syncFuel = async (f: FuelLog) => {
+  const { error } = await supabase.from('frota_abastecimentos').upsert(f);
   if (!error) {
-    await supabase.from('veiculos').update({ km_atual: log.km_reading }).eq('id', log.veiculo_id);
+    await supabase.from('veiculos').update({ km_atual: f.km_registro }).eq('id', f.veiculo_id);
+    // Cria despesa automática
+    await supabase.from('despesas').insert({
+        id: crypto.randomUUID(),
+        descricao: `Abastecimento: ${f.tipo_combustivel}`,
+        valor: f.valor_total,
+        data_vencimento: f.data,
+        status: 'Pago',
+        categoria: 'Combustível',
+        veiculo_id: f.veiculo_id,
+        km_reading: f.km_registro
+    });
   }
-  return { data, error };
+  return { error };
 };
 
-export const syncCategoriesOrder = async (orderedNames: string[]) => {
-  const updates = orderedNames.map((nome, index) => 
-    supabase.from('categorias').update({ ordem: index }).eq('nome', nome)
-  );
-  return Promise.all(updates);
+// SYNC MANUTENÇÃO
+export const syncMaintenance = async (m: MaintenanceLog) => {
+  const { error } = await supabase.from('frota_manutencoes').upsert(m);
+  if (!error) {
+    await supabase.from('veiculos').update({ km_atual: m.km_registro }).eq('id', m.veiculo_id);
+    // Cria despesa automática
+    await supabase.from('despesas').insert({
+        id: crypto.randomUUID(),
+        descricao: `Manutenção: ${m.servico}`,
+        valor: m.custo,
+        data_vencimento: m.data,
+        status: 'Pago',
+        categoria: 'Manutenção',
+        veiculo_id: m.veiculo_id,
+        km_reading: m.km_registro
+    });
+  }
+  return { error };
 };
 
-export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value }, { onConflict: 'tipo,mes,ano' });
-export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName, cnpj: s.cnpj, endereco: s.address, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText, aviso_dashboard: s.dashboardNotice, meta_producao_diaria: s.productionGoalDaily, meta_vendas_diaria: s.salesGoalDaily }, { onConflict: 'id' });
+// SYNC MULTAS
+export const syncFine = async (f: FineLog) => {
+    const { error } = await supabase.from('frota_multas').upsert(f);
+    if (!error && f.situacao === 'Paga') {
+        // Cria despesa automática se paga
+        await supabase.from('despesas').insert({
+            id: crypto.randomUUID(),
+            descricao: `Multa: ${f.tipo_infracao}`,
+            valor: f.valor,
+            data_vencimento: f.data,
+            status: 'Pago',
+            categoria: 'Multas',
+            veiculo_id: f.veiculo_id
+        });
+    }
+    return { error };
+};
+
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description });
+export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description, valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category, veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading, observacao: e.observation });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name, cargo: e.role, salario: e.salary, data_admissao: e.joinedAt });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome });
+export const syncCategoriesOrder = async (orderedNames: string[]) => {
+  const updates = orderedNames.map((nome, index) => supabase.from('categorias').update({ ordem: index }).eq('nome', nome));
+  return Promise.all(updates);
+};
+export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value }, { onConflict: 'tipo,mes,ano' });
+export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName, cnpj: s.cnpj, endereco: s.address, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText, aviso_dashboard: s.dashboardNotice, meta_producao_diaria: s.productionGoalDaily, meta_vendas_diaria: s.salesGoalDaily }, { onConflict: 'id' });
+
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
 export const deleteExpense = (id: string) => supabase.from('despesas').delete().eq('id', id);
 export const deleteProduction = (id: string) => supabase.from('producao').delete().eq('id', id);
 export const deleteEmployee = (id: string) => supabase.from('funcionarios').delete().eq('id', id);
-export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 export const deleteCategory = (nome: string) => supabase.from('categorias').delete().eq('nome', nome);
+export const deleteFuel = (id: string) => supabase.from('frota_abastecimentos').delete().eq('id', id);
+export const deleteMaintenance = (id: string) => supabase.from('frota_manutencoes').delete().eq('id', id);
+export const deleteFine = (id: string) => supabase.from('frota_multas').delete().eq('id', id);
