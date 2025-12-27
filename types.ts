@@ -56,12 +56,14 @@ export interface Employee {
   joinedAt: string;
 }
 
+// Added iconType property to match usage in store.ts
 export interface Vehicle {
   id: string;
   name: string;
   plate: string;
   modelYear: string;
   kmAtual?: number;
+  iconType?: string;
 }
 
 export interface UserProfile {

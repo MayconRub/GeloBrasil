@@ -46,7 +46,16 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
-  const [category, setCategory] = useState(categories[0] || 'Geral');
+  
+  // Filtro de categorias para remover combustível das opções manuais
+  const filteredCategoryOptions = useMemo(() => {
+    return categories.filter(cat => 
+      !cat.toLowerCase().includes('combustível') && 
+      !cat.toLowerCase().includes('combustivel')
+    );
+  }, [categories]);
+
+  const [category, setCategory] = useState(filteredCategoryOptions[0] || 'Geral');
   const [vehicleId, setVehicleId] = useState<string>('');
   const [employeeId, setEmployeeId] = useState<string>('');
   const [kmReading, setKmReading] = useState('');
@@ -63,6 +72,15 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setLocalCategories(categories);
   }, [categories]);
 
+  // Garantir que a categoria inicial não seja combustível se houver outras opções
+  useEffect(() => {
+    if (!editingId && (category.toLowerCase().includes('combustível') || category.toLowerCase().includes('combustivel'))) {
+      if (filteredCategoryOptions.length > 0) {
+        setCategory(filteredCategoryOptions[0]);
+      }
+    }
+  }, [filteredCategoryOptions, editingId]);
+
   const prevCategoryRef = useRef(category);
 
   const currentMonth = selectedDate.getMonth();
@@ -74,7 +92,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const showVehicleField = isFuelCategory || isMaintenanceCategory;
   const isPayrollCategory = category.toLowerCase().includes('vale') || category.toLowerCase().includes('adiantamento');
 
-  // Lógica de visibilidade e automação de campos
   const shouldShowDescription = !isFuelCategory;
   const shouldShowEmployeeSelect = isFuelCategory || isPayrollCategory;
 
@@ -126,16 +143,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       return;
     }
 
-    if (isFuelCategory && (numericKm === undefined || isNaN(numericKm))) {
-      alert("⚠️ O KM atual é obrigatório para registros de abastecimento.");
-      return;
-    }
-
-    if (isFuelCategory && !employeeId) {
-      alert("⚠️ Informe quem realizou o abastecimento.");
-      return;
-    }
-
     const today = getTodayString();
     const status = editingId 
       ? expenses.find(x => x.id === editingId)?.status || (dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER)
@@ -180,7 +187,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setDescription(''); 
     setValue(''); 
     setDueDate(getTodayString()); 
-    setCategory(categories[0] || 'Geral');
+    setCategory(filteredCategoryOptions[0] || 'Geral');
     setVehicleId('');
     setEmployeeId('');
     setKmReading('');
@@ -330,7 +337,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           </label>
           <div className="relative">
             <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none appearance-none">
-              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {/* Se estiver editando uma despesa de combustível, permite que ela apareça. Se for novo, usa apenas as filtradas */}
+              {isFuelCategory && <option value={category}>{category}</option>}
+              {filteredCategoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
                <Filter size={14} />
@@ -387,6 +396,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 onChange={e => setVehicleId(e.target.value)} 
                 className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none appearance-none"
                 required={showVehicleField}
+                disabled={isFuelCategory} // Impede alterar veículo de abastecimento vindo da frota
               >
                 <option value="">Selecionar...</option>
                 {vehicles.map(v => (
@@ -410,14 +420,14 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
               placeholder="0" 
               value={kmReading} 
               onChange={e => setKmReading(e.target.value)} 
-              className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl text-sm font-black focus:ring-4 focus:ring-sky-200 outline-none transition-all" 
-              required={isFuelCategory}
+              className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl text-sm font-black focus:ring-4 focus:ring-sky-200 outline-none transition-all cursor-not-allowed opacity-70" 
+              readOnly={isFuelCategory}
              />
           </div>
         )}
 
         <div className="md:col-span-2 space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Valor</label>
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor</label>
           <input type="text" placeholder="R$ 0,00" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none" required />
         </div>
         <div className="md:col-span-2 space-y-1.5">
@@ -453,12 +463,16 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
               {filteredExpenses.map((e) => {
                 const vehicle = e.vehicleId ? vehicles.find(v => v.id === e.vehicleId) : null;
                 const employee = e.employeeId ? employees.find(emp => emp.id === e.employeeId) : null;
+                const isSystemFuel = e.category.toLowerCase().includes('combustível') || e.category.toLowerCase().includes('combustivel');
+                
                 return (
                   <tr key={e.id} className="group hover:bg-rose-50/20 transition-all">
                     <td className="px-6 py-3 truncate text-xs font-black text-slate-800">{e.description}</td>
                     <td className="px-6 py-3">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-md text-slate-500 uppercase w-fit">{e.category}</span>
+                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase w-fit ${isSystemFuel ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {e.category}
+                        </span>
                         {vehicle && (
                           <span className="text-[8px] font-black text-sky-600 flex items-center gap-1 uppercase">
                             <Truck size={10} /> {vehicle.plate}

@@ -27,7 +27,7 @@ import {
   Loader2,
   Users,
   Truck,
-  BarChartHorizontal,
+  BarChart3,
   Receipt,
   Mail,
   ExternalLink,
@@ -46,7 +46,6 @@ interface Props {
 const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment, users }) => {
   const [activeTab, setActiveTab] = useState<'license' | 'company' | 'visual' | 'users'>('license');
   
-  // Estado local sincronizado com as props
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [cnpj, setCnpj] = useState(settings.cnpj || '');
   const [address, setAddress] = useState(settings.address || '');
@@ -207,8 +206,8 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                     <Users size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-800 leading-none">Usuários do Supabase</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Lista de e-mails autenticados no sistema</p>
+                    <h3 className="text-xl font-black text-slate-800 leading-none">Usuários do Sistema</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Lista de e-mails autenticados</p>
                   </div>
                </div>
 
@@ -225,7 +224,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                     <tbody className="divide-y divide-slate-50">
                       {users.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic text-sm">Nenhum perfil de usuário encontrado na tabela espelho.</td>
+                          <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic text-sm">Nenhum perfil de usuário encontrado.</td>
                         </tr>
                       ) : (
                         users.map(user => (
@@ -252,13 +251,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                       )}
                     </tbody>
                   </table>
-               </div>
-
-               <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-start gap-4">
-                  <Info className="text-indigo-600 shrink-0" size={20} />
-                  <p className="text-xs font-medium text-indigo-700/80 leading-relaxed">
-                    Para visualizar usuários nesta lista, garanta que seu projeto Supabase possua uma Trigger que sincroniza a tabela <code className="bg-indigo-100 px-1 rounded">auth.users</code> com a tabela <code className="bg-indigo-100 px-1 rounded">usuarios</code> (perfis). O acesso direto à tabela de autenticação é restrito por motivos de segurança.
-                  </p>
                </div>
             </div>
           </div>
@@ -362,7 +354,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                 
                 <div className="space-y-4">
                   <p className="text-[11px] font-medium leading-relaxed text-indigo-100">
-                    As senhas são gerenciadas pelo serviço de autenticação do Supabase. Para resetar senhas ou criar novos usuários, acesse o dashboard oficial.
+                    As senhas são gerenciadas pelo serviço do Supabase. Acesse o dashboard para gerenciar credenciais.
                   </p>
                   <a 
                     href="https://supabase.com/dashboard" 
@@ -417,11 +409,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 flex items-center gap-2"><MapPin size={14} /> Endereço de Registro</label>
-                <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, Número, Bairro, Cidade - UF" className="w-full h-28 p-8 bg-slate-50 border border-slate-200 rounded-[2rem] font-semibold outline-none resize-none text-sm focus:ring-4 focus:ring-slate-100 transition-all" />
-              </div>
-
               <div className="flex justify-end pt-4">
                  <button 
                   onClick={() => handleSubmit()}
@@ -458,13 +445,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Linha de Suporte</label>
-                    <div className="relative">
-                       <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                       <input type="text" value={supportPhone} onChange={e => setSupportPhone(e.target.value)} className="w-full h-14 pl-14 pr-8 bg-slate-50 border border-slate-200 rounded-2xl font-black outline-none" placeholder="(00) 00000-0000" />
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -476,7 +456,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                     </div>
                     <div>
                       <h5 className="font-black text-slate-900 text-lg uppercase tracking-tight">Módulos Ativos</h5>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Controle de acesso às páginas do sistema</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Controle de menus</p>
                     </div>
                   </div>
                 </div>
@@ -486,9 +466,9 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                     { id: 'sales', label: 'Vendas', icon: DollarSign },
                     { id: 'expenses', label: 'Despesas', icon: Receipt },
                     { id: 'production', label: 'Produção', icon: Snowflake },
-                    { id: 'team', label: 'Recursos Humanos', icon: Users },
-                    { id: 'fleet', label: 'Frota/Logística', icon: Truck },
-                    { id: 'cashflow', label: 'Previsão de Caixa', icon: BarChartHorizontal }
+                    { id: 'team', label: 'Equipe', icon: Users },
+                    { id: 'fleet', label: 'Frota/Frota', icon: Truck },
+                    { id: 'cashflow', label: 'Fluxo/Caixa', icon: BarChart3 }
                   ].map(mod => (
                     <button 
                       key={mod.id}
@@ -504,16 +484,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                     </button>
                   ))}
                 </div>
-
-                <div className="bg-amber-50 p-8 rounded-[2rem] border border-amber-100 flex items-start gap-5">
-                  <div className="w-12 h-12 bg-amber-200 rounded-2xl flex items-center justify-center text-amber-700 shrink-0 shadow-lg">
-                    <Info size={24} />
-                  </div>
-                  <div>
-                    <h6 className="text-[11px] font-black text-amber-900 uppercase tracking-widest mb-1.5">Informação Técnica</h6>
-                    <p className="text-xs font-bold text-amber-700/80 leading-relaxed">Módulos desativados são removidos do menu para todos os colaboradores, liberando apenas o que for essencial para a operação contratada.</p>
-                  </div>
-                </div>
               </div>
 
             </div>
@@ -525,7 +495,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                 className="bg-slate-900 text-white font-black px-14 py-5 rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-2xl flex items-center gap-4 uppercase text-[11px] tracking-[0.2em]"
               >
                 {isUpdating ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                Confirmar Configurações
+                Confirmar Mudanças
               </button>
             </div>
           </div>
