@@ -218,7 +218,7 @@ const App: React.FC = () => {
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} monthlyGoals={data.monthlyGoals} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} onUpdateSettings={wrap(syncSettings)} />}
         {view === 'cashflow' && <CashFlowView sales={data.sales} expenses={data.expenses} />}
         {view === 'team' && <TeamView employees={data.employees} onUpdate={wrap(syncEmployee)} onDelete={wrap(deleteEmployee)} companyName={data.settings.companyName} />}
-        {view === 'fleet' && <FleetView vehicles={data.vehicles} kmLogs={data.kmLogs} employees={data.employees} onUpdate={wrap(syncVehicle)} onDelete={wrap(deleteVehicle)} onLogKm={wrap(syncKmLog)} onRefuel={wrap(syncRefuel)} />}
+        {view === 'fleet' && <FleetView vehicles={data.vehicles} kmLogs={data.kmLogs} employees={data.employees} expenses={data.expenses} onUpdate={wrap(syncVehicle)} onDelete={wrap(deleteVehicle)} onLogKm={wrap(syncKmLog)} onRefuel={wrap(syncRefuel)} />}
         {view === 'admin' && isAdminUser && <AdminView settings={data.settings} onUpdateSettings={wrap(syncSettings)} users={data.users} />}
       </main>
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-3 flex items-center justify-around z-[100] rounded-t-[2rem]">
