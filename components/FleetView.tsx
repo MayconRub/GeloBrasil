@@ -51,7 +51,6 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], onUpdate
     
     setIsSavingVehicle(true);
     try {
-      // Usar UUID apenas se não houver editingId
       await onUpdate({ 
         id: editingId || crypto.randomUUID(), 
         name, 
@@ -62,7 +61,8 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], onUpdate
       });
       resetVehicleForm();
     } catch (error) {
-      alert("Erro ao salvar veículo.");
+      // O erro será tratado pelo wrap do App.tsx, mas deixamos este catch como segurança
+      console.error(error);
     } finally {
       setIsSavingVehicle(false);
     }
@@ -72,7 +72,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], onUpdate
     setEditingId(v.id);
     setName(v.name);
     setPlate(v.plate);
-    setInitialKm(v.kmAtual?.toString() || '');
+    setInitialKm(v.kmAtual?.toString() || '0');
     setIconType(v.iconType || 'truck');
     setYear(v.modelYear || '');
     setIsFormOpen(true);
@@ -97,7 +97,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], onUpdate
       setFuelValue('');
       alert("Abastecimento registrado com sucesso!");
     } catch (err) {
-      alert("Erro ao salvar abastecimento.");
+      console.error(err);
     } finally {
       setIsSubmittingFuel(false);
     }
@@ -226,7 +226,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], onUpdate
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">KM Inicial</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">KM Inicial / Atual</label>
                         <input type="number" value={initialKm} onChange={e => setInitialKm(e.target.value)} placeholder="0" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" />
                       </div>
 
@@ -259,7 +259,7 @@ const FleetView: React.FC<Props> = ({ vehicles, kmLogs, employees = [], onUpdate
                         className="flex-1 h-14 bg-slate-900 text-white font-black rounded-2xl uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-sky-600 transition-all active:scale-95 flex items-center justify-center gap-3"
                       >
                         {isSavingVehicle ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        {editingId ? 'Salvar Alterações' : 'Cadastrar Veículo'}
+                        {editingId ? 'Salvar Alterações' : 'Finalizar Cadastro'}
                       </button>
                       {editingId && (
                         <button type="button" onClick={resetVehicleForm} className="h-14 px-6 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] hover:bg-slate-200 transition-all">
