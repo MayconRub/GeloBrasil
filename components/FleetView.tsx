@@ -96,7 +96,7 @@ const FleetView: React.FC<Props> = ({
             <button 
               key={tab.id} 
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-[1.4rem] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-[1.4rem] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
             >
               <tab.icon size={14} /> <span className="hidden sm:inline">{tab.label}</span>
             </button>
@@ -140,7 +140,6 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
 
   const reportData = useMemo(() => {
     return (vehicles || []).map((v: Vehicle) => {
-      // Filtrar histórico completo para cálculos de KM
       const fullVFuel = (fuel || [])
         .filter((l: any) => l.veiculo_id === v.id)
         .sort((a: any, b: any) => new Date(a.data).getTime() - new Date(b.data).getTime());
@@ -148,7 +147,6 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
       const fullVMaint = (maints || []).filter((l: any) => l.veiculo_id === v.id);
       const fullVFines = (fines || []).filter((l: any) => l.veiculo_id === v.id);
 
-      // Calcular Consumo Analítico sobre o histórico total para precisão de odômetro
       const fuelEfficiencyHistory = fullVFuel.map((current, index) => {
         if (index === 0) return { ...current, dist: 0, kml: 0 };
         const prev = fullVFuel[index - 1];
@@ -157,7 +155,6 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
         return { ...current, dist, kml };
       });
 
-      // Aplicar filtro do navegador mensal para os resultados de exibição
       const fuelEfficiency = fuelEfficiencyHistory.filter(l => {
         const d = new Date(l.data + 'T00:00:00');
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -173,17 +170,12 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       });
 
-      // Totais do Período Selecionado
       const totalSpentFuel = fuelEfficiency.reduce((sum: number, l: any) => sum + l.valor_total, 0);
       const totalSpentMaint = vMaint.reduce((sum: number, l: any) => sum + l.custo, 0);
       const totalSpentFines = vFines.reduce((sum: number, l: any) => sum + l.valor, 0);
-      
       const totalKmPeriod = fuelEfficiency.reduce((sum: number, l: any) => sum + (l.dist || 0), 0);
-
       const logsWithKml = fuelEfficiency.filter(f => f.kml > 0);
-      const avgKml = logsWithKml.length > 0 
-        ? logsWithKml.reduce((acc, f) => acc + f.kml, 0) / logsWithKml.length 
-        : 0;
+      const avgKml = logsWithKml.length > 0 ? logsWithKml.reduce((acc, f) => acc + f.kml, 0) / logsWithKml.length : 0;
 
       return { 
         ...v, 
@@ -207,9 +199,9 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-3">
       {selectedVehicle ? (
-        <div className="animate-in slide-in-from-right duration-500 space-y-6 pb-10">
+        <div className="animate-in slide-in-from-right duration-500 space-y-6 print:space-y-4 pb-10 print:pb-0">
           <div className="flex items-center justify-between no-print">
             <button onClick={() => setSelectedVehicleId(null)} className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-sky-500 transition-all">
               <ChevronLeft size={16} /> VOLTAR PARA LISTAGEM MENSAL
@@ -219,160 +211,145 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
             </button>
           </div>
 
-          <header className="bg-slate-900 text-white p-10 rounded-[3rem] shadow-xl relative overflow-hidden">
-             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <header className="bg-slate-900 text-white p-10 print:p-6 rounded-[3rem] print:rounded-2xl shadow-xl print:shadow-none relative overflow-hidden">
+             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:gap-2">
                 <div>
                    <span className="bg-sky-500 text-[8px] px-3 py-1 rounded-full font-black tracking-[0.2em]">{selectedVehicle.placa.toUpperCase()}</span>
-                   <h3 className="text-4xl font-black tracking-tighter mt-2">{selectedVehicle.modelo.toUpperCase()}</h3>
+                   <h3 className="text-4xl print:text-2xl font-black tracking-tighter mt-2 print:mt-1">{selectedVehicle.modelo.toUpperCase()}</h3>
                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">RESUMO DE {monthName}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-                   <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
+                <div className="grid grid-cols-2 gap-4 print:gap-2 w-full md:w-auto">
+                   <div className="bg-white/10 p-4 print:p-2 rounded-2xl print:rounded-lg border border-white/10">
                       <p className="text-[8px] font-black text-sky-400 uppercase tracking-widest">MÉDIA CONSUMO</p>
-                      <p className="text-2xl font-black">{selectedVehicle.avgKml.toFixed(2)} <span className="text-xs">KM/L</span></p>
+                      <p className="text-2xl print:text-lg font-black">{selectedVehicle.avgKml.toFixed(2)} <span className="text-xs">KM/L</span></p>
                    </div>
-                   <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
+                   <div className="bg-white/10 p-4 print:p-2 rounded-2xl print:rounded-lg border border-white/10">
                       <p className="text-[8px] font-black text-sky-400 uppercase tracking-widest">DISTÂNCIA MÊS</p>
-                      <p className="text-2xl font-black">{selectedVehicle.totalKmPeriod.toLocaleString()} <span className="text-xs">KM</span></p>
+                      <p className="text-2xl print:text-lg font-black">{selectedVehicle.totalKmPeriod.toLocaleString()} <span className="text-xs">KM</span></p>
                    </div>
                 </div>
              </div>
-             <TrendingUp size={150} className="absolute -right-10 -bottom-10 text-white/5" />
+             <TrendingUp size={150} className="absolute -right-10 -bottom-10 text-white/5 no-print" />
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:gap-4">
+            <div className="lg:col-span-2 space-y-6 print:space-y-4">
+              <div className="bg-white rounded-[2.5rem] print:rounded-xl border border-slate-100 shadow-sm print:shadow-none overflow-hidden">
+                <div className="p-6 print:p-3 border-b border-slate-50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Fuel size={20} className="text-emerald-500" />
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Abastecimentos do Período</h4>
+                    <Fuel size={20} className="text-emerald-500 print:w-4" />
+                    <h4 className="text-[11px] print:text-[9px] font-black uppercase tracking-widest text-slate-800">Abastecimentos do Período</h4>
                   </div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">{monthName}</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase no-print">{monthName}</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400">
+                    <thead className="bg-slate-50 text-[9px] print:text-[7px] font-black uppercase text-slate-400">
                       <tr>
-                        <th className="px-6 py-4">Data</th>
-                        <th className="px-6 py-4">KM Registro</th>
-                        <th className="px-6 py-4">Percorrido</th>
-                        <th className="px-6 py-4">Litros</th>
-                        <th className="px-6 py-4">Rendimento</th>
-                        <th className="px-6 py-4 text-right">Valor</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Data</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">KM Registro</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Percorrido</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Litros</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Rendimento</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2 text-right">Valor</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y text-[10px] font-black text-slate-700">
+                    <tbody className="divide-y text-[10px] print:text-[8px] font-black text-slate-700">
                       {selectedVehicle.fuelEfficiency.map((l: any, idx: number) => (
                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                          <td className="px-6 py-4 font-mono">{l.km_registro.toLocaleString()}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 print:px-3 print:py-1">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1 font-mono">{l.km_registro.toLocaleString()}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1">
                             {l.dist > 0 ? (
                               <span className="flex items-center gap-1 text-sky-600">
-                                <ArrowRight size={10} /> {l.dist} KM
+                                <ArrowRight size={10} className="print:w-2" /> {l.dist} KM
                               </span>
                             ) : <span className="text-slate-300">---</span>}
                           </td>
-                          <td className="px-6 py-4">{l.litros}L</td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 print:px-3 print:py-1">{l.litros}L</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1">
                             {l.kml > 0 ? (
                               <div className="flex items-center gap-2">
                                 <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden no-print">
-                                  <div 
-                                    className={`h-full ${l.kml > 8 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
-                                    style={{ width: `${Math.min(100, l.kml * 10)}%` }}
-                                  />
+                                  <div className={`h-full ${l.kml > 8 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, l.kml * 10)}%` }} />
                                 </div>
                                 <span>{l.kml.toFixed(2)} KM/L</span>
                               </div>
                             ) : <span className="text-slate-300">CALC. ANTERIOR</span>}
                           </td>
-                          <td className="px-6 py-4 text-right text-emerald-600 font-bold">R$ {l.valor_total.toLocaleString()}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1 text-right text-emerald-600 font-bold">R$ {l.valor_total.toLocaleString()}</td>
                         </tr>
                       ))}
-                      {selectedVehicle.fuelEfficiency.length === 0 && (
-                        <tr><td colSpan={6} className="p-10 text-center text-slate-300 italic">Sem abastecimentos neste mês.</td></tr>
-                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Seção Oficina: Removida da impressão se estiver vazia */}
-              <div className={`bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden ${selectedVehicle.vMaint.length === 0 ? 'print:hidden' : ''}`}>
-                <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Wrench size={20} className="text-indigo-500" />
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Oficina no Período</h4>
-                  </div>
+              <div className={`bg-white rounded-[2.5rem] print:rounded-xl border border-slate-100 shadow-sm print:shadow-none overflow-hidden ${selectedVehicle.vMaint.length === 0 ? 'print:hidden' : ''}`}>
+                <div className="p-6 print:p-3 border-b border-slate-50 flex items-center gap-3">
+                  <Wrench size={20} className="text-indigo-500 print:w-4" />
+                  <h4 className="text-[11px] print:text-[9px] font-black uppercase tracking-widest text-slate-800">Oficina no Período</h4>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400">
+                    <thead className="bg-slate-50 text-[9px] print:text-[7px] font-black uppercase text-slate-400">
                       <tr>
-                        <th className="px-6 py-4">Data</th>
-                        <th className="px-6 py-4">Serviço</th>
-                        <th className="px-6 py-4">Mecânico</th>
-                        <th className="px-6 py-4 text-right">Custo</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Data</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Serviço</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2">Mecânico</th>
+                        <th className="px-6 py-4 print:px-3 print:py-2 text-right">Custo</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y text-[10px] font-black text-slate-700">
+                    <tbody className="divide-y text-[10px] print:text-[8px] font-black text-slate-700">
                       {selectedVehicle.vMaint.map((m: any, idx: number) => (
                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">{new Date(m.data + 'T00:00:00').toLocaleDateString()}</td>
-                          <td className="px-6 py-4 uppercase truncate max-w-[150px]">{m.servico}</td>
-                          <td className="px-6 py-4 text-slate-400">{employees.find((e: any) => e.id === m.funcionario_id)?.name || 'N/I'}</td>
-                          <td className="px-6 py-4 text-right text-rose-500 font-bold">R$ {m.custo.toLocaleString()}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1">{new Date(m.data + 'T00:00:00').toLocaleDateString()}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1 uppercase truncate max-w-[150px]">{m.servico}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1 text-slate-400">{employees.find((e: any) => e.id === m.funcionario_id)?.name || 'N/I'}</td>
+                          <td className="px-6 py-4 print:px-3 print:py-1 text-right text-rose-500 font-bold">R$ {m.custo.toLocaleString()}</td>
                         </tr>
                       ))}
-                      {selectedVehicle.vMaint.length === 0 && (
-                        <tr><td colSpan={4} className="p-10 text-center text-slate-300 italic">Nenhuma manutenção registrada no mês.</td></tr>
-                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6">Custos do Período</h4>
-                <div className="space-y-4">
+            <div className="space-y-6 print:space-y-4">
+              <div className="bg-white p-8 print:p-4 rounded-[2.5rem] print:rounded-xl border border-slate-100 shadow-sm print:shadow-none">
+                <h4 className="text-[11px] print:text-[9px] font-black uppercase tracking-widest text-slate-400 mb-6 print:mb-3">Custos do Período</h4>
+                <div className="space-y-4 print:space-y-2">
                   <div className={`flex justify-between items-end ${selectedVehicle.totalSpentFuel === 0 ? 'print:hidden' : ''}`}>
-                    <p className="text-[9px] font-black text-slate-500">COMBUSTÍVEL</p>
-                    <p className="text-lg font-black text-emerald-600">R$ {selectedVehicle.totalSpentFuel.toLocaleString()}</p>
+                    <p className="text-[9px] print:text-[7px] font-black text-slate-500">COMBUSTÍVEL</p>
+                    <p className="text-lg print:text-sm font-black text-emerald-600">R$ {selectedVehicle.totalSpentFuel.toLocaleString()}</p>
                   </div>
                   <div className={`flex justify-between items-end ${selectedVehicle.totalSpentMaint === 0 ? 'print:hidden' : ''}`}>
-                    <p className="text-[9px] font-black text-slate-500">MANUTENÇÃO</p>
-                    <p className="text-lg font-black text-indigo-600">R$ {selectedVehicle.totalSpentMaint.toLocaleString()}</p>
+                    <p className="text-[9px] print:text-[7px] font-black text-slate-500">MANUTENÇÃO</p>
+                    <p className="text-lg print:text-sm font-black text-indigo-600">R$ {selectedVehicle.totalSpentMaint.toLocaleString()}</p>
                   </div>
                   <div className={`flex justify-between items-end ${selectedVehicle.totalSpentFines === 0 ? 'print:hidden' : ''}`}>
-                    <p className="text-[9px] font-black text-slate-500">MULTAS</p>
-                    <p className="text-lg font-black text-rose-500">R$ {selectedVehicle.totalSpentFines.toLocaleString()}</p>
+                    <p className="text-[9px] print:text-[7px] font-black text-slate-500">MULTAS</p>
+                    <p className="text-lg print:text-sm font-black text-rose-500">R$ {selectedVehicle.totalSpentFines.toLocaleString()}</p>
                   </div>
-                  <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
-                    <p className="text-[10px] font-black text-slate-900">INVESTIMENTO MENSAL</p>
-                    <p className="text-2xl font-black text-slate-900 underline decoration-sky-400 decoration-4">R$ {selectedVehicle.grandTotal.toLocaleString()}</p>
+                  <div className="pt-4 print:pt-2 border-t border-slate-100 flex justify-between items-end">
+                    <p className="text-[10px] print:text-[8px] font-black text-slate-900">INVESTIMENTO</p>
+                    <p className="text-2xl print:text-lg font-black text-slate-900 underline decoration-sky-400 decoration-2">R$ {selectedVehicle.grandTotal.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Card de Eficiência: Oculto se não houver KM para economizar espaço */}
-              <div className={`bg-sky-50 p-8 rounded-[2.5rem] border border-sky-100 ${selectedVehicle.totalKmPeriod === 0 ? 'print:hidden' : ''}`}>
-                <div className="flex items-center gap-3 mb-4">
-                  <Gauge size={20} className="text-sky-600" />
-                  <h4 className="text-[11px] font-black uppercase text-sky-900">Eficiência Mês</h4>
+              <div className={`bg-sky-50 print:bg-white p-8 print:p-4 rounded-[2.5rem] print:rounded-xl border border-sky-100 print:border-slate-100 ${selectedVehicle.totalKmPeriod === 0 ? 'print:hidden' : ''}`}>
+                <div className="flex items-center gap-3 mb-4 print:mb-2">
+                  <Gauge size={20} className="text-sky-600 print:w-4" />
+                  <h4 className="text-[11px] print:text-[9px] font-black uppercase text-sky-900">Eficiência</h4>
                 </div>
-                <div className="space-y-3">
-                   <div className="bg-white/50 p-4 rounded-2xl border border-sky-100">
-                      <p className="text-[8px] font-black text-sky-400 uppercase tracking-widest mb-1">CUSTO POR KM (COMBUSTÍVEL)</p>
-                      <p className="text-sm font-black text-sky-900">
-                        {selectedVehicle.totalKmPeriod > 0 
-                          ? `R$ ${(selectedVehicle.totalSpentFuel / selectedVehicle.totalKmPeriod).toFixed(2)} / KM` 
-                          : 'KM NÃO REGISTRADO'}
-                      </p>
-                   </div>
+                <div className="bg-white/50 print:bg-slate-50 p-4 print:p-2 rounded-2xl print:rounded-lg border border-sky-100 print:border-slate-100">
+                    <p className="text-[8px] print:text-[6px] font-black text-sky-400 uppercase tracking-widest mb-1">CUSTO POR KM</p>
+                    <p className="text-sm print:text-xs font-black text-sky-900">
+                    {selectedVehicle.totalKmPeriod > 0 
+                        ? `R$ ${(selectedVehicle.totalSpentFuel / selectedVehicle.totalKmPeriod).toFixed(2)} / KM` 
+                        : '---'}
+                    </p>
                 </div>
               </div>
             </div>
@@ -400,12 +377,7 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
                  <ReportStat label="MANUTENÇÃO" value={row.totalSpentMaint} color="indigo" />
                  <ReportStat label="MULTAS" value={row.totalSpentFines} color="rose" />
                  <div className="text-right">
-                    <button 
-                      onClick={() => setSelectedVehicleId(row.id)}
-                      className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-sky-500 transition-all shadow-xl group-hover:scale-105"
-                    >
-                      Analítico Mensal
-                    </button>
+                    <button onClick={() => setSelectedVehicleId(row.id)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-sky-500 transition-all shadow-xl group-hover:scale-105">Analítico Mensal</button>
                  </div>
               </div>
             </div>
@@ -463,7 +435,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end no-print">
         <button onClick={() => setIsOpen(true)} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-sky-600 transition-all">
           <Plus size={16} /> NOVO VEÍCULO
         </button>
@@ -480,7 +452,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
                   <div className={`w-16 h-16 ${kmSinceOil >= 1000 ? 'bg-amber-500 text-white animate-pulse' : 'bg-sky-50 text-sky-500'} rounded-2xl flex items-center justify-center transition-all`}>
                     {v.tipo === 'Caminhão' ? <Truck size={32} /> : v.tipo === 'Moto' ? <Bike size={32} /> : <Car size={32} />}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 no-print">
                      <button onClick={() => { setForm(v); setIsOpen(true); }} className="p-3 bg-slate-50 text-slate-300 hover:text-sky-500 rounded-xl transition-all"><Pencil size={18} /></button>
                      <button onClick={() => onDelete(v.id)} className="p-3 bg-slate-50 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={18} /></button>
                   </div>
@@ -501,7 +473,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
                   </div>
                   <button 
                     onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }}
-                    className={`mt-3 w-full py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border ${kmSinceOil >= 1000 ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:bg-sky-500 hover:text-white'}`}
+                    className={`mt-3 w-full py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border no-print ${kmSinceOil >= 1000 ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:bg-sky-500 hover:text-white'}`}
                   >
                     <Droplets size={10} /> REALIZAR TROCA DE ÓLEO
                   </button>
@@ -527,19 +499,14 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
            <form onSubmit={handleOilChange} className="space-y-6">
               <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-start gap-3">
                  <AlertCircle size={24} className="text-amber-500 shrink-0" />
-                 <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight leading-relaxed">
-                    A KM ÚLTIMA TROCA SERÁ ATUALIZADA PARA O VALOR ATUAL DO HODÔMETRO. 
-                    O HISTÓRICO SERÁ SALVO NA OFICINA E NO FINANCEIRO AUTOMATICAMENTE.
-                 </p>
+                 <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight leading-relaxed">A KM ÚLTIMA TROCA SERÁ ATUALIZADA PARA O VALOR ATUAL DO HODÔMETRO. O HISTÓRICO SERÁ SALVO NA OFICINA E NO FINANCEIRO AUTOMATICAMENTE.</p>
               </div>
               <div className="space-y-4">
                  <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">FUNCIONÁRIO</label>
                     <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={oilForm.funcionario_id} onChange={e => setOilForm({...oilForm, funcionario_id: e.target.value})} required>
                         <option value="">SELECIONAR...</option>
-                        {employees.map((emp: any) => (
-                          <option key={emp.id} value={emp.id}>{emp.name.toUpperCase()}</option>
-                        ))}
+                        {employees.map((emp: any) => (<option key={emp.id} value={emp.id}>{emp.name.toUpperCase()}</option>))}
                     </select>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
@@ -605,10 +572,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
             <div className="space-y-1">
                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">COMBUSTÍVEL PADRÃO</label>
                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value as any})} required>
-                  <option value="FLEX">FLEX (ÁLCOOL/GASOLINA)</option>
-                  <option value="GASOLINA">GASOLINA</option>
-                  <option value="ÁLCOOL">ÁLCOOL</option>
-                  <option value="DIESEL">DIESEL</option>
+                  <option value="FLEX">FLEX (ÁLCOOL/GASOLINA)</option><option value="GASOLINA">GASOLINA</option><option value="ÁLCOOL">ÁLCOOL</option><option value="DIESEL">DIESEL</option>
                 </select>
             </div>
             <button type="submit" className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
@@ -623,46 +587,28 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
 
 const FuelTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<FuelLog>>({ 
-    data: new Date().toISOString().split('T')[0], 
-    tipo_combustivel: '',
-    km_registro: 0,
-    litros: 0,
-    valor_litro: 0,
-    funcionario_id: ''
-  });
+  const [form, setForm] = useState<Partial<FuelLog>>({ data: new Date().toISOString().split('T')[0], tipo_combustivel: '', km_registro: 0, litros: 0, valor_litro: 0, funcionario_id: '' });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.tipo_combustivel) {
-      alert("POR FAVOR, SELECIONE O COMBUSTÍVEL.");
+    if (!form.tipo_combustivel || !form.funcionario_id) {
+      alert("PREENCHA TODOS OS CAMPOS.");
       return;
     }
-    if (!form.funcionario_id) {
-        alert("POR FAVOR, SELECIONE O FUNCIONÁRIO.");
-        return;
-    }
-
     const l = parseFloat(String(form.litros || 0));
     const v = parseFloat(String(form.valor_litro || 0));
-    onUpdate({ 
-        ...form, 
-        id: form.id || crypto.randomUUID(), 
-        valor_total: l * v,
-        km_registro: Number(form.km_registro) || 0,
-        tipo_combustivel: form.tipo_combustivel.toUpperCase()
-    } as FuelLog);
+    onUpdate({ ...form, id: form.id || crypto.randomUUID(), valor_total: l * v, km_registro: Number(form.km_registro) || 0, tipo_combustivel: form.tipo_combustivel.toUpperCase() } as FuelLog);
     setIsOpen(false);
     setForm({ data: new Date().toISOString().split('T')[0], tipo_combustivel: '', km_registro: 0, litros: 0, valor_litro: 0, funcionario_id: '' });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-emerald-600 transition-all"><Plus size={16} /> NOVO ABASTECIMENTO</button></div>
+      <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-emerald-600 transition-all"><Plus size={16} /> NOVO ABASTECIMENTO</button></div>
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">COMBUSTÍVEL</th><th className="px-6 py-5">LITROS</th><th className="px-6 py-5">TOTAL</th><th className="px-6 py-5">HODÔMETRO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">COMBUSTÍVEL</th><th className="px-6 py-5">LITROS</th><th className="px-6 py-5">TOTAL</th><th className="px-6 py-5">HODÔMETRO</th><th className="px-6 py-5 text-center no-print">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: FuelLog) => (
@@ -672,13 +618,11 @@ const FuelTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
                     <p className="text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</p>
                     <p className="text-[10px] text-slate-400 uppercase">{(employees || []).find((e:any) => e.id === l.funcionario_id)?.name || 'NÃO IDENTIFICADO'}</p>
                 </td>
-                <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] uppercase font-black">{l.tipo_combustivel.toUpperCase()}</span>
-                </td>
+                <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] uppercase font-black">{l.tipo_combustivel.toUpperCase()}</span></td>
                 <td className="px-6 py-4">{l.litros}L</td>
                 <td className="px-6 py-4 text-emerald-600 font-black">R$ {l.valor_total.toLocaleString()}</td>
                 <td className="px-6 py-4 font-mono">{l.km_registro.toLocaleString()} KM</td>
-                <td className="px-6 py-4 text-center"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
+                <td className="px-6 py-4 text-center no-print"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
               </tr>
             ))}
           </tbody>
@@ -690,23 +634,17 @@ const FuelTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
-                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.veiculo_id} onChange={e => {
+                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.veiculo_id} onChange={e => {
                         const v = (vehicles || []).find((v:any) => v.id === e.target.value);
-                        const vFuelType = v?.tipo_combustivel?.toUpperCase();
-                        setForm({
-                        ...form, 
-                        veiculo_id: e.target.value, 
-                        km_registro: v?.km_atual || 0,
-                        tipo_combustivel: vFuelType === 'FLEX' ? '' : vFuelType
-                        });
+                        setForm({...form, veiculo_id: e.target.value, km_registro: v?.km_atual || 0, tipo_combustivel: v?.tipo_combustivel === 'FLEX' ? '' : v?.tipo_combustivel });
                     }} required>
-                    <option value="">SELECIONAR VEÍCULO...</option>
-                    {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()} ({v.tipo_combustivel})</option>)}
+                    <option value="">SELECIONAR...</option>
+                    {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">FUNCIONÁRIO</label>
-                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
+                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
                         <option value="">SELECIONAR...</option>
                         {(employees || []).map((e:any) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
                     </select>
@@ -715,35 +653,30 @@ const FuelTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DATA</label>
-                  <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
+                  <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">COMBUSTÍVEL</label>
-                  <select className={`w-full h-12 px-5 border rounded-2xl font-black text-xs outline-none ${!form.tipo_combustivel ? 'bg-amber-50 border-amber-200 text-amber-600 animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-900'}`} value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value})} required>
-                    <option value="">ESCOLHA...</option>
-                    <option value="GASOLINA">GASOLINA</option>
-                    <option value="ÁLCOOL">ÁLCOOL</option>
-                    <option value="DIESEL">DIESEL</option>
+                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value})} required>
+                    <option value="">ESCOLHA...</option><option value="GASOLINA">GASOLINA</option><option value="ÁLCOOL">ÁLCOOL</option><option value="DIESEL">DIESEL</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">LITROS</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value) || 0})} required />
+                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value) || 0})} required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VALOR LITRO R$</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value) || 0})} required />
+                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value) || 0})} required />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[9px] font-black text-sky-500 uppercase ml-2 tracking-widest">HODÔMETRO ATUAL (KM)</label>
                 <input type="number" className="w-full h-12 px-5 bg-sky-50 border-sky-100 rounded-2xl font-black text-xs outline-none" value={form.km_registro} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
               </div>
-              <button className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
-                 <CheckCircle2 size={18} /> CONFIRMAR ABASTECIMENTO
-              </button>
+              <button className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"><CheckCircle2 size={18} /> CONFIRMAR ABASTECIMENTO</button>
            </form>
         </Modal>
       )}
@@ -762,24 +695,18 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
         return;
     }
     const v = vehicles.find((veh:any) => veh.id === form.veiculo_id);
-    onUpdate({ 
-        ...form, 
-        id: form.id || crypto.randomUUID(),
-        custo: Number(form.custo) || 0,
-        km_registro: v?.km_atual || 0,
-        servico: form.servico?.toUpperCase()
-    } as MaintenanceLog);
+    onUpdate({ ...form, id: form.id || crypto.randomUUID(), custo: Number(form.custo) || 0, km_registro: v?.km_atual || 0, servico: form.servico?.toUpperCase() } as MaintenanceLog);
     setIsOpen(false);
     setForm({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true, funcionario_id: '' });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-indigo-600 transition-all"><Plus size={16} /> NOVA MANUTENÇÃO</button></div>
+      <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-indigo-600 transition-all"><Plus size={16} /> NOVA MANUTENÇÃO</button></div>
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5">STATUS</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5">STATUS</th><th className="px-6 py-5 text-center no-print">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: MaintenanceLog) => (
@@ -791,12 +718,8 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
                 </td>
                 <td className="px-6 py-4 uppercase truncate max-w-[150px] font-black">{l.servico.toUpperCase()}</td>
                 <td className="px-6 py-4 text-rose-500 font-black">R$ {l.custo.toLocaleString()}</td>
-                <td className="px-6 py-4">
-                   <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase ${l.pago ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-                      {l.pago ? 'PAGO' : 'A VENCER'}
-                   </span>
-                </td>
-                <td className="px-6 py-4 text-center"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
+                <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase ${l.pago ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>{l.pago ? 'PAGO' : 'A VENCER'}</span></td>
+                <td className="px-6 py-4 text-center no-print"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
               </tr>
             ))}
           </tbody>
@@ -809,7 +732,7 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
                 <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
                     <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                    <option value="">SELECIONAR VEÍCULO...</option>
+                    <option value="">SELECIONAR...</option>
                     {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                     </select>
                 </div>
@@ -824,35 +747,23 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">TIPO</label>
-                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value as any})}>
-                    <option>Preventiva</option><option>Corretiva</option>
-                  </select>
+                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value as any})}><option>Preventiva</option><option>Corretiva</option></select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DATA</label>
                   <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DESCRIÇÃO DO SERVIÇO</label>
-                <input placeholder="EX: TROCA DE PASTILHAS" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.servico} onChange={e => setForm({...form, servico: e.target.value.toUpperCase()})} required />
-              </div>
-              
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">CUSTO TOTAL R$</label>
-                <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.custo || 0} onChange={e => setForm({...form, custo: parseFloat(e.target.value) || 0})} required />
-              </div>
-
+              <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DESCRIÇÃO DO SERVIÇO</label><input placeholder="EX: TROCA DE PASTILHAS" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.servico} onChange={e => setForm({...form, servico: e.target.value.toUpperCase()})} required /></div>
+              <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">CUSTO TOTAL R$</label><input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.custo || 0} onChange={e => setForm({...form, custo: parseFloat(e.target.value) || 0})} required /></div>
               <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="flex-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">LANÇAR NO FINANCEIRO COMO</p>
+                  <p className="flex-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">STATUS FINANCEIRO</p>
                   <div className="flex gap-2">
                      <button type="button" onClick={() => setForm({...form, pago: true})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${form.pago ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>PAGO</button>
                      <button type="button" onClick={() => setForm({...form, pago: false})} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${!form.pago ? 'bg-rose-500 text-white shadow-lg' : 'bg-white text-slate-400'}`}>A VENCER</button>
                   </div>
               </div>
-              <button className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
-                 <Wrench size={18} /> CONFIRMAR MANUTENÇÃO
-              </button>
+              <button className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"><Wrench size={18} /> CONFIRMAR MANUTENÇÃO</button>
            </form>
         </Modal>
       )}
@@ -862,58 +773,35 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
 
 const FinesTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<FineLog>>({ 
-    situacao: 'Em aberto', 
-    data: new Date().toISOString().split('T')[0],
-    data_vencimento: new Date().toISOString().split('T')[0],
-    funcionario_id: ''
-  });
+  const [form, setForm] = useState<Partial<FineLog>>({ situacao: 'Em aberto', data: new Date().toISOString().split('T')[0], data_vencimento: new Date().toISOString().split('T')[0], funcionario_id: '' });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.funcionario_id) {
-        alert("POR FAVOR, SELECIONE O FUNCIONÁRIO.");
+    if (!form.funcionario_id || !form.data_vencimento) {
+        alert("PREENCHA OS CAMPOS OBRIGATÓRIOS.");
         return;
     }
-    if (!form.data_vencimento) {
-        alert("A DATA DE VENCIMENTO É OBRIGATÓRIA.");
-        return;
-    }
-    onUpdate({ 
-        ...form, 
-        id: form.id || crypto.randomUUID(), 
-        tipo_infracao: form.tipo_infracao?.toUpperCase() 
-    } as FineLog);
+    onUpdate({ ...form, id: form.id || crypto.randomUUID(), tipo_infracao: form.tipo_infracao?.toUpperCase() } as FineLog);
     setIsOpen(false);
     setForm({ situacao: 'Em aberto', data: new Date().toISOString().split('T')[0], data_vencimento: new Date().toISOString().split('T')[0], funcionario_id: '' });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><button onClick={() => setIsOpen(true)} className="bg-rose-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-rose-600 transition-all"><Plus size={16} /> REGISTRAR MULTA</button></div>
+      <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-rose-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-rose-600 transition-all"><Plus size={16} /> REGISTRAR MULTA</button></div>
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">INFRAÇÃO / VENC.</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">VALOR</th><th className="px-6 py-5">SITUAÇÃO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">INFRAÇÃO / VENC.</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">VALOR</th><th className="px-6 py-5">SITUAÇÃO</th><th className="px-6 py-5 text-center no-print">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: FineLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
-                <td className="px-6 py-4">
-                    <p className="uppercase truncate max-w-[180px] font-bold">{l.tipo_infracao.toUpperCase()}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black italic">VENC: {new Date(l.data_vencimento + 'T00:00:00').toLocaleDateString()}</p>
-                </td>
-                <td className="px-6 py-4">
-                    <p className="text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</p>
-                    <p className="text-[10px] text-slate-400 uppercase">{(employees || []).find((e:any) => e.id === l.funcionario_id)?.name || 'NÃO IDENTIFICADO'}</p>
-                </td>
+                <td className="px-6 py-4"><p className="uppercase truncate max-w-[180px] font-bold">{l.tipo_infracao.toUpperCase()}</p><p className="text-[10px] text-slate-400 uppercase font-black italic">VENC: {new Date(l.data_vencimento + 'T00:00:00').toLocaleDateString()}</p></td>
+                <td className="px-6 py-4"><p className="text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</p><p className="text-[10px] text-slate-400 uppercase">{(employees || []).find((e:any) => e.id === l.funcionario_id)?.name || 'NÃO IDENTIFICADO'}</p></td>
                 <td className="px-6 py-4 text-rose-500 font-black">R$ {l.valor.toLocaleString()}</td>
-                <td className="px-6 py-4">
-                   <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${l.situacao === 'Paga' ? 'bg-emerald-500 text-white' : l.situacao === 'Em aberto' ? 'bg-amber-500 text-white' : 'bg-slate-500 text-white'}`}>
-                     {l.situacao.toUpperCase()}
-                   </span>
-                </td>
-                <td className="px-6 py-4 text-center"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
+                <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${l.situacao === 'Paga' ? 'bg-emerald-500 text-white' : l.situacao === 'Em aberto' ? 'bg-amber-500 text-white' : 'bg-slate-500 text-white'}`}>{l.situacao.toUpperCase()}</span></td>
+                <td className="px-6 py-4 text-center no-print"><button onClick={() => onDelete(l.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button></td>
               </tr>
             ))}
           </tbody>
@@ -925,50 +813,29 @@ const FinesTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
-                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-                    <option value="">SELECIONAR VEÍCULO...</option>
+                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
+                    <option value="">SELECIONAR...</option>
                     {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">FUNCIONÁRIO</label>
-                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
+                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
                         <option value="">SELECIONAR...</option>
                         {(employees || []).map((e:any) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
                     </select>
                   </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DATA DA INFRAÇÃO</label>
-                  <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-sky-500 uppercase ml-2 tracking-widest">DATA DE VENCIMENTO</label>
-                  <input type="date" className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl font-black text-xs outline-none" value={form.data_vencimento} onChange={e => setForm({...form, data_vencimento: e.target.value})} required />
-                </div>
+                <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">DATA</label><input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.data} onChange={e => setForm({...form, data: e.target.value})} required /></div>
+                <div className="space-y-1"><label className="text-[9px] font-black text-sky-500 uppercase ml-2 tracking-widest">VENCIMENTO</label><input type="date" className="w-full h-12 px-5 bg-sky-50 border border-sky-100 rounded-2xl font-black text-xs outline-none" value={form.data_vencimento} onChange={e => setForm({...form, data_vencimento: e.target.value})} required /></div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">NATUREZA DA INFRAÇÃO</label>
-                <input placeholder="EX: EXCESSO DE VELOCIDADE" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.tipo_infracao} onChange={e => setForm({...form, tipo_infracao: e.target.value.toUpperCase()})} required />
-              </div>
+              <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">INFRAÇÃO</label><input placeholder="EX: VELOCIDADE" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.tipo_infracao} onChange={e => setForm({...form, tipo_infracao: e.target.value.toUpperCase()})} required /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VALOR R$</label>
-                  <input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.valor || 0} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">STATUS</label>
-                  <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.situacao} onChange={e => setForm({...form, situacao: e.target.value as any})}>
-                    <option value="Em aberto">EM ABERTO</option>
-                    <option value="Paga">PAGA</option>
-                    <option value="Recurso">RECURSO</option>
-                  </select>
-                </div>
+                <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VALOR R$</label><input type="number" step="0.01" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.valor || 0} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required /></div>
+                <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">STATUS</label><select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.situacao} onChange={e => setForm({...form, situacao: e.target.value as any})}><option value="Em aberto">EM ABERTO</option><option value="Paga">PAGA</option><option value="Recurso">RECURSO</option></select></div>
               </div>
-              <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
-                 <AlertOctagon size={18} /> REGISTRAR INFRAÇÃO
-              </button>
+              <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"><AlertOctagon size={18} /> REGISTRAR INFRAÇÃO</button>
            </form>
         </Modal>
       )}

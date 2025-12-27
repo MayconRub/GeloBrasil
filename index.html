@@ -13,7 +13,7 @@
             background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
             color: #1e3a8a;
             overflow-x: hidden;
-            min-height: 100-vh;
+            min-height: 100vh;
         }
 
         /* Efeito de Vidro Fosco (Ice Glass) */
@@ -42,8 +42,21 @@
         ::-webkit-scrollbar-thumb:hover { background: #7dd3fc; }
 
         @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
             .no-print { display: none !important; }
-            body { background: white !important; }
+            body { 
+                background: white !important; 
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .print-compact {
+                padding: 1rem !important;
+                margin-bottom: 0.5rem !important;
+                border-radius: 0.5rem !important;
+            }
         }
     </style>
 <script type="importmap">
