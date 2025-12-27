@@ -56,6 +56,7 @@ export interface Vehicle {
 export interface FuelLog {
   id: string;
   veiculo_id: string;
+  funcionario_id: string;
   data: string;
   tipo_combustivel: string;
   litros: number;
@@ -67,6 +68,7 @@ export interface FuelLog {
 export interface MaintenanceLog {
   id: string;
   veiculo_id: string;
+  funcionario_id: string;
   tipo: 'Preventiva' | 'Corretiva';
   servico: string;
   data: string;

@@ -73,7 +73,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       kmReading: e.km_reading, 
       observation: e.observacao?.toUpperCase()
     })),
-    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.name.toUpperCase(), role: emp.role?.toUpperCase() || 'FUNCIONÁRIO', salary: emp.salario, joinedAt: emp.data_admissao })),
+    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.nome.toUpperCase(), role: emp.cargo?.toUpperCase() || 'FUNCIONÁRIO', salary: emp.salario, joinedAt: emp.data_admissao })),
     vehicles: (vehicles.data || []).map(v => ({...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase(), tipo_combustivel: v.tipo_combustivel || 'FLEX'})),
     fuelLogs: (fuels.data || []).map(f => ({...f, tipo_combustivel: f.tipo_combustivel.toUpperCase()})),
     maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase()})),
@@ -96,7 +96,6 @@ export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
 export const syncFuel = async (f: FuelLog) => {
-  // GARANTIA ANTI-NULL: Força valores numéricos e evita undefined/null
   const payload = {
     ...f,
     tipo_combustivel: f.tipo_combustivel.toUpperCase(),
@@ -109,18 +108,21 @@ export const syncFuel = async (f: FuelLog) => {
   const { error } = await supabase.from('frota_abastecimentos').upsert(payload);
   
   if (!error) {
-    // Atualiza odômetro do veículo
+    // Busca info complementar para a descrição
+    const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', f.veiculo_id).single();
+    const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', f.funcionario_id).single();
+
     await supabase.from('veiculos').update({ km_atual: payload.km_registro }).eq('id', f.veiculo_id);
     
-    // Lança no financeiro automaticamente
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
-        descricao: `ABASTECIMENTO: ${payload.tipo_combustivel} (${payload.litros}L)`.toUpperCase(),
+        descricao: `ABASTECIMENTO: ${vData?.placa || ''} - ${eData?.nome || ''} - ${payload.tipo_combustivel} (${payload.litros}L)`.toUpperCase(),
         valor: payload.valor_total,
         data_vencimento: payload.data,
         status: 'Pago',
         categoria: 'COMBUSTÍVEL',
         veiculo_id: f.veiculo_id,
+        funcionario_id: f.funcionario_id,
         km_reading: payload.km_registro
     });
   }
@@ -138,6 +140,10 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error: maintError } = await supabase.from('frota_manutencoes').upsert(maintPayload);
   
   if (!maintError) {
+    // Busca info complementar para a descrição
+    const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', m.veiculo_id).single();
+    const { data: eData } = await supabase.from('funcionarios').select('nome').eq('id', m.funcionario_id).single();
+
     if (maintPayload.servico.includes('ÓLEO')) {
         await supabase.from('veiculos').update({ 
             km_ultima_troca: maintPayload.km_registro 
@@ -147,12 +153,13 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
     if (maintPayload.custo > 0) {
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            descricao: `OFICINA: ${maintPayload.servico}`.toUpperCase(),
+            descricao: `OFICINA: ${vData?.placa || ''} - ${eData?.nome || ''} - ${maintPayload.servico}`.toUpperCase(),
             valor: maintPayload.custo,
             data_vencimento: maintPayload.data,
             status: m.pago ? 'Pago' : 'A Vencer',
             categoria: 'MANUTENÇÃO',
             veiculo_id: maintPayload.veiculo_id,
+            funcionario_id: m.funcionario_id,
             km_reading: maintPayload.km_registro
         });
     }
@@ -163,9 +170,10 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
 export const syncFine = async (f: FineLog) => {
     const { error } = await supabase.from('frota_multas').upsert({...f, tipo_infracao: f.tipo_infracao.toUpperCase()});
     if (!error && f.situacao === 'Paga') {
+        const { data: vData } = await supabase.from('veiculos').select('placa').eq('id', f.veiculo_id).single();
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            descricao: `MULTA: ${f.tipo_infracao.toUpperCase()}`,
+            descricao: `MULTA: ${vData?.placa || ''} - ${f.tipo_infracao.toUpperCase()}`,
             valor: f.valor,
             data_vencimento: f.data,
             status: 'Pago',

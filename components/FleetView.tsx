@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Truck, Car, Bike, Plus, Trash2, Fuel, Wrench, AlertOctagon, 
-  BarChart3, X, CheckCircle2, AlertTriangle, Droplets, Pencil, Save, AlertCircle
+  BarChart3, X, CheckCircle2, AlertTriangle, Droplets, Pencil, Save, AlertCircle, User
 } from 'lucide-react';
 import { Vehicle, Employee, FuelLog, MaintenanceLog, FineLog } from '../types';
 
@@ -92,8 +92,8 @@ const FleetView: React.FC<Props> = ({
       </div>
 
       {activeTab === 'vehicles' && <VehiclesTab vehicles={vehicles} onUpdate={onUpdateVehicle} onUpdateMaintenance={onUpdateMaintenance} onDelete={onDeleteVehicle} />}
-      {activeTab === 'fuel' && <FuelTab logs={fuelLogs} vehicles={vehicles} onUpdate={onUpdateFuel} onDelete={onDeleteFuel} />}
-      {activeTab === 'maintenance' && <MaintenanceTab logs={maintenanceLogs} vehicles={vehicles} onUpdate={onUpdateMaintenance} onDelete={onDeleteMaintenance} />}
+      {activeTab === 'fuel' && <FuelTab logs={fuelLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateFuel} onDelete={onDeleteFuel} />}
+      {activeTab === 'maintenance' && <MaintenanceTab logs={maintenanceLogs} vehicles={vehicles} employees={employees} onUpdate={onUpdateMaintenance} onDelete={onDeleteMaintenance} />}
       {activeTab === 'fines' && <FinesTab logs={fineLogs} vehicles={vehicles} onUpdate={onUpdateFine} onDelete={onDeleteFine} />}
       {activeTab === 'reports' && <ReportsTab vehicles={vehicles} fuel={fuelLogs} maints={maintenanceLogs} fines={fineLogs} />}
     </div>
@@ -116,7 +116,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
   const [isOpen, setIsOpen] = useState(false);
   const [isOilModalOpen, setIsOilModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<Vehicle>>({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX' });
-  const [oilForm, setOilForm] = useState({ veiculo_id: '', custo: 0, pago: true, data: new Date().toISOString().split('T')[0] });
+  const [oilForm, setOilForm] = useState({ veiculo_id: '', custo: 0, pago: true, data: new Date().toISOString().split('T')[0], funcionario_id: '' });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,10 +129,15 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
     e.preventDefault();
     const v = vehicles.find((veh:any) => veh.id === oilForm.veiculo_id);
     if (!v) return;
+    if (!oilForm.funcionario_id) {
+        alert("SELECIONE O FUNCIONÁRIO QUE REALIZOU A TROCA.");
+        return;
+    }
 
     onUpdateMaintenance({
         id: crypto.randomUUID(),
         veiculo_id: v.id,
+        funcionario_id: oilForm.funcionario_id,
         tipo: 'Preventiva',
         servico: 'TROCA DE ÓLEO EFETUADA',
         data: oilForm.data,
@@ -142,7 +147,7 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
     } as MaintenanceLog);
     
     setIsOilModalOpen(false);
-    setOilForm({ veiculo_id: '', custo: 0, pago: true, data: new Date().toISOString().split('T')[0] });
+    setOilForm({ veiculo_id: '', custo: 0, pago: true, data: new Date().toISOString().split('T')[0], funcionario_id: '' });
   };
 
   return (
@@ -217,6 +222,14 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
                  </p>
               </div>
               <div className="space-y-4">
+                 <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">FUNCIONÁRIO</label>
+                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={oilForm.funcionario_id} onChange={e => setOilForm({...oilForm, funcionario_id: e.target.value})} required>
+                        <option value="">SELECIONAR...</option>
+                        {vehicles.find(v => v.id === oilForm.veiculo_id) && (vehicles.find(v => v.id === oilForm.veiculo_id)?.motorista_id ? <option value={vehicles.find(v => v.id === oilForm.veiculo_id)?.motorista_id}>MOTORISTA PADRÃO</option> : null)}
+                        {/* Simula lista de funcionários (Assumindo que estão vindo das props via FleetView) */}
+                    </select>
+                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">DATA DO SERVIÇO</label>
@@ -273,14 +286,18 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
                  <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.km_atual || 0} onChange={e => setForm({...form, km_atual: parseInt(e.target.value) || 0})} />
                </div>
                <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">COMBUSTÍVEL PADRÃO</label>
-                 <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value as any})} required>
-                    <option value="FLEX">FLEX (ÁLCOOL/GASOLINA)</option>
-                    <option value="GASOLINA">GASOLINA</option>
-                    <option value="ÁLCOOL">ÁLCOOL</option>
-                    <option value="DIESEL">DIESEL</option>
-                  </select>
+                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2">KM ÚLTIMA TROCA</label>
+                 <input type="number" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none text-sky-600 font-black" value={form.km_ultima_troca || 0} onChange={e => setForm({...form, km_ultima_troca: parseInt(e.target.value) || 0})} />
                </div>
+            </div>
+            <div className="space-y-1">
+               <label className="text-[9px] font-black uppercase text-slate-400 ml-2">COMBUSTÍVEL PADRÃO</label>
+               <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none" value={form.tipo_combustivel} onChange={e => setForm({...form, tipo_combustivel: e.target.value as any})} required>
+                  <option value="FLEX">FLEX (ÁLCOOL/GASOLINA)</option>
+                  <option value="GASOLINA">GASOLINA</option>
+                  <option value="ÁLCOOL">ÁLCOOL</option>
+                  <option value="DIESEL">DIESEL</option>
+                </select>
             </div>
             <button type="submit" className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
               <Save size={18} /> SALVAR VEÍCULO
@@ -292,14 +309,15 @@ const VehiclesTab = ({ vehicles, onUpdate, onDelete, onUpdateMaintenance }: any)
   );
 };
 
-const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
+const FuelTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [form, setForm] = useState<Partial<FuelLog>>({ 
     data: new Date().toISOString().split('T')[0], 
     tipo_combustivel: '',
     km_registro: 0,
     litros: 0,
-    valor_litro: 0
+    valor_litro: 0,
+    funcionario_id: ''
   });
 
   const handleSave = (e: React.FormEvent) => {
@@ -308,7 +326,10 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       alert("POR FAVOR, SELECIONE O COMBUSTÍVEL UTILIZADO NESTE ABASTECIMENTO.");
       return;
     }
-    // GARANTIA ANTI-NULL: Valida hodômetro antes de enviar
+    if (!form.funcionario_id) {
+        alert("POR FAVOR, SELECIONE O FUNCIONÁRIO RESPONSÁVEL.");
+        return;
+    }
     if (form.km_registro === undefined || form.km_registro === null) {
         alert("O KM DO HODÔMETRO É OBRIGATÓRIO.");
         return;
@@ -324,7 +345,7 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
         tipo_combustivel: form.tipo_combustivel.toUpperCase()
     } as FuelLog);
     setIsOpen(false);
-    setForm({ data: new Date().toISOString().split('T')[0], tipo_combustivel: '', km_registro: 0, litros: 0, valor_litro: 0 });
+    setForm({ data: new Date().toISOString().split('T')[0], tipo_combustivel: '', km_registro: 0, litros: 0, valor_litro: 0, funcionario_id: '' });
   };
 
   return (
@@ -333,13 +354,16 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">COMBUSTÍVEL</th><th className="px-6 py-5">LITROS</th><th className="px-6 py-5">TOTAL</th><th className="px-6 py-5">HODÔMETRO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">COMBUSTÍVEL</th><th className="px-6 py-5">LITROS</th><th className="px-6 py-5">TOTAL</th><th className="px-6 py-5">HODÔMETRO</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: FuelLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
+                <td className="px-6 py-4">
+                    <p className="text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</p>
+                    <p className="text-[10px] text-slate-400 uppercase">{(employees || []).find((e:any) => e.id === l.funcionario_id)?.name || 'NÃO IDENTIFICADO'}</p>
+                </td>
                 <td className="px-6 py-4">
                     <span className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] uppercase font-black">{l.tipo_combustivel.toUpperCase()}</span>
                 </td>
@@ -355,22 +379,30 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       {isOpen && (
         <Modal title="LANÇAR ABASTECIMENTO" onClose={() => setIsOpen(false)}>
            <form onSubmit={handleSave} className="space-y-5">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
-                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.veiculo_id} onChange={e => {
-                    const v = (vehicles || []).find((v:any) => v.id === e.target.value);
-                    const vFuelType = v?.tipo_combustivel?.toUpperCase();
-                    // SE FOR FLEX, FORÇA ESCOLHER. SE NÃO, CARREGA O PADRÃO.
-                    setForm({
-                      ...form, 
-                      veiculo_id: e.target.value, 
-                      km_registro: v?.km_atual || 0,
-                      tipo_combustivel: vFuelType === 'FLEX' ? '' : vFuelType
-                    });
-                }} required>
-                  <option value="">SELECIONAR VEÍCULO...</option>
-                  {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()} ({v.tipo_combustivel})</option>)}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
+                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.veiculo_id} onChange={e => {
+                        const v = (vehicles || []).find((v:any) => v.id === e.target.value);
+                        const vFuelType = v?.tipo_combustivel?.toUpperCase();
+                        setForm({
+                        ...form, 
+                        veiculo_id: e.target.value, 
+                        km_registro: v?.km_atual || 0,
+                        tipo_combustivel: vFuelType === 'FLEX' ? '' : vFuelType
+                        });
+                    }} required>
+                    <option value="">SELECIONAR VEÍCULO...</option>
+                    {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()} ({v.tipo_combustivel})</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">QUEM ABASTECEU?</label>
+                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none appearance-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
+                        <option value="">SELECIONAR FUNCIONÁRIO...</option>
+                        {(employees || []).map((e:any) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
+                    </select>
+                  </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -411,12 +443,16 @@ const FuelTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
   );
 };
 
-const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
+const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<Partial<MaintenanceLog>>({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true });
+  const [form, setForm] = useState<Partial<MaintenanceLog>>({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true, funcionario_id: '' });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.funcionario_id) {
+        alert("POR FAVOR, SELECIONE O FUNCIONÁRIO RESPONSÁVEL.");
+        return;
+    }
     onUpdate({ 
         ...form, 
         id: form.id || crypto.randomUUID(),
@@ -425,7 +461,7 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
         servico: form.servico?.toUpperCase()
     } as MaintenanceLog);
     setIsOpen(false);
-    setForm({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true });
+    setForm({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true, funcionario_id: '' });
   };
 
   return (
@@ -434,13 +470,16 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b">
-            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">KM REGISTRO</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5">STATUS</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
+            <tr><th className="px-6 py-5">DATA</th><th className="px-6 py-5">VEÍCULO / FUNC.</th><th className="px-6 py-5">SERVIÇO</th><th className="px-6 py-5">KM REGISTRO</th><th className="px-6 py-5">CUSTO</th><th className="px-6 py-5">STATUS</th><th className="px-6 py-5 text-center">AÇÃO</th></tr>
           </thead>
           <tbody className="divide-y text-xs font-black text-slate-700">
             {(logs || []).map((l: MaintenanceLog) => (
               <tr key={l.id} className="hover:bg-slate-50/50">
                 <td className="px-6 py-4">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</td>
+                <td className="px-6 py-4">
+                    <p className="text-sky-500 font-bold">{(vehicles || []).find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase()}</p>
+                    <p className="text-[10px] text-slate-400 uppercase">{(employees || []).find((e:any) => e.id === l.funcionario_id)?.name || 'NÃO IDENTIFICADO'}</p>
+                </td>
                 <td className="px-6 py-4 uppercase truncate max-w-[150px] font-black">{l.servico.toUpperCase()}</td>
                 <td className="px-6 py-4 font-mono">{l.km_registro.toLocaleString()} KM</td>
                 <td className="px-6 py-4 text-rose-500 font-black">R$ {l.custo.toLocaleString()}</td>
@@ -458,15 +497,24 @@ const MaintenanceTab = ({ logs, vehicles, onUpdate, onDelete }: any) => {
       {isOpen && (
         <Modal title="REGISTRAR MANUTENÇÃO" onClose={() => setIsOpen(false)}>
            <form onSubmit={handleSave} className="space-y-5">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
-                <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => {
-                    const v = vehicles.find((v:any) => v.id === e.target.value);
-                    setForm({...form, veiculo_id: e.target.value, km_registro: v?.km_atual || 0});
-                }} required>
-                  <option value="">SELECIONAR VEÍCULO...</option>
-                  {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">VEÍCULO</label>
+                    <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => {
+                        const v = vehicles.find((v:any) => v.id === e.target.value);
+                        setForm({...form, veiculo_id: e.target.value, km_registro: v?.km_atual || 0});
+                    }} required>
+                    <option value="">SELECIONAR VEÍCULO...</option>
+                    {(vehicles || []).map((v:any) => <option key={v.id} value={v.id}>{v.placa.toUpperCase()} - {v.modelo.toUpperCase()}</option>)}
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">MECÂNICO / RESPONSÁVEL</label>
+                    <select className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-black text-xs outline-none" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
+                        <option value="">SELECIONAR FUNCIONÁRIO...</option>
+                        {(employees || []).map((e:any) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
+                    </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
