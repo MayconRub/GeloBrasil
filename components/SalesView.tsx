@@ -172,7 +172,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
   }, [filteredSales]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
       
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div className="flex flex-col">
@@ -186,7 +186,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
           <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
             <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-slate-50 rounded-xl transition-all min-w-[130px]">
-              <span className="text-xs font-black text-slate-800 capitalize text-center">{monthName}</span>
+              <span className="text-[10px] font-black text-slate-800 capitalize text-center">{monthName}</span>
             </button>
             <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
           </div>
@@ -274,7 +274,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                 placeholder="Ex: Faturamento Diário" 
                 value={description} 
                 onChange={e => setDescription(e.target.value)} 
-                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
+                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-sky-50 outline-none transition-all uppercase" 
                 required 
               />
             </div>
@@ -309,18 +309,53 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
             </div>
           </form>
 
+          {/* Listagem Responsiva */}
           <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden no-print">
             <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-50 bg-slate-50/50">
                <Search className="text-slate-300" size={20} />
                <input 
                 type="text" 
                 placeholder="Buscar vendas..." 
-                className="bg-transparent border-none outline-none text-xs w-full font-bold" 
+                className="bg-transparent border-none outline-none text-[10px] font-black uppercase w-full placeholder:text-slate-300" 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
               />
             </div>
 
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y divide-slate-100">
+               {filteredSales.map((sale) => (
+                 <div key={sale.id} className="p-5 space-y-3 group active:bg-sky-50/50 transition-all">
+                    <div className="flex justify-between items-start">
+                       <div className="flex flex-col">
+                          <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{sale.description}</span>
+                          <span className="text-[9px] font-bold text-slate-400 mt-1 flex items-center gap-1 uppercase">
+                             <Clock size={10} /> {new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          </span>
+                       </div>
+                       <div className="flex gap-2">
+                          <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-sky-500 rounded-xl bg-slate-50 border border-slate-100 transition-all"><Pencil size={14} /></button>
+                          <button onClick={() => handleDelete(sale)} className="p-2 text-rose-300 hover:text-rose-500 rounded-xl bg-rose-50/50 border border-rose-100 transition-all"><Trash2 size={14} /></button>
+                       </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">TOTAL</span>
+                       <span className="text-base font-black text-emerald-600 flex items-center gap-1">
+                          <ArrowUpRight size={14} />
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.value)}
+                       </span>
+                    </div>
+                 </div>
+               ))}
+               {filteredSales.length === 0 && (
+                  <div className="py-20 text-center text-slate-300 italic flex flex-col items-center">
+                    <History size={48} className="opacity-20 mb-4" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">Nenhum lançamento</p>
+                  </div>
+               )}
+            </div>
+
+            {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left table-fixed">
                 <thead>
@@ -334,7 +369,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                 <tbody className="divide-y divide-slate-50">
                   {filteredSales.map((sale) => (
                     <tr key={sale.id} className="group hover:bg-sky-50/20 transition-all">
-                      <td className="px-6 py-3 truncate text-xs font-black text-slate-800">{sale.description}</td>
+                      <td className="px-6 py-3 truncate text-xs font-black text-slate-800 uppercase">{sale.description}</td>
                       <td className="px-6 py-3">
                         <span className="text-sm font-black text-emerald-600 flex items-center gap-2">
                            <ArrowUpRight size={14} />
@@ -357,12 +392,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                 </tbody>
               </table>
             </div>
-            {filteredSales.length === 0 && (
-              <div className="py-20 text-center text-slate-300 italic flex flex-col items-center">
-                 <History size={48} className="opacity-20 mb-4" />
-                 <p className="text-sm">Nenhum lançamento para este período.</p>
-              </div>
-            )}
           </div>
         </>
       ) : (

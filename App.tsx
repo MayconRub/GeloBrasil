@@ -51,8 +51,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] uppercase transition-colors duration-500`}>
-      {/* Sidebar Light */}
+    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] uppercase transition-colors duration-500 pb-20 lg:pb-0`}>
+      {/* Sidebar Desktop */}
       <aside className="hidden lg:flex w-64 flex-col bg-white border-r border-sky-100 py-10 px-4 sticky top-0 h-screen z-50">
         <div className="flex items-center gap-3 px-4 mb-12">
           <div className="w-10 h-10 rounded-2xl bg-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-200">
@@ -73,8 +73,21 @@ const App: React.FC = () => {
         </nav>
       </aside>
 
+      {/* Mobile Top Header */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-sky-100 sticky top-0 z-[60] shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-100">
+            <Snowflake size={16} />
+          </div>
+          <h1 className="text-[10px] font-black uppercase tracking-tighter text-slate-800">{data.settings.companyName}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[8px] font-black text-sky-500 px-2 py-1 bg-sky-50 rounded-full border border-sky-100">SISTEMA ATIVO</span>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full">
+      <main className="flex-1 max-w-7xl mx-auto w-full relative">
         {view === 'dashboard' && <DashboardView {...data} onSwitchView={setView} expirationDate={data.settings.expirationDate} onOpenPayment={() => {}} settings={data.settings} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} />}
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} monthlyGoals={data.monthlyGoals} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} onUpdateSettings={wrap(syncSettings)} />}
@@ -97,6 +110,20 @@ const App: React.FC = () => {
         />}
         {view === 'admin' && <AdminView settings={data.settings} onUpdateSettings={wrap(syncSettings)} users={[]} />}
       </main>
+
+      {/* Bottom Navigation for Mobile */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-sky-100 px-2 py-3 flex items-center justify-around z-[70] shadow-[0_-10px_30px_rgba(14,165,233,0.05)] rounded-t-[1.5rem]">
+        {menuItems.slice(0, 5).map(item => (
+          <button 
+            key={item.id} 
+            onClick={() => setView(item.id as ViewType)}
+            className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${view === item.id ? 'text-sky-500 bg-sky-50/50' : 'text-slate-400'}`}
+          >
+            <item.icon size={20} strokeWidth={view === item.id ? 3 : 2} />
+            <span className="text-[7px] font-black uppercase tracking-widest">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 };
