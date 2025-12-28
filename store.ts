@@ -35,8 +35,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     productionGoalMonthly: settings?.meta_producao_mensal || 30000,
     salesGoalDaily: settings?.meta_vendas_diaria || 2000,
     salesGoalMonthly: settings?.meta_vendas_mensal || 60000,
-    adminEmail: settings?.admin_email || 'admin@icecontrol.com',
-    adminPassword: settings?.admin_password || '1234'
+    adminEmail: settings?.admin_email || 'root@adm.app',
+    adminPassword: settings?.admin_password || '123456'
   };
 };
 
@@ -70,6 +70,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       category: e.categoria?.toUpperCase() || 'GERAL', 
       vehicleId: e.veiculo_id, 
       employeeId: e.funcionario_id, 
+      // FIX: Changed km_reading to kmReading to match the interface in types.ts
       kmReading: e.km_reading, 
       observation: e.observacao?.toUpperCase()
     })),
@@ -184,12 +185,13 @@ export const syncFine = async (f: FineLog) => {
 };
 
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description.toUpperCase() });
+// FIX: Changed e.km_reading to e.kmReading to match the Expense interface in types.ts
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description.toUpperCase(), valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category.toUpperCase(), veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation?.toUpperCase() });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: e.salary, data_admissao: e.joinedAt });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome: nome.toUpperCase() });
 export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: g.value }, { onConflict: 'tipo,mes,ano' });
-export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName.toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_producao_diaria: s.productionGoalDaily, meta_vendas_diaria: s.salesGoalDaily }, { onConflict: 'id' });
+export const syncSettings = (s: AppSettings) => supabase.from('configuracoes').upsert({ id: 1, nome_empresa: s.companyName.toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, meta_producao_mensal: s.productionGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_producao_diaria: s.productionGoalDaily, meta_vendas_diaria: s.salesGoalDaily, admin_email: s.adminEmail, admin_password: s.adminPassword }, { onConflict: 'id' });
 
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
 export const deleteExpense = (id: string) => supabase.from('despesas').delete().eq('id', id);

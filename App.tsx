@@ -15,6 +15,7 @@ import AdminView from './components/AdminView';
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -28,9 +29,14 @@ const App: React.FC = () => {
   });
 
   useEffect(() => { 
-    const authStatus = sessionStorage.getItem('ice_control_auth');
-    if (authStatus === 'true') setIsAuthenticated(true);
-    loadAppData(); 
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+      }
+      await loadAppData(); 
+    };
+    checkUser();
   }, []);
 
   const loadAppData = async () => {
@@ -46,25 +52,35 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    setIsLoggingIn(true);
     
-    const adminEmail = data.settings.adminEmail || 'admin@icecontrol.com';
-    const adminPass = data.settings.adminPassword || '1234';
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
 
-    if (loginEmail === adminEmail && loginPassword === adminPass) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('ice_control_auth', 'true');
-    } else {
-      setLoginError('CREDENCIAIS INVÁLIDAS. VERIFIQUE E TENTE NOVAMENTE.');
+      if (error) {
+        setLoginError(error.message.toUpperCase() === 'INVALID LOGIN CREDENTIALS' 
+          ? 'USUÁRIO OU SENHA INCORRETOS.' 
+          : error.message.toUpperCase());
+      } else if (authData.user) {
+        setIsAuthenticated(true);
+      }
+    } catch (err) {
+      setLoginError('ERRO AO CONECTAR COM O SERVIDOR.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('DESEJA REALMENTE ENCERRAR A SESSÃO?')) {
+      await supabase.auth.signOut();
       setIsAuthenticated(false);
-      sessionStorage.removeItem('ice_control_auth');
       setView('dashboard');
     }
   };
@@ -94,10 +110,10 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (isLoading) return (
+  if (isLoading && !isAuthenticated) return (
     <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-sky-500 mb-4" size={48} />
-      <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em]">Preparando Gelo Cristalino...</p>
+      <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em]">Autenticando com Supabase...</p>
     </div>
   );
 
@@ -129,7 +145,7 @@ const App: React.FC = () => {
                 type="email" 
                 value={loginEmail}
                 onChange={e => setLoginEmail(e.target.value)}
-                placeholder="exemplo@dominio.com"
+                placeholder="root@adm.app"
                 className="w-full h-16 pl-14 pr-6 bg-white/50 border border-slate-100 rounded-[1.8rem] font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 focus:border-sky-200 transition-all"
                 required
               />
@@ -167,9 +183,10 @@ const App: React.FC = () => {
 
           <button 
             type="submit"
-            className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-sky-600 transition-all active:scale-95 flex items-center justify-center gap-3 border-b-4 border-slate-950 hover:border-sky-700"
+            disabled={isLoggingIn}
+            className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-sky-600 transition-all active:scale-95 flex items-center justify-center gap-3 border-b-4 border-slate-950 hover:border-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Entrar no Sistema <ChevronRight size={18} />
+            {isLoggingIn ? <Loader2 className="animate-spin" size={18} /> : <>Entrar no Sistema <ChevronRight size={18} /></>}
           </button>
         </form>
 
