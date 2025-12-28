@@ -110,12 +110,20 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
   };
 
   const handleEdit = (sale: Sale) => {
-    setEditingId(sale.id);
-    setDescription(sale.description);
-    setValue(sale.value.toString());
-    setDate(sale.date);
-    setShowReport(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (confirm(`DESEJA ALTERAR O LANÇAMENTO DE VENDA "${sale.description}" NO VALOR DE R$ ${sale.value.toLocaleString('pt-BR')}?`)) {
+      setEditingId(sale.id);
+      setDescription(sale.description);
+      setValue(sale.value.toString());
+      setDate(sale.date);
+      setShowReport(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleDelete = (sale: Sale) => {
+    if (confirm(`ATENÇÃO: DESEJA REALMENTE EXCLUIR ESTE LANÇAMENTO DE VENDA ("${sale.description}")? ISSO AFETARÁ O SALDO E AS METAS DO MÊS.`)) {
+      onDelete(sale.id);
+    }
   };
 
   const resetForm = () => {
@@ -340,8 +348,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                       </td>
                       <td className="px-6 py-3 text-center">
                         <div className="flex justify-center gap-2 transition-all">
-                          <button onClick={() => handleEdit(sale)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
-                          <button onClick={() => onDelete(sale.id)} className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
+                          <button onClick={() => handleEdit(sale)} title="Editar" className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
+                          <button onClick={() => handleDelete(sale)} title="Excluir" className="p-1.5 text-rose-300 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>

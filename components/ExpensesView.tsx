@@ -73,13 +73,21 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   };
 
   const handleEdit = (exp: Expense) => {
-    setEditingId(exp.id);
-    setDescription(exp.description);
-    setValue(exp.value.toString());
-    setDueDate(exp.dueDate);
-    setCategory(exp.category);
-    setEmployeeId(exp.employeeId || '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (confirm(`DESEJA EDITAR A DESPESA "${exp.description}" NO VALOR DE R$ ${exp.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}?`)) {
+      setEditingId(exp.id);
+      setDescription(exp.description);
+      setValue(exp.value.toString());
+      setDueDate(exp.dueDate);
+      setCategory(exp.category);
+      setEmployeeId(exp.employeeId || '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleDelete = (exp: Expense) => {
+    if (confirm(`ATENÇÃO: DESEJA REALMENTE EXCLUIR A DESPESA "${exp.description}"? ESTA AÇÃO É IRREVERSÍVEL.`)) {
+      onDelete(exp.id);
+    }
   };
 
   const resetForm = () => {
@@ -264,9 +272,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                   </td>
                   <td className="px-8 py-5 text-right">
                     <div className="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(e)} className="p-2 text-slate-400 hover:text-sky-500 transition-colors"><Pencil size={16}/></button>
-                      <button onClick={() => onUpdate({...e, status: ExpenseStatus.PAGO})} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircle2 size={16}/></button>
-                      <button onClick={() => onDelete(e.id)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
+                      <button onClick={() => handleEdit(e)} title="Editar" className="p-2 text-slate-400 hover:text-sky-500 transition-colors"><Pencil size={16}/></button>
+                      <button onClick={() => onUpdate({...e, status: ExpenseStatus.PAGO})} title="Marcar como Pago" className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircle2 size={16}/></button>
+                      <button onClick={() => handleDelete(e)} title="Excluir" className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
                     </div>
                   </td>
                 </tr>
