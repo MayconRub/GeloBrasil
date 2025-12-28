@@ -18,7 +18,8 @@ import {
   IdCard,
   HandCoins,
   Receipt,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 import { Employee, AppSettings, Expense, ExpenseStatus } from '../types';
 import { fetchSettings } from '../store';
@@ -53,6 +54,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
   const [salary, setSalary] = useState('');
   const [joinedAt, setJoinedAt] = useState(getTodayString());
   const [selectedForPrint, setSelectedForPrint] = useState<Employee | null>(null);
+  const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
 
   // Estados para o Modal de Pagamentos
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -79,6 +81,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
     setRole('');
     setSalary('');
     setJoinedAt(getTodayString());
+    setIsMobileFormOpen(false);
   };
 
   const handleEdit = (emp: Employee) => {
@@ -88,7 +91,13 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
       setRole(emp.role);
       setSalary(emp.salary?.toString() || '');
       setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // No mobile, abre o modal de edição
+      if (window.innerWidth < 1024) {
+        setIsMobileFormOpen(true);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
@@ -156,8 +165,89 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
     return `${months[now.getMonth()]} / ${now.getFullYear()}`;
   };
 
+  const renderForm = (isModal = false) => (
+    <form onSubmit={handleAddOrUpdate} className={`${isModal ? '' : 'bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-8'}`}>
+      <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em] mb-8 flex items-center gap-3 border-b border-slate-50 pb-4">
+        {editingId ? <Pencil className="text-sky-500" size={18} /> : <UserPlus className="text-sky-500" size={18} />}
+        {editingId ? 'Editar Cadastro' : 'Novo Colaborador'}
+      </h3>
+      
+      <div className="space-y-5">
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nome do Funcionário</label>
+          <input 
+            type="text" 
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="NOME COMPLETO"
+            className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-xs uppercase focus:ring-4 focus:ring-sky-50 transition-all"
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Cargo / Função</label>
+          <div className="relative">
+            <Briefcase size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+            <input 
+              type="text" 
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="EX: VENDEDOR"
+              className="w-full h-12 pl-10 pr-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-xs uppercase"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Salário Base</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">R$</span>
+              <input 
+                type="text" 
+                value={salary}
+                onChange={(e) => handleNumericChange(e.target.value, setSalary)}
+                placeholder="0,00"
+                className="w-full h-12 pl-10 pr-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-xs"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Admissão</label>
+            <input 
+              type="date" 
+              value={joinedAt}
+              onChange={(e) => setJoinedAt(e.target.value)}
+              className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-xs"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <button 
+            type="submit"
+            className="flex-1 h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-sky-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            {editingId ? <Save size={18} /> : <UserPlus size={18} />}
+            {editingId ? 'Atualizar' : 'Contratar'}
+          </button>
+          {(editingId || isModal) && (
+            <button type="button" onClick={resetForm} className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all">
+              <X size={20} />
+            </button>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+
   return (
-    <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-24 lg:pb-8">
       
       {/* Header Profissional com Stats */}
       <header className="flex flex-col lg:flex-row items-center justify-between gap-6 no-print">
@@ -173,29 +263,37 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          {/* Botão Contratar exclusivo Mobile */}
+          <button 
+            onClick={() => setIsMobileFormOpen(true)}
+            className="lg:hidden bg-sky-500 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-sky-600 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Plus size={18} /> Contratar
+          </button>
+
           <button 
             onClick={() => setIsPaymentModalOpen(true)}
             className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2"
           >
-            <HandCoins size={18} /> Lançar Proventos
+            <HandCoins size={18} /> <span className="hidden sm:inline">Lançar Proventos</span> <span className="sm:hidden">Proventos</span>
           </button>
 
-          <div className="bg-white px-6 py-3 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="hidden sm:flex bg-white px-6 py-3 rounded-3xl border border-slate-100 shadow-sm items-center gap-4">
             <div className="w-10 h-10 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center">
               <Users size={20} />
             </div>
             <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TOTAL TIME</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TIME</p>
               <h4 className="text-xl font-black text-slate-800">{stats.count}</h4>
             </div>
           </div>
-          <div className="bg-white px-6 py-3 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="hidden sm:flex bg-white px-6 py-3 rounded-3xl border border-slate-100 shadow-sm items-center gap-4">
             <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center">
               <Wallet size={20} />
             </div>
             <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">FOLHA MENSAL</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">FOLHA</p>
               <h4 className="text-xl font-black text-slate-800">{formatBRL(stats.totalSalary)}</h4>
             </div>
           </div>
@@ -204,86 +302,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 no-print">
         
-        {/* Formulário lateral */}
-        <div className="lg:col-span-4">
-          <form onSubmit={handleAddOrUpdate} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-8">
-            <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em] mb-8 flex items-center gap-3 border-b border-slate-50 pb-4">
-              {editingId ? <Pencil className="text-sky-500" size={18} /> : <UserPlus className="text-sky-500" size={18} />}
-              {editingId ? 'Editar Cadastro' : 'Novo Colaborador'}
-            </h3>
-            
-            <div className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nome do Funcionário</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="NOME COMPLETO"
-                  className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-xs uppercase focus:ring-4 focus:ring-sky-50 transition-all"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Cargo / Função</label>
-                <div className="relative">
-                  <Briefcase size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input 
-                    type="text" 
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    placeholder="EX: VENDEDOR"
-                    className="w-full h-12 pl-10 pr-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-xs uppercase"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Salário Base</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">R$</span>
-                    <input 
-                      type="text" 
-                      value={salary}
-                      onChange={(e) => handleNumericChange(e.target.value, setSalary)}
-                      placeholder="0,00"
-                      className="w-full h-12 pl-10 pr-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-xs"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Admissão</label>
-                  <input 
-                    type="date" 
-                    value={joinedAt}
-                    onChange={(e) => setJoinedAt(e.target.value)}
-                    className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-xs"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button 
-                  type="submit"
-                  className="flex-1 h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-sky-600 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {editingId ? <Save size={18} /> : <UserPlus size={18} />}
-                  {editingId ? 'Atualizar' : 'Contratar'}
-                </button>
-                {editingId && (
-                  <button type="button" onClick={resetForm} className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all">
-                    <X size={20} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </form>
+        {/* Formulário lateral - Oculto no Mobile */}
+        <div className="hidden lg:block lg:col-span-4">
+          {renderForm()}
         </div>
 
         {/* Lista de Cards */}
@@ -315,7 +336,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-40 lg:opacity-20 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openPaymentForEmployee(emp)} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Lançar Pagamento/Vale"><HandCoins size={16} /></button>
                         <button onClick={() => handleEdit(emp)} className="p-2 text-slate-400 hover:text-sky-500 rounded-xl transition-all" title="Editar Colaborador"><Pencil size={16} /></button>
                         <button onClick={() => handleDelete(emp)} className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all" title="Excluir Colaborador"><Trash2 size={16} /></button>
@@ -350,6 +371,23 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
           </div>
         </div>
       </div>
+
+      {/* Modal Mobile para Novo Colaborador */}
+      {isMobileFormOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 lg:hidden">
+           <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
+              <button 
+                onClick={() => setIsMobileFormOpen(false)}
+                className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <div className="mt-4">
+                {renderForm(true)}
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* Modal de Lançamento de Pagamentos/Vales */}
       {isPaymentModalOpen && (
@@ -388,7 +426,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Tipo de Lançamento</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                      <span className="hidden sm:inline">Tipo de </span>Lançamento
+                    </label>
                     <select 
                       value={paymentType}
                       onChange={(e) => setPaymentType(e.target.value as any)}
@@ -433,7 +473,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
                     type="submit"
                     className="w-full h-16 bg-slate-900 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 active:scale-95 border-b-4 border-slate-950 hover:border-emerald-800"
                   >
-                    <CheckCircle2 size={20} /> Confirmar Lançamento Financeiro
+                    <CheckCircle2 size={20} /> 
+                    <span className="hidden sm:inline">Confirmar Lançamento Financeiro</span>
+                    <span className="sm:hidden">Confirmar Lançamento</span>
                   </button>
                   <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-6 flex items-center justify-center gap-2">
                     <Receipt size={10} /> Este lançamento será sincronizado com o fluxo de despesas

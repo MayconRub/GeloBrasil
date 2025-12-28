@@ -21,7 +21,8 @@ import {
   BarChart3,
   Printer,
   History,
-  Award
+  Award,
+  X
 } from 'lucide-react';
 import { Sale, AppSettings, MonthlyGoal } from '../types';
 
@@ -47,6 +48,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
@@ -116,7 +118,12 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
       setValue(sale.value.toString());
       setDate(sale.date);
       setShowReport(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      if (window.innerWidth < 768) {
+        setIsMobileFormOpen(true);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
@@ -131,6 +138,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
     setDescription('Venda de Gelo'); 
     setValue(''); 
     setDate(getTodayString());
+    setIsMobileFormOpen(false);
   };
 
   const filteredSales = useMemo(() => {
@@ -171,15 +179,75 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
     return report.sort((a, b) => a.week.localeCompare(b.week));
   }, [filteredSales]);
 
+  const renderForm = (isModal = false) => (
+    <form onSubmit={handleAdd} className={`${isModal ? 'space-y-6' : 'hidden md:grid bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 grid-cols-12 gap-4 items-end no-print'}`}>
+      <div className={`${isModal ? 'space-y-4' : 'md:col-span-4'} space-y-1.5`}>
+        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Descrição da Venda</label>
+        <input 
+          type="text" 
+          placeholder="Ex: Faturamento Diário" 
+          value={description} 
+          onChange={e => setDescription(e.target.value)} 
+          className="w-full h-14 sm:h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-sky-50 outline-none transition-all uppercase" 
+          required 
+        />
+      </div>
+      <div className={`${isModal ? 'space-y-4' : 'md:col-span-3'} space-y-1.5`}>
+        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Valor Total</label>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">R$</span>
+          <input 
+            type="text" 
+            placeholder="0,00" 
+            value={value} 
+            onChange={e => handleValueChange(e.target.value)} 
+            className="w-full h-14 sm:h-12 pl-10 pr-5 bg-slate-50 border border-slate-100 rounded-2xl text-base sm:text-sm font-black focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
+            required 
+          />
+        </div>
+      </div>
+      <div className={`${isModal ? 'space-y-4' : 'md:col-span-3'} space-y-1.5`}>
+        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data da Venda</label>
+        <input 
+          type="date" 
+          value={date} 
+          onChange={e => setDate(e.target.value)} 
+          className="w-full h-14 sm:h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm sm:text-xs font-bold focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
+          required 
+        />
+      </div>
+      <div className={`${isModal ? 'pt-4' : 'md:col-span-2'}`}>
+        <button type="submit" className="w-full h-14 sm:h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-sky-600 transition-all text-[11px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
+          {editingId ? <Pencil size={18} /> : <Plus size={18} />} {editingId ? 'Atualizar' : 'Lançar'}
+        </button>
+        {isModal && (
+          <button type="button" onClick={resetForm} className="w-full mt-3 h-12 bg-slate-100 text-slate-400 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
+            Cancelar
+          </button>
+        )}
+      </div>
+    </form>
+  );
+
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
       
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-        <div className="flex flex-col">
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none">Fluxo <span className="text-sky-500">Vendas</span></h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-            <LayoutList size={14} className="text-sky-500" /> {showReport ? 'Relatório Analítico Semanal' : 'Lançamentos de Receita'} {monthName}
-          </p>
+        <div className="flex items-center justify-between w-full lg:w-auto">
+          <div className="flex flex-col">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none">Fluxo <span className="text-sky-500">Vendas</span></h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+              <LayoutList size={14} className="text-sky-500" /> {showReport ? 'Relatório Analítico Semanal' : 'Lançamentos de Receita'} {monthName}
+            </p>
+          </div>
+
+          {/* Botão de Ação Rápida Mobile */}
+          <button 
+            onClick={() => setIsMobileFormOpen(true)}
+            className="md:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"
+          >
+            <Plus size={24} />
+          </button>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 no-print">
@@ -203,7 +271,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
 
       {!showReport ? (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
+          {/* Grid de Metas Oculta no Mobile */}
+          <div className="hidden lg:grid grid-cols-3 gap-6 no-print">
             <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
@@ -266,48 +335,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
             </div>
           </div>
 
-          <form onSubmit={handleAdd} className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end no-print">
-            <div className="md:col-span-4 space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Descrição da Venda</label>
-              <input 
-                type="text" 
-                placeholder="Ex: Faturamento Diário" 
-                value={description} 
-                onChange={e => setDescription(e.target.value)} 
-                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-sky-50 outline-none transition-all uppercase" 
-                required 
-              />
-            </div>
-            <div className="md:col-span-3 space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Valor Total</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">R$</span>
-                <input 
-                  type="text" 
-                  placeholder="0,00" 
-                  value={value} 
-                  onChange={e => handleValueChange(e.target.value)} 
-                  className="w-full h-12 pl-10 pr-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
-                  required 
-                />
-              </div>
-            </div>
-            <div className="md:col-span-3 space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data da Venda</label>
-              <input 
-                type="date" 
-                value={date} 
-                onChange={e => setDate(e.target.value)} 
-                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
-                required 
-              />
-            </div>
-            <div className="md:col-span-2">
-              <button type="submit" className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-sky-600 transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
-                {editingId ? <Pencil size={16} /> : <Plus size={16} />} {editingId ? 'Atualizar' : 'Lançar'}
-              </button>
-            </div>
-          </form>
+          {/* Input de Lançamento - Desktop Only */}
+          {renderForm()}
 
           {/* Listagem Responsiva */}
           <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden no-print">
@@ -328,29 +357,29 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                  <div key={sale.id} className="p-5 space-y-3 group active:bg-sky-50/50 transition-all">
                     <div className="flex justify-between items-start">
                        <div className="flex flex-col">
-                          <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{sale.description}</span>
-                          <span className="text-[9px] font-bold text-slate-400 mt-1 flex items-center gap-1 uppercase">
-                             <Clock size={10} /> {new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          <span className="text-[13px] font-black text-slate-800 uppercase tracking-tight">{sale.description}</span>
+                          <span className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1 uppercase">
+                             <Clock size={12} /> {new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                           </span>
                        </div>
                        <div className="flex gap-2">
-                          <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-sky-500 rounded-xl bg-slate-50 border border-slate-100 transition-all"><Pencil size={14} /></button>
-                          <button onClick={() => handleDelete(sale)} className="p-2 text-rose-300 hover:text-rose-500 rounded-xl bg-rose-50/50 border border-rose-100 transition-all"><Trash2 size={14} /></button>
+                          <button onClick={() => handleEdit(sale)} className="p-3 text-slate-400 hover:text-sky-500 rounded-xl bg-slate-50 border border-slate-100 transition-all"><Pencil size={18} /></button>
+                          <button onClick={() => handleDelete(sale)} className="p-3 text-rose-300 hover:text-rose-500 rounded-xl bg-rose-50/50 border border-rose-100 transition-all"><Trash2 size={18} /></button>
                        </div>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">TOTAL</span>
-                       <span className="text-base font-black text-emerald-600 flex items-center gap-1">
-                          <ArrowUpRight size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FATURAMENTO</span>
+                       <span className="text-xl font-black text-emerald-600 flex items-center gap-1">
+                          <ArrowUpRight size={16} />
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.value)}
                        </span>
                     </div>
                  </div>
                ))}
                {filteredSales.length === 0 && (
-                  <div className="py-20 text-center text-slate-300 italic flex flex-col items-center">
-                    <History size={48} className="opacity-20 mb-4" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">Nenhum lançamento</p>
+                  <div className="py-24 text-center text-slate-300 italic flex flex-col items-center">
+                    <History size={60} className="opacity-20 mb-4" />
+                    <p className="text-[11px] font-black uppercase tracking-widest">Nenhum histórico encontrado</p>
                   </div>
                )}
             </div>
@@ -485,6 +514,34 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                Este relatório semanal é atualizado em tempo real. O ícone <Award size={10} className="inline inline-block text-emerald-500" /> destaca a semana com o maior faturamento bruto do mês selecionado. Use estes dados para identificar sazonalidades e períodos de maior demanda em sua operação.
              </p>
           </div>
+        </div>
+      )}
+
+      {/* Modal Mobile para Novo Lançamento */}
+      {isMobileFormOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 md:hidden">
+           <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
+              <button 
+                onClick={() => setIsMobileFormOpen(false)}
+                className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <X size={24} />
+              </button>
+              
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 bg-sky-50 text-sky-500 rounded-2xl flex items-center justify-center">
+                  <DollarSign size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 tracking-tighter uppercase leading-none">Lançar Venda</h3>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Fluxo de Receita Mobile</p>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {renderForm(true)}
+              </div>
+           </div>
         </div>
       )}
     </div>

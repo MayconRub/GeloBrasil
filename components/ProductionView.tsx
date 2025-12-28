@@ -16,7 +16,8 @@ import {
   RotateCcw,
   Calendar,
   Trophy,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 import { Production, AppSettings, MonthlyGoal } from '../types';
 
@@ -44,6 +45,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
   const [date, setDate] = useState(getTodayString());
   const [observation, setObservation] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
   
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
@@ -95,11 +97,24 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
   };
 
   const handleEdit = (p: Production) => {
-    setEditingId(p.id);
-    setQuantity(p.quantityKg.toString());
-    setDate(p.date);
-    setObservation(p.observation || '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (confirm(`DESEJA EDITAR O REGISTRO DE PRODUÇÃO DE ${p.quantityKg} KG?`)) {
+      setEditingId(p.id);
+      setQuantity(p.quantityKg.toString());
+      setDate(p.date);
+      setObservation(p.observation || '');
+      
+      if (window.innerWidth < 1024) {
+        setIsMobileFormOpen(true);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleDelete = (p: Production) => {
+    if (confirm(`ATENÇÃO: DESEJA EXCLUIR ESTE REGISTRO DE PRODUÇÃO?`)) {
+      onDelete(p.id);
+    }
   };
 
   const resetForm = () => {
@@ -107,6 +122,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
     setQuantity('');
     setDate(getTodayString());
     setObservation('');
+    setIsMobileFormOpen(false);
   };
 
   const filteredProduction = useMemo(() => {
@@ -119,15 +135,77 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
   const totalProduced = useMemo(() => filteredProduction.reduce((sum, p) => sum + p.quantityKg, 0), [filteredProduction]);
   const progressPercent = Math.min(100, currentGoalValue > 0 ? (totalProduced / currentGoalValue) * 100 : 0);
 
+  const renderForm = (isModal = false) => (
+    <form onSubmit={handleAdd} className={`${isModal ? '' : 'bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24 lg:top-8'}`}>
+      <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3 uppercase text-[10px] tracking-[0.2em] border-b border-slate-100 pb-4 leading-none">
+        <Plus className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Lançar Produção'}
+      </h3>
+      <div className="space-y-5">
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Quantidade (KG)</label>
+          <input 
+            type="number" 
+            value={quantity} 
+            onChange={e => setQuantity(e.target.value)} 
+            className="w-full h-14 sm:h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-2xl sm:text-xl focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
+            required 
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data do Lote</label>
+          <input 
+            type="date" 
+            value={date} 
+            onChange={e => setDate(e.target.value)} 
+            className="w-full h-14 sm:h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm sm:text-xs" 
+            required 
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Notas/Lote</label>
+          <textarea 
+            value={observation} 
+            onChange={e => setObservation(e.target.value)} 
+            placeholder="Ex: Turno da manhã..."
+            className="w-full h-24 sm:h-20 p-5 bg-slate-50 border border-slate-200 rounded-2xl resize-none text-sm font-bold placeholder:text-slate-300 uppercase"
+          />
+        </div>
+        <div className="flex gap-3">
+          <button 
+            type="submit" 
+            className="flex-1 h-14 sm:h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-sky-600 transition-all shadow-xl uppercase text-[10px] tracking-widest active:scale-95"
+          >
+            {editingId ? 'Atualizar' : 'Salvar'}
+          </button>
+          {(editingId || isModal) && (
+            <button type="button" onClick={resetForm} className="w-14 sm:w-12 h-14 sm:h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all">
+              {isModal ? <X size={20} /> : <RotateCcw size={18} />}
+            </button>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
       
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none flex items-center gap-3">
-            <Snowflake className="text-sky-500" size={32} /> Produção
-          </h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Gestão de Fabricação e Metas</p>
+        <div className="flex items-center justify-between w-full lg:w-auto">
+          <div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none flex items-center gap-3">
+              <Snowflake className="text-sky-500" size={32} /> Produção
+            </h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Gestão de Fabricação e Metas</p>
+          </div>
+          
+          {/* Botão de Ação Rápida Mobile */}
+          <button 
+            onClick={() => setIsMobileFormOpen(true)}
+            className="lg:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"
+          >
+            <Plus size={24} />
+          </button>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 no-print">
@@ -152,7 +230,8 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
+      {/* Grid de Metas Oculta no Mobile */}
+      <div className="hidden lg:grid grid-cols-3 gap-6 no-print">
         <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner">
@@ -213,56 +292,9 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 no-print">
-          <form onSubmit={handleAdd} className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24 lg:top-8">
-            <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3 uppercase text-[10px] tracking-[0.2em] border-b border-slate-100 pb-4 leading-none">
-              <Plus className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Lançar Produção'}
-            </h3>
-            <div className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Quantidade (KG)</label>
-                <input 
-                  type="number" 
-                  value={quantity} 
-                  onChange={e => setQuantity(e.target.value)} 
-                  className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-xl focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
-                  required 
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data do Lote</label>
-                <input 
-                  type="date" 
-                  value={date} 
-                  onChange={e => setDate(e.target.value)} 
-                  className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs" 
-                  required 
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Notas/Lote</label>
-                <textarea 
-                  value={observation} 
-                  onChange={e => setObservation(e.target.value)} 
-                  placeholder="Ex: Turno da manhã..."
-                  className="w-full h-20 p-5 bg-slate-50 border border-slate-200 rounded-2xl resize-none text-sm font-bold placeholder:text-slate-300"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button 
-                  type="submit" 
-                  className="flex-1 h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-sky-600 transition-all shadow-xl uppercase text-[10px] tracking-widest active:scale-95"
-                >
-                  {editingId ? 'Atualizar' : 'Salvar'}
-                </button>
-                {editingId && (
-                  <button type="button" onClick={resetForm} className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all">
-                    <RotateCcw size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </form>
+        {/* Formulário lateral oculto no Mobile */}
+        <div className="hidden lg:block lg:col-span-1 no-print">
+          {renderForm()}
         </div>
 
         <div className="lg:col-span-2">
@@ -274,33 +306,33 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
                  <div key={p.id} className="p-5 flex flex-col gap-4 active:bg-sky-50/20 transition-all">
                     <div className="flex items-center justify-between">
                        <div>
-                          <div className="text-lg font-black text-slate-800">
-                            {p.quantityKg.toLocaleString('pt-BR')} <span className="text-[10px] font-black text-sky-400 uppercase">KG</span>
+                          <div className="text-xl font-black text-slate-800">
+                            {p.quantityKg.toLocaleString('pt-BR')} <span className="text-[11px] font-black text-sky-400 uppercase tracking-widest">KG</span>
                           </div>
-                          <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                             <Clock size={10} /> {new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                             <Clock size={12} /> {new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                           </div>
                        </div>
                        <div className="flex gap-2">
-                         <button onClick={() => handleEdit(p)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl">
-                            <Pencil size={16} />
+                         <button onClick={() => handleEdit(p)} className="p-3 bg-slate-50 text-slate-400 rounded-xl border border-slate-100">
+                            <Pencil size={18} />
                          </button>
-                         <button onClick={() => onDelete(p.id)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl">
-                            <Trash2 size={16} />
+                         <button onClick={() => handleDelete(p)} className="p-3 bg-rose-50 text-rose-400 rounded-xl border border-rose-100">
+                            <Trash2 size={18} />
                          </button>
                        </div>
                     </div>
                     {p.observation && (
-                      <p className="text-[10px] font-bold text-slate-400 italic px-3 py-2 bg-slate-50 rounded-xl">
+                      <p className="text-[11px] font-bold text-slate-400 italic px-4 py-3 bg-slate-50 rounded-2xl uppercase">
                         {p.observation}
                       </p>
                     )}
                  </div>
                ))}
                {filteredProduction.length === 0 && (
-                 <div className="py-20 text-center opacity-20 flex flex-col items-center">
-                    <Snowflake size={32} className="mb-2" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">Sem registros</p>
+                 <div className="py-24 text-center opacity-20 flex flex-col items-center">
+                    <Snowflake size={48} className="mb-4" />
+                    <p className="text-[11px] font-black uppercase tracking-widest">Sem registros no período</p>
                  </div>
                )}
             </div>
@@ -335,7 +367,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
                           <button onClick={() => handleEdit(p)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => onDelete(p.id)} className="p-2.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
+                          <button onClick={() => handleDelete(p)} className="p-2.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -348,6 +380,23 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
           </div>
         </div>
       </div>
+
+      {/* Modal Mobile para Novo Lançamento */}
+      {isMobileFormOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 lg:hidden">
+           <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
+              <button 
+                onClick={() => setIsMobileFormOpen(false)}
+                className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <div className="mt-4">
+                {renderForm(true)}
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
