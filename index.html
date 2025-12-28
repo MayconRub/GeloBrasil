@@ -8,55 +8,74 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --ice-primary: #0ea5e9;
+            --ice-bg: #f0f9ff;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(14, 165, 233, 0.2);
+        }
+
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            color: #1e3a8a;
+            background: var(--ice-bg);
+            color: #1e293b;
             overflow-x: hidden;
             min-height: 100vh;
         }
 
-        /* Efeito de Vidro Fosco (Ice Glass) */
-        .ice-glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px 0 rgba(14, 165, 233, 0.05);
+        /* Fundo Light Glacial */
+        .light-dashboard {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%);
+            min-height: 100vh;
         }
 
-        .ice-card-blue {
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-            box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.3);
+        /* Glassmorphism Claro */
+        .ice-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(14, 165, 233, 0.08);
+            border-radius: 2rem;
+            transition: all 0.3s ease;
         }
 
-        .ice-card-teal {
-            background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%);
-            box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.3);
+        .ice-card:hover {
+            border-color: rgba(14, 165, 233, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px 0 rgba(14, 165, 233, 0.12);
         }
 
-        /* Scrollbar Glacial */
+        .ice-text-glow {
+            color: var(--ice-primary);
+            text-shadow: 0 0 10px rgba(14, 165, 233, 0.2);
+        }
+
+        .ice-progress-bar {
+            background: rgba(14, 165, 233, 0.1);
+            border-radius: 1rem;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .ice-progress-fill {
+            background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+        }
+
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #7dd3fc; }
+
+        @keyframes pulse-ice {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        .animate-ice { animation: pulse-ice 3s infinite ease-in-out; }
 
         @media print {
-            @page {
-                size: A4;
-                margin: 1cm;
-            }
             .no-print { display: none !important; }
-            body { 
-                background: white !important; 
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-            .print-compact {
-                padding: 1rem !important;
-                margin-bottom: 0.5rem !important;
-                border-radius: 0.5rem !important;
-            }
+            body { background: white !important; color: black !important; }
         }
     </style>
 <script type="importmap">

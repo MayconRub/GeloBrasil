@@ -1,35 +1,17 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  Plus, 
-  Trash2, 
-  Search, 
-  Pencil, 
-  ChevronLeft, 
-  ChevronRight, 
-  CheckCircle2,
-  ArrowDownLeft,
-  Filter,
-  Receipt,
-  Clock,
-  LayoutList,
-  Check,
-  Settings,
-  X,
-  Tag,
-  Truck,
-  UserCircle,
-  Gauge,
-  GripVertical,
-  User
+  Plus, Trash2, Search, Pencil, ChevronLeft, ChevronRight, CheckCircle2,
+  Receipt, Clock, X, Car, User, Filter, ArrowDown, Wallet
 } from 'lucide-react';
-import { Expense, ExpenseStatus, Vehicle, Employee } from '../types';
+import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
 interface Props {
   expenses: Expense[];
   categories: string[];
   vehicles: Vehicle[];
   employees: Employee[];
+  sales: Sale[];
   onUpdate: (expense: Expense) => void;
   onDelete: (id: string) => void;
   onUpdateCategories: (categoryName: string) => void;
@@ -37,7 +19,7 @@ interface Props {
   onReorderCategories?: (orderedNames: string[]) => void;
 }
 
-const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employees, onUpdate, onDelete, onUpdateCategories, onDeleteCategory, onReorderCategories }) => {
+const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employees, sales, onUpdate, onDelete }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -47,174 +29,22 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
-  
-  const filteredCategoryOptions = useMemo(() => {
-    return categories.filter(cat => 
-      !cat.toLowerCase().includes('combustível') && 
-      !cat.toLowerCase().includes('combustivel')
-    );
-  }, [categories]);
-
-  const [category, setCategory] = useState(filteredCategoryOptions[0] || 'Geral');
-  const [vehicleId, setVehicleId] = useState<string>('');
-  const [employeeId, setEmployeeId] = useState<string>('');
-  const [kmReading, setKmReading] = useState('');
+  const [category, setCategory] = useState('GERAL');
+  const [vehicleId, setVehicleId] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const [isManagingCategories, setIsManagingCategories] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  
-  const [localCategories, setLocalCategories] = useState<string[]>(categories);
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    setLocalCategories(categories);
-  }, [categories]);
-
-  useEffect(() => {
-    if (!editingId && (category.toLowerCase().includes('combustível') || category.toLowerCase().includes('combustivel'))) {
-      if (filteredCategoryOptions.length > 0) {
-        setCategory(filteredCategoryOptions[0]);
-      }
-    }
-  }, [filteredCategoryOptions, editingId]);
-
-  const prevCategoryRef = useRef(category);
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const isFuelCategory = category.toLowerCase().includes('combustível') || category.toLowerCase().includes('combustivel');
-  const isMaintenanceCategory = category.toLowerCase().includes('manutenção') || category.toLowerCase().includes('manutencao');
-  const showVehicleField = isFuelCategory || isMaintenanceCategory;
-  const isPayrollCategory = category.toLowerCase().includes('vale') || category.toLowerCase().includes('adiantamento');
-
-  const shouldShowDescription = !isFuelCategory;
-  const shouldShowEmployeeSelect = isFuelCategory || isPayrollCategory;
-
-  useEffect(() => {
-    if (!editingId) {
-      if (prevCategoryRef.current !== category) {
-        if (isFuelCategory) {
-          setDescription('Abastecimento');
-        } else if (isPayrollCategory) {
-          setDescription('Vale/Adiantamento');
-        } else {
-          setDescription('');
-        }
-      }
-    }
-    prevCategoryRef.current = category;
-  }, [category, isFuelCategory, isPayrollCategory, editingId]);
-
-  const handleValueChange = (val: string) => {
-    const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
-    setValue(sanitized);
-  };
-
-  const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  const handleResetMonth = () => setSelectedDate(new Date());
-
-  const handleMarkAsPaid = (expense: Expense) => {
-    onUpdate({ ...expense, status: ExpenseStatus.PAGO });
-  };
-
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    const numericValue = parseFloat(value);
-    const numericKm = kmReading ? parseFloat(kmReading) : undefined;
-
-    if (!description && shouldShowDescription) {
-      alert("Por favor, preencha a descrição.");
-      return;
-    }
-
-    if (isNaN(numericValue) || !dueDate) {
-      alert("Por favor, preencha valor e data.");
-      return;
-    }
-    
-    if (showVehicleField && !vehicleId) {
-      alert("⚠️ Seleção de veículo é obrigatória.");
-      return;
-    }
-
-    const today = getTodayString();
-    const status = editingId 
-      ? expenses.find(x => x.id === editingId)?.status || (dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER)
-      : (dueDate < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER);
-
-    onUpdate({ 
-      id: editingId || crypto.randomUUID(), 
-      description: isFuelCategory ? 'Abastecimento' : description, 
-      value: numericValue, 
-      dueDate, 
-      status, 
-      category,
-      vehicleId: vehicleId || undefined,
-      employeeId: employeeId || undefined,
-      kmReading: numericKm
-    });
-    
-    resetForm();
-  };
-
-  const handleCreateCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCategoryName.trim()) return;
-    onUpdateCategories(newCategoryName.trim());
-    setNewCategoryName('');
-  };
-
-  const handleEdit = (expense: Expense) => {
-    setEditingId(expense.id);
-    setDescription(expense.description);
-    setValue(expense.value.toString());
-    setDueDate(expense.dueDate);
-    setCategory(expense.category);
-    setVehicleId(expense.vehicleId || '');
-    setEmployeeId(expense.employeeId || '');
-    setKmReading(expense.kmReading?.toString() || '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const resetForm = () => {
-    setEditingId(null); 
-    setDescription(''); 
-    setValue(''); 
-    setDueDate(getTodayString()); 
-    setCategory(filteredCategoryOptions[0] || 'Geral');
-    setVehicleId('');
-    setEmployeeId('');
-    setKmReading('');
-  };
-
-  const onDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedItemIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index.toString());
-  };
-
-  const onDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedItemIndex === null || draggedItemIndex === index) return;
-    const newList = [...localCategories];
-    const draggedItem = newList[draggedItemIndex];
-    newList.splice(draggedItemIndex, 1);
-    newList.splice(index, 0, draggedItem);
-    setDraggedItemIndex(index);
-    setLocalCategories(newList);
-  };
-
-  const onDragEnd = () => {
-    if (onReorderCategories) {
-      onReorderCategories(localCategories);
-    }
-    setDraggedItemIndex(null);
-  };
+  const monthTotalExpenses = useMemo(() => {
+    return expenses.filter(e => {
+      const d = new Date(e.dueDate + 'T00:00:00');
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).reduce((sum, e) => sum + e.value, 0);
+  }, [expenses, currentMonth, currentYear]);
 
   const filteredExpenses = useMemo(() => {
     return expenses
@@ -223,276 +53,251 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear && 
                (e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase()));
       })
-      .sort((a, b) => new Date(a.dueDate + 'T00:00:00').getTime() - new Date(b.dueDate + 'T00:00:00').getTime());
+      .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
   }, [expenses, currentMonth, currentYear, searchTerm]);
 
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    const numVal = parseFloat(value.replace(',', '.'));
+    if (!description || isNaN(numVal)) return;
+
+    onUpdate({
+      id: editingId || crypto.randomUUID(),
+      description: description.toUpperCase(),
+      value: numVal,
+      dueDate,
+      status: editingId ? (expenses.find(x => x.id === editingId)?.status || ExpenseStatus.A_VENCER) : ExpenseStatus.A_VENCER,
+      category: category.toUpperCase(),
+      vehicleId: vehicleId || undefined,
+      employeeId: employeeId || undefined
+    });
+    resetForm();
+  };
+
+  const handleEdit = (exp: Expense) => {
+    setEditingId(exp.id);
+    setDescription(exp.description);
+    setValue(exp.value.toString());
+    setDueDate(exp.dueDate);
+    setCategory(exp.category);
+    setVehicleId(exp.vehicleId || '');
+    setEmployeeId(exp.employeeId || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setDescription('');
+    setValue('');
+    setDueDate(getTodayString());
+    setCategory('GERAL');
+    setVehicleId('');
+    setEmployeeId('');
+  };
+
+  const getVehiclePlate = (id?: string) => vehicles.find(v => v.id === id)?.placa;
+  const getEmployeeName = (id?: string) => employees.find(e => e.id === id)?.name;
+
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 uppercase">
+    <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
       
-      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none">Fluxo <span className="text-rose-500">Despesas</span></h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-            <LayoutList size={14} className="text-rose-500" /> Planilha de Contas {monthName}
+      {/* Top Header conforme imagem */}
+      <header className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-black text-[#1e293b] tracking-tighter uppercase flex items-center gap-2">
+            FLUXO <span className="text-[#f43f5e]">DESPESAS</span>
+          </h1>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+            PLANILHA DE CONTAS {monthName.toUpperCase()}
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="glass-card px-5 sm:px-6 py-3 rounded-2xl flex items-center gap-4 border-white bg-white/50 shadow-sm border">
-             <div className="bg-rose-50 p-2 rounded-xl text-rose-500">
-               <ArrowDownLeft size={20} />
-             </div>
-             <div>
-               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Saída Total</p>
-               <p className="text-lg sm:text-xl font-black text-slate-800 leading-none">
-                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(filteredExpenses.reduce((sum, e) => sum + e.value, 0))}
-               </p>
-             </div>
+        <div className="flex items-center gap-4">
+          <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center">
+              <ArrowDown size={20} />
+            </div>
+            <div>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SAÍDA TOTAL</p>
+              <h4 className="text-xl font-black text-slate-800">R$ {monthTotalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+            </div>
           </div>
-          <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <button onClick={handlePrevMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronLeft size={18} /></button>
-            <button onClick={handleResetMonth} className="flex-[3] sm:flex-none px-4 py-1 flex flex-col items-center justify-center hover:bg-slate-50 rounded-xl transition-all min-w-[130px]">
-              <span className="text-[10px] font-black text-slate-800 capitalize text-center">{monthName}</span>
-            </button>
-            <button onClick={handleNextMonth} className="flex-1 sm:flex-none p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90"><ChevronRight size={18} /></button>
+
+          <div className="flex bg-white p-1 border border-slate-100 rounded-2xl shadow-sm">
+            <button onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, 1))} className="p-2.5 text-slate-400 hover:text-sky-500"><ChevronLeft size={18} /></button>
+            <div className="px-4 py-2 flex items-center font-black text-[10px] text-slate-700 uppercase min-w-[140px] justify-center">
+              {monthName}
+            </div>
+            <button onClick={() => setSelectedDate(new Date(currentYear, currentMonth + 1, 1))} className="p-2.5 text-slate-400 hover:text-sky-500"><ChevronRight size={18} /></button>
           </div>
         </div>
       </header>
 
-      {isManagingCategories && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsManagingCategories(false)}></div>
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300 p-8 border border-slate-100">
-             <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                    <Tag size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-800 leading-none uppercase">Categorias</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gerenciar Ordem e Grupos</p>
-                  </div>
-                </div>
-                <button onClick={() => setIsManagingCategories(false)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-colors">
-                  <X size={20} />
-                </button>
-             </div>
-
-             <form onSubmit={handleCreateCategory} className="flex gap-2 mb-6">
-                <input 
-                  type="text" 
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value.toUpperCase())}
-                  placeholder="Nova categoria..."
-                  className="flex-1 h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none focus:ring-4 focus:ring-indigo-50 transition-all uppercase"
-                />
-                <button type="submit" className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all active:scale-90">
-                  <Plus size={20} />
-                </button>
-             </form>
-
-             <div className="space-y-2 max-h-80 overflow-y-auto pr-2 no-scrollbar">
-                {localCategories.map((cat, index) => (
-                  <div 
-                    key={cat} 
-                    draggable
-                    onDragStart={(e) => onDragStart(e, index)}
-                    onDragOver={(e) => onDragOver(e, index)}
-                    onDragEnd={onDragEnd}
-                    className={`flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100 group transition-all cursor-grab active:cursor-grabbing ${draggedItemIndex === index ? 'opacity-30 scale-95 border-indigo-200 bg-indigo-50' : 'hover:border-indigo-100 hover:bg-indigo-50/10'}`}
-                  >
-                    <div className="flex items-center gap-3">
-                       <GripVertical className="text-slate-300 group-hover:text-indigo-400 transition-colors" size={16} />
-                       <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{cat}</span>
-                    </div>
-                    <button 
-                      onClick={() => onDeleteCategory(cat)}
-                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-             </div>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleAdd} className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        
-        <div className={`space-y-1.5 md:col-span-2`}>
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest flex items-center justify-between">
-            Categoria
-            <button type="button" onClick={() => setIsManagingCategories(true)} className="text-rose-400 hover:text-rose-600 transition-colors p-1">
-              <Settings size={12} />
-            </button>
+      {/* Input de Lançamento Horizontal Estilo Imagem */}
+      <form onSubmit={handleAdd} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-wrap items-end gap-4 no-print">
+        <div className="flex-1 min-w-[140px] space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1">
+             CATEGORIA <Filter size={10} className="text-sky-400" />
           </label>
-          <div className="relative">
-            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none appearance-none">
-              {isFuelCategory && <option value={category}>{category}</option>}
-              {filteredCategoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
-               <Filter size={14} />
-            </div>
-          </div>
+          <select 
+            value={category} 
+            onChange={e => setCategory(e.target.value)}
+            className="w-full h-14 px-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-black text-[10px] text-sky-600 uppercase"
+          >
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
 
-        {shouldShowDescription && (
-          <div className={`space-y-1.5 md:col-span-3`}>
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Descrição da Conta</label>
+        <div className="flex-[2] min-w-[200px] space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">DESCRIÇÃO DA CONTA</label>
+          <input 
+            type="text" 
+            value={description} 
+            onChange={e => setDescription(e.target.value)} 
+            placeholder="EX: CONTA DE LUZ" 
+            className="w-full h-14 px-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-bold text-xs uppercase" 
+            required
+          />
+        </div>
+
+        <div className="flex-1 min-w-[120px] space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">VALOR</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">R$</span>
             <input 
               type="text" 
-              placeholder="Ex: Conta de Luz" 
-              value={description} 
-              onChange={e => setDescription(e.target.value.toUpperCase())} 
-              className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black focus:ring-4 outline-none transition-all focus:ring-rose-50 uppercase" 
-              required={shouldShowDescription}
+              value={value} 
+              onChange={e => setValue(e.target.value)} 
+              placeholder="0,00" 
+              className="w-full h-14 pl-10 pr-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-black text-xs" 
+              required
             />
           </div>
-        )}
-        
-        {shouldShowEmployeeSelect && (
-          <div className="md:col-span-3 space-y-1.5">
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest flex items-center gap-1.5">
-              <UserCircle size={10} className="text-indigo-500" /> Funcionário
-            </label>
-            <div className="relative">
-              <select 
-                value={employeeId} 
-                onChange={e => setEmployeeId(e.target.value)} 
-                className="w-full h-12 px-5 bg-indigo-50 border border-indigo-100 rounded-2xl text-[10px] font-black outline-none appearance-none text-indigo-900 shadow-sm"
-                required={shouldShowEmployeeSelect}
-              >
-                <option value="">Selecionar Funcionário...</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.name}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-300">
-                 <UserCircle size={14} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showVehicleField && (
-          <div className="md:col-span-2 space-y-1.5">
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest flex items-center gap-1.5">
-              <Truck size={10} className="text-sky-500" /> Veículo
-            </label>
-            <div className="relative">
-              <select 
-                value={vehicleId} 
-                onChange={e => setVehicleId(e.target.value)} 
-                className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none appearance-none"
-                required={showVehicleField}
-                disabled={isFuelCategory}
-              >
-                <option value="">Selecionar...</option>
-                {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.modelo} ({v.placa})</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
-                 <Truck size={14} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="md:col-span-2 space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor</label>
-          <input type="text" placeholder="R$ 0,00" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none" required />
         </div>
-        <div className="md:col-span-2 space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Vencimento</label>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black outline-none" required />
+
+        <div className="flex-1 min-w-[140px] space-y-1.5">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">VENCIMENTO</label>
+          <input 
+            type="date" 
+            value={dueDate} 
+            onChange={e => setDueDate(e.target.value)} 
+            className="w-full h-14 px-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-bold text-xs" 
+            required
+          />
         </div>
-        <div className="md:col-span-1">
-          <button type="submit" className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-600 transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
-            {editingId ? <Pencil size={16} /> : <Plus size={16} />}
+
+        <div className="w-14">
+          <button 
+            type="submit" 
+            className="w-full h-14 bg-[#0f172a] text-white rounded-2xl font-black shadow-lg hover:bg-sky-600 transition-all flex items-center justify-center active:scale-95"
+          >
+            {editingId ? <Pencil size={20} /> : <Plus size={24} />}
           </button>
+        </div>
+
+        {/* Vínculos Opcionais (Frota/Equipe) */}
+        <div className="w-full flex gap-4 mt-2">
+           <select 
+             value={vehicleId} 
+             onChange={e => setVehicleId(e.target.value)}
+             className="flex-1 h-10 px-4 bg-[#f8fafc] border border-slate-100 rounded-xl outline-none text-[9px] font-black text-slate-400 uppercase"
+           >
+             <option value="">VINCULAR VEÍCULO (OPCIONAL)</option>
+             {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa} - {v.modelo}</option>)}
+           </select>
+           <select 
+             value={employeeId} 
+             onChange={e => setEmployeeId(e.target.value)}
+             className="flex-1 h-10 px-4 bg-[#f8fafc] border border-slate-100 rounded-xl outline-none text-[9px] font-black text-slate-400 uppercase"
+           >
+             <option value="">VINCULAR FUNCIONÁRIO (OPCIONAL)</option>
+             {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+           </select>
+           {editingId && (
+            <button type="button" onClick={resetForm} className="h-10 px-6 bg-slate-100 text-slate-500 rounded-xl text-[9px] font-black uppercase">Cancelar</button>
+           )}
         </div>
       </form>
 
-      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-50 bg-slate-50/50">
-           <Search className="text-slate-300" size={20} />
-           <input type="text" placeholder="Buscar na planilha..." className="bg-transparent border-none outline-none text-[10px] w-full font-black uppercase" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+      {/* Listagem conforme imagem */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-6 border-b border-slate-50 flex items-center gap-4 bg-slate-50/30">
+           <Search size={20} className="text-slate-300" />
+           <input 
+             type="text" 
+             placeholder="BUSCAR NA PLANILHA..." 
+             value={searchTerm} 
+             onChange={e => setSearchTerm(e.target.value)} 
+             className="bg-transparent border-none outline-none text-[10px] font-black uppercase w-full placeholder:text-slate-300" 
+           />
         </div>
-
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left table-fixed">
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
             <thead>
-              <tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-100">
-                <th className="px-6 py-4 w-1/4">Descrição</th>
-                <th className="px-6 py-4 w-1/6">Categoria / Vínculo</th>
-                <th className="px-6 py-4 w-1/6">Valor</th>
-                <th className="px-6 py-4 w-1/6">Vencimento</th>
-                <th className="px-6 py-4 w-1/6">Status</th>
-                <th className="px-6 py-4 w-24 text-center">Ação</th>
+              <tr className="bg-slate-50/50 text-slate-400 text-[9px] font-black uppercase tracking-widest">
+                <th className="px-8 py-5">DESCRIÇÃO</th>
+                <th className="px-8 py-5">CATEGORIA / VÍNCULO</th>
+                <th className="px-8 py-5">VALOR</th>
+                <th className="px-8 py-5">VENCIMENTO</th>
+                <th className="px-8 py-5">STATUS</th>
+                <th className="px-8 py-5 text-right">AÇÃO</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredExpenses.map((e) => {
-                const vehicle = e.vehicleId ? vehicles.find(v => v.id === e.vehicleId) : null;
-                const employee = e.employeeId ? employees.find(emp => emp.id === e.employeeId) : null;
-                const isSystemFuel = e.category.toLowerCase().includes('combustível') || e.category.toLowerCase().includes('combustivel');
-                
-                return (
-                  <tr key={e.id} className="group hover:bg-rose-50/20 transition-all">
-                    <td className="px-6 py-4 truncate text-[11px] font-black text-slate-800 uppercase">{e.description}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className={`text-[8px] font-black px-2 py-1 rounded-md uppercase w-fit ${isSystemFuel ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
-                          {e.category}
-                        </span>
-                        {(vehicle || employee) && (
-                          <div className="flex flex-wrap gap-1">
-                            {vehicle && (
-                              <span className="text-[8px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100 flex items-center gap-1 uppercase">
-                                <Truck size={8} /> {vehicle.placa}
-                              </span>
-                            )}
-                            {employee && (
-                              <span className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1 uppercase">
-                                <User size={8} /> {employee.name.split(' ')[0]}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-[11px] font-black text-slate-900">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.value)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-400">
-                        <Clock size={12} /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border ${
-                        e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 border-emerald-500 text-white' : 
-                        e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 border-rose-500 text-white' : 
-                        'bg-white border-amber-200 text-amber-600'
-                      }`}>
-                        {e.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center gap-2 transition-all">
-                        {e.status !== ExpenseStatus.PAGO && (
-                          <button onClick={() => handleMarkAsPaid(e)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle2 size={14} /></button>
-                        )}
-                        <button onClick={() => handleEdit(e)} className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><Pencil size={14} /></button>
-                        <button onClick={() => onDelete(e.id)} className="p-1.5 text-rose-300 hover:text-rose-500 rounded-lg"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-slate-100">
+              {filteredExpenses.map(e => (
+                <tr key={e.id} className="group hover:bg-sky-50/20 transition-all">
+                  <td className="px-8 py-5">
+                    <span className="font-black text-[#1e293b] text-xs uppercase">{e.description}</span>
+                  </td>
+                  <td className="px-8 py-5 space-y-1">
+                    <span className="inline-block px-3 py-1 bg-sky-50 text-sky-600 rounded-lg text-[8px] font-black uppercase border border-sky-100">
+                      {e.category}
+                    </span>
+                    <div className="flex gap-1.5">
+                       {e.vehicleId && (
+                         <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-50 text-sky-500 rounded text-[7px] font-bold border border-slate-100">
+                           <Car size={10} /> {getVehiclePlate(e.vehicleId)}
+                         </div>
+                       )}
+                       {e.employeeId && (
+                         <div className="flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded text-[7px] font-bold border border-indigo-100">
+                           <User size={10} /> {getEmployeeName(e.employeeId)}
+                         </div>
+                       )}
+                    </div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <span className="font-black text-[#1e293b] text-sm">
+                      R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                      <Clock size={14} className="text-slate-300" /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <span className={`inline-block px-4 py-1.5 rounded-full text-[8px] font-black uppercase border ${e.status === ExpenseStatus.PAGO ? 'bg-[#10b981] border-[#10b981] text-white shadow-sm shadow-emerald-100' : e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 border-rose-500 text-white' : 'bg-amber-400 border-amber-400 text-white'}`}>
+                      {e.status}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEdit(e)} className="p-2 text-slate-400 hover:text-sky-500 transition-colors"><Pencil size={16}/></button>
+                      <button onClick={() => onUpdate({...e, status: ExpenseStatus.PAGO})} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircle2 size={16}/></button>
+                      <button onClick={() => onDelete(e.id)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredExpenses.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-20 text-center text-slate-300 italic text-xs uppercase font-black tracking-widest">
+                    Nenhum lançamento encontrado
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
