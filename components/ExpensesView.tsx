@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Plus, Trash2, Search, Pencil, ChevronLeft, ChevronRight, CheckCircle2,
-  Receipt, Clock, X, Car, User, Filter, ArrowDown, Wallet
+  Receipt, Clock, X, User, Filter, ArrowDown, Wallet
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
@@ -30,7 +30,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
   const [category, setCategory] = useState('GERAL');
-  const [vehicleId, setVehicleId] = useState('');
   const [employeeId, setEmployeeId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -68,7 +67,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       dueDate,
       status: editingId ? (expenses.find(x => x.id === editingId)?.status || ExpenseStatus.A_VENCER) : ExpenseStatus.A_VENCER,
       category: category.toUpperCase(),
-      vehicleId: vehicleId || undefined,
       employeeId: employeeId || undefined
     });
     resetForm();
@@ -80,7 +78,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setValue(exp.value.toString());
     setDueDate(exp.dueDate);
     setCategory(exp.category);
-    setVehicleId(exp.vehicleId || '');
     setEmployeeId(exp.employeeId || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -91,17 +88,15 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     setValue('');
     setDueDate(getTodayString());
     setCategory('GERAL');
-    setVehicleId('');
     setEmployeeId('');
   };
 
-  const getVehiclePlate = (id?: string) => vehicles.find(v => v.id === id)?.placa;
   const getEmployeeName = (id?: string) => employees.find(e => e.id === id)?.name;
 
   return (
     <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
       
-      {/* Top Header conforme imagem */}
+      {/* Top Header */}
       <header className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex flex-col">
           <h1 className="text-3xl font-black text-[#1e293b] tracking-tighter uppercase flex items-center gap-2">
@@ -133,7 +128,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
         </div>
       </header>
 
-      {/* Input de Lançamento Horizontal Estilo Imagem */}
+      {/* Input de Lançamento Horizontal */}
       <form onSubmit={handleAdd} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-wrap items-end gap-4 no-print">
         <div className="flex-1 min-w-[140px] space-y-1.5">
           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1">
@@ -195,37 +190,29 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           </button>
         </div>
 
-        {/* Vínculos Opcionais (Frota/Equipe) */}
+        {/* Vínculo de Funcionário Opcional */}
         <div className="w-full flex gap-4 mt-2">
-           <select 
-             value={vehicleId} 
-             onChange={e => setVehicleId(e.target.value)}
-             className="flex-1 h-10 px-4 bg-[#f8fafc] border border-slate-100 rounded-xl outline-none text-[9px] font-black text-slate-400 uppercase"
-           >
-             <option value="">VINCULAR VEÍCULO (OPCIONAL)</option>
-             {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa} - {v.modelo}</option>)}
-           </select>
            <select 
              value={employeeId} 
              onChange={e => setEmployeeId(e.target.value)}
              className="flex-1 h-10 px-4 bg-[#f8fafc] border border-slate-100 rounded-xl outline-none text-[9px] font-black text-slate-400 uppercase"
            >
-             <option value="">VINCULAR FUNCIONÁRIO (OPCIONAL)</option>
+             <option value="">VINCULAR FUNCIONÁRIO RESPONSÁVEL (OPCIONAL)</option>
              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
            </select>
            {editingId && (
-            <button type="button" onClick={resetForm} className="h-10 px-6 bg-slate-100 text-slate-500 rounded-xl text-[9px] font-black uppercase">Cancelar</button>
+            <button type="button" onClick={resetForm} className="h-10 px-6 bg-slate-100 text-slate-500 rounded-xl text-[9px] font-black uppercase">Cancelar Edição</button>
            )}
         </div>
       </form>
 
-      {/* Listagem conforme imagem */}
+      {/* Listagem */}
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="p-6 border-b border-slate-50 flex items-center gap-4 bg-slate-50/30">
            <Search size={20} className="text-slate-300" />
            <input 
              type="text" 
-             placeholder="BUSCAR NA PLANILHA..." 
+             placeholder="FILTRAR LANÇAMENTOS..." 
              value={searchTerm} 
              onChange={e => setSearchTerm(e.target.value)} 
              className="bg-transparent border-none outline-none text-[10px] font-black uppercase w-full placeholder:text-slate-300" 
@@ -237,11 +224,11 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[9px] font-black uppercase tracking-widest">
                 <th className="px-8 py-5">DESCRIÇÃO</th>
-                <th className="px-8 py-5">CATEGORIA / VÍNCULO</th>
+                <th className="px-8 py-5">CATEGORIA / RESPONSÁVEL</th>
                 <th className="px-8 py-5">VALOR</th>
                 <th className="px-8 py-5">VENCIMENTO</th>
                 <th className="px-8 py-5">STATUS</th>
-                <th className="px-8 py-5 text-right">AÇÃO</th>
+                <th className="px-8 py-5 text-right">AÇÕES</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -254,18 +241,11 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                     <span className="inline-block px-3 py-1 bg-sky-50 text-sky-600 rounded-lg text-[8px] font-black uppercase border border-sky-100">
                       {e.category}
                     </span>
-                    <div className="flex gap-1.5">
-                       {e.vehicleId && (
-                         <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-50 text-sky-500 rounded text-[7px] font-bold border border-slate-100">
-                           <Car size={10} /> {getVehiclePlate(e.vehicleId)}
-                         </div>
-                       )}
-                       {e.employeeId && (
-                         <div className="flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded text-[7px] font-bold border border-indigo-100">
-                           <User size={10} /> {getEmployeeName(e.employeeId)}
-                         </div>
-                       )}
-                    </div>
+                    {e.employeeId && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded text-[7px] font-bold border border-indigo-100 w-fit">
+                        <User size={10} /> {getEmployeeName(e.employeeId)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-8 py-5">
                     <span className="font-black text-[#1e293b] text-sm">

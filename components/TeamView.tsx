@@ -15,19 +15,23 @@ import {
   TrendingUp,
   Wallet,
   Clock,
-  IdCard
+  IdCard,
+  HandCoins,
+  Receipt,
+  CheckCircle2
 } from 'lucide-react';
-import { Employee, AppSettings } from '../types';
+import { Employee, AppSettings, Expense, ExpenseStatus } from '../types';
 import { fetchSettings } from '../store';
 
 interface Props {
   employees: Employee[];
   onUpdate: (employee: Employee) => void;
   onDelete: (id: string) => void;
+  onAddExpense?: (expense: Expense) => void;
   companyName?: string;
 }
 
-const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName: initialCompanyName }) => {
+const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense, companyName: initialCompanyName }) => {
   const [settings, setSettings] = useState<Partial<AppSettings>>({
     companyName: initialCompanyName || 'Gelo Brasil',
     cnpj: '',
@@ -50,6 +54,13 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
   const [joinedAt, setJoinedAt] = useState(getTodayString());
   const [selectedForPrint, setSelectedForPrint] = useState<Employee | null>(null);
 
+  // Estados para o Modal de Pagamentos
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentEmployeeId, setPaymentEmployeeId] = useState('');
+  const [paymentType, setPaymentType] = useState<'SALÁRIO' | 'VALE' | 'ADIANTAMENTO' | 'BÔNUS'>('VALE');
+  const [paymentValue, setPaymentValue] = useState('');
+  const [paymentDate, setPaymentDate] = useState(getTodayString());
+
   // Estatísticas da Equipe
   const stats = useMemo(() => {
     const totalSalary = employees.reduce((sum, emp) => sum + (emp.salary || 0), 0);
@@ -71,12 +82,20 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
   };
 
   const handleEdit = (emp: Employee) => {
-    setEditingId(emp.id);
-    setName(emp.name);
-    setRole(emp.role);
-    setSalary(emp.salary?.toString() || '');
-    setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (confirm(`DESEJA EDITAR OS DADOS DE ${emp.name.toUpperCase()}?`)) {
+      setEditingId(emp.id);
+      setName(emp.name);
+      setRole(emp.role);
+      setSalary(emp.salary?.toString() || '');
+      setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleDelete = (emp: Employee) => {
+    if (confirm(`ATENÇÃO: DESEJA REALMENTE EXCLUIR O CADASTRO DE ${emp.name.toUpperCase()}? ESTA AÇÃO NÃO PODE SER DESFEITA.`)) {
+      onDelete(emp.id);
+    }
   };
 
   const handleAddOrUpdate = (e: React.FormEvent) => {
@@ -93,6 +112,38 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
     });
     
     resetForm();
+  };
+
+  const handleLaunchPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(paymentValue.replace(',', '.'));
+    const employee = employees.find(emp => emp.id === paymentEmployeeId);
+    
+    if (!employee || isNaN(val) || !onAddExpense) return;
+
+    const expense: Expense = {
+      id: crypto.randomUUID(),
+      description: `PAGAMENTO: ${employee.name} - ${paymentType}`.toUpperCase(),
+      value: val,
+      dueDate: paymentDate,
+      status: ExpenseStatus.PAGO,
+      category: 'FOLHA DE PAGAMENTO',
+      employeeId: employee.id,
+      observation: `LANÇAMENTO VIA MÓDULO DE EQUIPE`
+    };
+
+    onAddExpense(expense);
+    setIsPaymentModalOpen(false);
+    setPaymentValue('');
+    setPaymentEmployeeId('');
+    setPaymentType('VALE');
+  };
+
+  const openPaymentForEmployee = (emp: Employee) => {
+    setPaymentEmployeeId(emp.id);
+    setPaymentType('VALE');
+    setPaymentValue('');
+    setIsPaymentModalOpen(true);
   };
 
   const formatBRL = (val: number) => {
@@ -122,7 +173,14 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <button 
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <HandCoins size={18} /> Lançar Proventos
+          </button>
+
           <div className="bg-white px-6 py-3 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
             <div className="w-10 h-10 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center">
               <Users size={20} />
@@ -258,8 +316,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
                         </div>
                       </div>
                       <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEdit(emp)} className="p-2 text-slate-400 hover:text-sky-500 rounded-xl transition-all"><Pencil size={16} /></button>
-                        <button onClick={() => onDelete(emp.id)} className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        <button onClick={() => openPaymentForEmployee(emp)} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Lançar Pagamento/Vale"><HandCoins size={16} /></button>
+                        <button onClick={() => handleEdit(emp)} className="p-2 text-slate-400 hover:text-sky-500 rounded-xl transition-all" title="Editar Colaborador"><Pencil size={16} /></button>
+                        <button onClick={() => handleDelete(emp)} className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all" title="Excluir Colaborador"><Trash2 size={16} /></button>
                       </div>
                     </div>
 
@@ -291,6 +350,99 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, companyName:
           </div>
         </div>
       </div>
+
+      {/* Modal de Lançamento de Pagamentos/Vales */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-[3rem] p-10 shadow-2xl relative animate-in zoom-in-95 duration-300">
+              <button 
+                onClick={() => setIsPaymentModalOpen(false)}
+                className="absolute top-8 right-8 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <X size={24} />
+              </button>
+
+              <div className="flex items-center gap-4 mb-10">
+                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                  <HandCoins size={28} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">Lançar Provento</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Equipe & Despesas Financeiras</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleLaunchPayment} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Funcionário</label>
+                  <select 
+                    value={paymentEmployeeId}
+                    onChange={(e) => setPaymentEmployeeId(e.target.value)}
+                    className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-xs uppercase"
+                    required
+                  >
+                    <option value="">SELECIONE O COLABORADOR...</option>
+                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Tipo de Lançamento</label>
+                    <select 
+                      value={paymentType}
+                      onChange={(e) => setPaymentType(e.target.value as any)}
+                      className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-[10px] uppercase text-sky-600"
+                    >
+                      <option value="VALE">VALE</option>
+                      <option value="ADIANTAMENTO">ADIANTAMENTO</option>
+                      <option value="SALÁRIO">SALÁRIO MENSAL</option>
+                      <option value="BÔNUS">BÔNUS / EXTRA</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor Total</label>
+                    <div className="relative">
+                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-xs">R$</span>
+                      <input 
+                        type="text" 
+                        value={paymentValue}
+                        onChange={(e) => handleNumericChange(e.target.value, setPaymentValue)}
+                        placeholder="0,00"
+                        className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-xs"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Data do Pagamento</label>
+                  <input 
+                    type="date" 
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-xs"
+                    required
+                  />
+                </div>
+
+                <div className="pt-6">
+                  <button 
+                    type="submit"
+                    className="w-full h-16 bg-slate-900 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 active:scale-95 border-b-4 border-slate-950 hover:border-emerald-800"
+                  >
+                    <CheckCircle2 size={20} /> Confirmar Lançamento Financeiro
+                  </button>
+                  <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-6 flex items-center justify-center gap-2">
+                    <Receipt size={10} /> Este lançamento será sincronizado com o fluxo de despesas
+                  </p>
+                </div>
+              </form>
+           </div>
+        </div>
+      )}
 
       {/* Holerite Estilizado para Impressão */}
       {selectedForPrint && (
