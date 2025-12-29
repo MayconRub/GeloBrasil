@@ -20,10 +20,10 @@ export interface AppData {
 export const fetchSettings = async (): Promise<AppSettings> => {
   const { data: settings } = await supabase.from('configuracoes').select('*').single();
   return {
-    companyName: settings?.nome_empresa?.toUpperCase() || 'ICE CONTROL',
-    cnpj: settings?.cnpj || '',
+    companyName: settings?.nome_empresa?.toUpperCase() || 'GELO BRASIL LTDA',
+    cnpj: settings?.cnpj || '42.996.710/0001-63',
     address: settings?.endereco?.toUpperCase() || '',
-    primaryColor: settings?.cor_primaria || '#0ea5e9',
+    primaryColor: settings?.cor_primaria || '#5ecce3',
     logoId: settings?.logo_id || 'Snowflake',
     loginHeader: settings?.login_header?.toUpperCase() || 'ADMIN',
     supportPhone: settings?.support_phone || '',
@@ -67,10 +67,9 @@ export const fetchAllData = async (): Promise<AppData> => {
       value: e.valor, 
       dueDate: e.data_vencimento,
       status: e.status === 'Pago' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
-      category: e.categoria?.toUpperCase() || 'GERAL', 
+      category: e.category?.toUpperCase() || 'GERAL', 
       vehicleId: e.veiculo_id, 
       employeeId: e.funcionario_id, 
-      // FIX: Changed km_reading to kmReading to match the interface in types.ts
       kmReading: e.km_reading, 
       observation: e.observacao?.toUpperCase()
     })),
@@ -113,12 +112,11 @@ export const syncFuel = async (f: FuelLog) => {
     
     await supabase.from('despesas').insert({
         id: crypto.randomUUID(),
-        // Descrição ultra limpa para o financeiro
         descricao: `ABASTECIMENTO (${payload.litros}L)`.toUpperCase(),
         valor: payload.valor_total,
         data_vencimento: payload.data,
         status: 'Pago',
-        categoria: 'COMBUSTÍVEL',
+        category: 'COMBUSTÍVEL',
         veiculo_id: f.veiculo_id,
         funcionario_id: f.funcionario_id,
         km_reading: payload.km_registro
@@ -147,12 +145,11 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
     if (maintPayload.custo > 0) {
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            // Remove funcionário da descrição, o vínculo já existe no banco
             descricao: `OFICINA: ${maintPayload.servico}`.toUpperCase(),
             valor: maintPayload.custo,
             data_vencimento: maintPayload.data,
             status: m.pago ? 'Pago' : 'A Vencer',
-            categoria: 'MANUTENÇÃO',
+            category: 'MANUTENÇÃO',
             veiculo_id: maintPayload.veiculo_id,
             funcionario_id: m.funcionario_id,
             km_reading: maintPayload.km_registro
@@ -171,12 +168,11 @@ export const syncFine = async (f: FineLog) => {
     if (!error && (f.situacao === 'Paga' || f.situacao === 'Em aberto')) {
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
-            // Apenas o fato: MULTA + INFRAÇÃO
             descricao: `MULTA: ${f.tipo_infracao.toUpperCase()}`,
             valor: f.valor,
             data_vencimento: f.data_vencimento,
             status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer',
-            categoria: 'MULTAS',
+            category: 'MULTAS',
             veiculo_id: f.veiculo_id,
             funcionario_id: f.funcionario_id
         });
@@ -185,7 +181,6 @@ export const syncFine = async (f: FineLog) => {
 };
 
 export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description.toUpperCase() });
-// FIX: Changed e.km_reading to e.kmReading to match the Expense interface in types.ts
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description.toUpperCase(), valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category.toUpperCase(), veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation?.toUpperCase() });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: e.salary, data_admissao: e.joinedAt });

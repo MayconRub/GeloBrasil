@@ -141,9 +141,9 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-[1500px] mx-auto pb-10">
       
-      {/* HEADER */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-sky-100/20">
+      {/* HEADER - Increased z-index container to ensure dropdown is on top */}
+      <div className={`flex flex-col gap-4 relative ${showQuickMenu ? 'z-[100]' : 'z-10'}`}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-sky-100/20 relative z-10">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg rotate-3 shrink-0">
               <Snowflake size={24} className="animate-pulse" />
@@ -196,25 +196,37 @@ const DashboardView: React.FC<Props> = ({
               {showQuickMenu && (
                 <>
                   <div className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-[1px]" onClick={() => setShowQuickMenu(false)} />
-                  <div className="absolute top-12 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in zoom-in-95 duration-200 origin-top-right">
+                  {/* Fixed position for mobile to avoid stacking context issues, absolute for desktop */}
+                  <div className="fixed sm:absolute top-[180px] sm:top-12 left-1/2 sm:left-auto sm:right-0 -translate-x-1/2 sm:translate-x-0 w-[90%] sm:w-48 bg-white rounded-3xl sm:rounded-2xl shadow-2xl border border-slate-100 p-3 sm:p-2 z-[101] animate-in zoom-in-95 duration-200 origin-top sm:origin-top-right">
+                    <div className="sm:hidden text-center mb-3 pb-2 border-b border-slate-50">
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Selecione uma ação</p>
+                    </div>
                     <button 
                       onClick={() => { onSwitchView('sales'); setShowQuickMenu(false); }}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-emerald-50 rounded-xl transition-all group"
+                      className="w-full flex items-center gap-4 sm:gap-3 p-4 sm:p-3 hover:bg-emerald-50 rounded-2xl sm:rounded-xl transition-all group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
-                        <CircleDollarSign size={18} />
+                      <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
+                        <CircleDollarSign size={20} className="sm:size-[18px]" />
                       </div>
-                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Venda</span>
+                      <span className="text-xs sm:text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Venda</span>
                     </button>
                     <button 
                       onClick={() => { onSwitchView('expenses'); setShowQuickMenu(false); }}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-rose-50 rounded-xl transition-all group"
+                      className="w-full flex items-center gap-4 sm:gap-3 p-4 sm:p-3 hover:bg-rose-50 rounded-2xl sm:rounded-xl transition-all group mt-1"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all shrink-0">
-                        <Receipt size={18} />
+                      <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all shrink-0">
+                        <Receipt size={20} className="sm:size-[18px]" />
                       </div>
-                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Despesa</span>
+                      <span className="text-xs sm:text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Despesa</span>
                     </button>
+                    <div className="sm:hidden mt-2 pt-2 border-t border-slate-50">
+                      <button 
+                        onClick={() => setShowQuickMenu(false)}
+                        className="w-full py-3 text-[10px] font-black text-slate-300 uppercase tracking-widest"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -224,7 +236,7 @@ const DashboardView: React.FC<Props> = ({
       </div>
 
       {/* MÉTRICAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 relative z-0">
         <SeniorMetric 
           label="Vendas" 
           value={metrics.totalSales} 
@@ -264,7 +276,7 @@ const DashboardView: React.FC<Props> = ({
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-0">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between mb-8">
@@ -356,7 +368,7 @@ const DashboardView: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-0">
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4 relative overflow-hidden group">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
