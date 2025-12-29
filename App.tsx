@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box } from 'lucide-react';
+import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine } from './store';
 import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog } from './types';
@@ -118,15 +118,15 @@ const App: React.FC = () => {
   );
 
   if (!isAuthenticated) return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 font-['Plus_Jakarta_Sans']">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center p-6 font-['Plus_Jakarta_Sans'] overflow-y-auto">
       
       {/* Logo e Nome da Empresa */}
-      <div className="flex flex-col items-center mb-10">
+      <div className="flex flex-col items-center mb-10 mt-8">
         <div className="w-24 h-24 bg-[#5ecce3] rounded-full flex items-center justify-center text-white shadow-[0_15px_30px_-5px_rgba(94,204,227,0.4)] mb-8">
           <Box size={44} strokeWidth={2.5} />
         </div>
         
-        <h1 className="text-3xl font-extrabold text-[#0f172a] tracking-tight text-center">
+        <h1 className="text-3xl font-extrabold text-[#0f172a] tracking-tight text-center px-4">
           {data.settings.companyName || 'GELO BRASIL LTDA'}
         </h1>
         
@@ -136,7 +136,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Card de Login */}
-      <div className="w-full max-w-md bg-white p-10 sm:p-12 rounded-[3.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.04)] border border-slate-50 mb-12">
+      <div className="w-full max-w-md bg-white p-10 sm:p-12 rounded-[3.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.04)] border border-slate-50 mb-10">
         <form onSubmit={handleLogin} className="space-y-8">
           {/* E-MAIL */}
           <div className="space-y-3">
@@ -204,7 +204,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Ajuda e Suporte */}
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4 mb-12">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Precisa de Ajuda?</p>
         <a 
           href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} 
@@ -218,9 +218,16 @@ const App: React.FC = () => {
         </a>
       </div>
 
-      {/* Créditos Finais */}
-      <div className="mt-12">
-         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Desenvolvido por Maycon Rubem</p>
+      {/* Créditos Finais - SUPER DESTACADO PARA MOBILE E DESKTOP */}
+      <div className="mt-auto mb-10 animate-in slide-in-from-bottom-4 duration-1000">
+         <div className="px-6 py-3 bg-white border border-sky-100 rounded-full flex items-center gap-3 shadow-[0_10px_20px_-5px_rgba(94,204,227,0.15)] hover:shadow-lg transition-all group cursor-default border-b-2 border-b-[#5ecce3]/20">
+            <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center">
+              <Sparkles size={16} className="text-[#5ecce3] animate-pulse" />
+            </div>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">
+              Desenvolvido por <span className="text-[#5ecce3] font-black group-hover:text-sky-600 transition-colors">Maycon Rubem</span>
+            </p>
+         </div>
       </div>
     </div>
   );
