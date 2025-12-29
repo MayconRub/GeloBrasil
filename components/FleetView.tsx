@@ -425,13 +425,22 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
       {isOilModalOpen && <Modal title="CONFIRMAR TROCA DE ÓLEO" onClose={() => setIsOilModalOpen(false)}>
         <form onSubmit={handleOilChange} className="space-y-6">
           <div className="space-y-4">
-            <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.funcionario_id} onChange={e => setOilForm({...oilForm, funcionario_id: e.target.value})} required>
-              <option value="">SELECIONAR MECÂNICO...</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Responsável / Mecânico</label>
+              <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.funcionario_id} onChange={e => setOilForm({...oilForm, funcionario_id: e.target.value})} required>
+                <option value="">SELECIONAR MECÂNICO...</option>
+                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.data} onChange={e => setOilForm({...oilForm, data: e.target.value})} required />
-              <input type="number" step="0.01" placeholder="Custo R$" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.custo} onChange={e => setOilForm({...oilForm, custo: parseFloat(e.target.value) || 0})} required />
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Data da Troca</label>
+                <input type="date" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.data} onChange={e => setOilForm({...oilForm, data: e.target.value})} required />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Custo R$</label>
+                <input type="number" step="0.01" placeholder="Custo R$" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.custo} onChange={e => setOilForm({...oilForm, custo: parseFloat(e.target.value) || 0})} required />
+              </div>
             </div>
           </div>
           <button type="submit" className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase">CONFIRMAR TROCA</button>
@@ -440,13 +449,28 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
       {isOpen && <Modal title="DADOS DO VEÍCULO" onClose={() => setIsOpen(false)}>
         <form onSubmit={handleSave} className="space-y-5">
            <div className="grid grid-cols-2 gap-4">
-             <input placeholder="PLACA" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} required />
-             <input placeholder="ANO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.ano} onChange={e => setForm({...form, ano: e.target.value})} required />
+             <div className="space-y-1.5">
+               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Placa</label>
+               <input placeholder="PLACA" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} required />
+             </div>
+             <div className="space-y-1.5">
+               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Ano</label>
+               <input placeholder="ANO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.ano} onChange={e => setForm({...form, ano: e.target.value})} required />
+             </div>
            </div>
-           <input placeholder="MODELO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value.toUpperCase()})} required />
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Modelo do Veículo</label>
+             <input placeholder="MODELO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value.toUpperCase()})} required />
+           </div>
            <div className="grid grid-cols-2 gap-4">
-              <input type="number" placeholder="KM ATUAL" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_atual || 0} onChange={e => setForm({...form, km_atual: parseInt(e.target.value) || 0})} />
-              <input type="number" placeholder="KM ÚLTIMA TROCA ÓLEO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_ultima_troca || 0} onChange={e => setForm({...form, km_ultima_troca: parseInt(e.target.value) || 0})} />
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">KM Atual</label>
+                <input type="number" placeholder="KM ATUAL" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_atual || 0} onChange={e => setForm({...form, km_atual: parseInt(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">KM Última Troca Óleo</label>
+                <input type="number" placeholder="KM ÚLTIMA TROCA ÓLEO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_ultima_troca || 0} onChange={e => setForm({...form, km_ultima_troca: parseInt(e.target.value) || 0})} />
+              </div>
            </div>
            <button className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase">SALVAR</button>
         </form>
@@ -490,20 +514,35 @@ const FuelTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
       </div>
       {isOpen && <Modal title="LANÇAR ABASTECIMENTO" onClose={() => setIsOpen(false)}>
         <form onSubmit={handleSave} className="space-y-5">
-           <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value, km_registro: vehicles.find((v:any)=>v.id===e.target.value)?.km_atual || 0})} required>
-             <option value="">VEÍCULO...</option>
-             {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa}</option>)}
-           </select>
-           <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
-             <option value="">FUNCIONÁRIO...</option>
-             {employees.map((e:any) => <option key={e.id} value={e.id}>{e.name}</option>)}
-           </select>
-           <div className="grid grid-cols-2 gap-4">
-              <input type="number" step="0.01" placeholder="LITROS" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value) || 0})} required />
-              <input type="number" step="0.01" placeholder="VLR LITRO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value) || 0})} required />
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Veículo</label>
+             <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value, km_registro: vehicles.find((v:any)=>v.id===e.target.value)?.km_atual || 0})} required>
+               <option value="">SELECIONAR VEÍCULO...</option>
+               {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa}</option>)}
+             </select>
            </div>
-           <input type="number" placeholder="KM ATUAL" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
-           <button className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase">CONFIRMAR</button>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Funcionário / Motorista</label>
+             <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.funcionario_id} onChange={e => setForm({...form, funcionario_id: e.target.value})} required>
+               <option value="">SELECIONAR FUNCIONÁRIO...</option>
+               {employees.map((e:any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+             </select>
+           </div>
+           <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Litros</label>
+                <input type="number" step="0.01" placeholder="LITROS" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.litros} onChange={e => setForm({...form, litros: parseFloat(e.target.value) || 0})} required />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor Litro R$</label>
+                <input type="number" step="0.01" placeholder="VLR LITRO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor_litro} onChange={e => setForm({...form, valor_litro: parseFloat(e.target.value) || 0})} required />
+              </div>
+           </div>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Odômetro Atual (KM)</label>
+             <input type="number" placeholder="KM ATUAL" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.km_registro} onChange={e => setForm({...form, km_registro: parseInt(e.target.value) || 0})} required />
+           </div>
+           <button className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black uppercase">CONFIRMAR ABASTECIMENTO</button>
         </form>
       </Modal>}
     </div>
@@ -542,13 +581,22 @@ const MaintenanceTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) 
       </div>
       {isOpen && <Modal title="LANÇAR MANUTENÇÃO" onClose={() => setIsOpen(false)}>
         <form onSubmit={handleSave} className="space-y-5">
-           <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-             <option value="">VEÍCULO...</option>
-             {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa}</option>)}
-           </select>
-           <input placeholder="DESCRIÇÃO DO SERVIÇO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.servico} onChange={e => setForm({...form, servico: e.target.value.toUpperCase()})} required />
-           <input type="number" step="0.01" placeholder="VALOR TOTAL R$" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.custo} onChange={e => setForm({...form, custo: parseFloat(e.target.value) || 0})} required />
-           <button className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase">SALVAR</button>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Veículo</label>
+             <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
+               <option value="">SELECIONAR VEÍCULO...</option>
+               {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa}</option>)}
+             </select>
+           </div>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Descrição do Serviço</label>
+             <input placeholder="DESCRIÇÃO DO SERVIÇO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.servico} onChange={e => setForm({...form, servico: e.target.value.toUpperCase()})} required />
+           </div>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor Total R$</label>
+             <input type="number" step="0.01" placeholder="VALOR TOTAL R$" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.custo} onChange={e => setForm({...form, custo: parseFloat(e.target.value) || 0})} required />
+           </div>
+           <button className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase">SALVAR REGISTRO</button>
         </form>
       </Modal>}
     </div>
@@ -587,13 +635,22 @@ const FinesTab = ({ logs, vehicles, employees, onUpdate, onDelete }: any) => {
       </div>
       {isOpen && <Modal title="LANÇAR MULTA" onClose={() => setIsOpen(false)}>
         <form onSubmit={handleSave} className="space-y-5">
-           <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
-             <option value="">VEÍCULO...</option>
-             {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa}</option>)}
-           </select>
-           <input placeholder="NATUREZA DA INFRAÇÃO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.tipo_infracao} onChange={e => setForm({...form, tipo_infracao: e.target.value.toUpperCase()})} required />
-           <input type="number" step="0.01" placeholder="VALOR R$" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required />
-           <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase">LANÇAR</button>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Veículo Multado</label>
+             <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.veiculo_id} onChange={e => setForm({...form, veiculo_id: e.target.value})} required>
+               <option value="">SELECIONAR VEÍCULO...</option>
+               {vehicles.map((v:any) => <option key={v.id} value={v.id}>{v.placa}</option>)}
+             </select>
+           </div>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Natureza da Infração</label>
+             <input placeholder="NATUREZA DA INFRAÇÃO" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase" value={form.tipo_infracao} onChange={e => setForm({...form, tipo_infracao: e.target.value.toUpperCase()})} required />
+           </div>
+           <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Valor R$</label>
+             <input type="number" step="0.01" placeholder="VALOR R$" className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={form.valor} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required />
+           </div>
+           <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase">LANÇAR NO FINANCEIRO</button>
         </form>
       </Modal>}
     </div>
