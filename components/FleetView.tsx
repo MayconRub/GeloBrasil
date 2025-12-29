@@ -60,7 +60,7 @@ const FleetView: React.FC<Props> = ({
     const totalFuel = filteredFuel.reduce((sum, l) => sum + l.valor_total, 0);
     const totalMaint = filteredMaint.reduce((sum, l) => sum + l.custo, 0);
     const totalFines = filteredFines.reduce((sum, l) => sum + l.valor, 0);
-    const oilAlerts = (vehicles || []).filter(v => (v.km_atual - v.km_ultima_troca) >= 1000).length;
+    const oilAlerts = (vehicles || []).filter(v => ((v.km_atual || 0) - (v.km_ultima_troca || 0)) >= 1000).length;
     return { totalV, totalFuel, totalMaint, totalFines, oilAlerts };
   }, [vehicles, filteredFuel, filteredMaint, filteredFines]);
 
@@ -123,17 +123,27 @@ const FleetView: React.FC<Props> = ({
   );
 };
 
-const SummaryCard = ({ label, value, icon: Icon, color }: any) => (
-  <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-    <div className={`w-12 h-12 bg-${color}-50 text-${color}-500 rounded-2xl flex items-center justify-center`}>
-      <Icon size={24} />
+const SummaryCard = ({ label, value, icon: Icon, color }: any) => {
+  const colorMap: Record<string, string> = {
+    sky: "bg-sky-50 text-sky-500",
+    emerald: "bg-emerald-50 text-emerald-500",
+    indigo: "bg-indigo-50 text-indigo-500",
+    rose: "bg-rose-50 text-rose-500",
+    amber: "bg-amber-50 text-amber-500"
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+      <div className={`w-12 h-12 ${colorMap[color] || 'bg-slate-50 text-slate-500'} rounded-2xl flex items-center justify-center`}>
+        <Icon size={24} />
+      </div>
+      <div>
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+        <h4 className="text-lg font-black text-slate-800">{value}</h4>
+      </div>
     </div>
-    <div>
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <h4 className="text-lg font-black text-slate-800">{value}</h4>
-    </div>
-  </div>
-);
+  );
+};
 
 const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, currentYear, monthName }: any) => {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -236,7 +246,7 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 print:bg-slate-100 text-[9px] print:text-[7px] font-black uppercase text-slate-400">
+                    <thead className="bg-slate-50 print:bg-slate-100 text-[9px] font-black uppercase text-slate-400">
                       <tr>
                         <th className="px-6 py-4 print:px-2 print:py-1">Data</th>
                         <th className="px-6 py-4 print:px-2 print:py-1">KM Registro</th>
@@ -269,7 +279,7 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
                     <h4 className="text-[11px] print:text-[8px] font-black uppercase text-slate-800">Oficina</h4>
                   </div>
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 print:bg-slate-100 text-[9px] print:text-[7px] font-black text-slate-400">
+                    <thead className="bg-slate-50 print:bg-slate-100 text-[9px] font-black text-slate-400">
                       <tr>
                         <th className="px-6 py-4 print:px-2 print:py-1">Data</th>
                         <th className="px-6 py-4 print:px-2 print:py-1">Serviço</th>
@@ -352,12 +362,20 @@ const ReportsTab = ({ vehicles, fuel, maints, fines, employees, currentMonth, cu
   );
 };
 
-const ReportStat = ({ label, value, color }: any) => (
-  <div>
-    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-    <p className={`text-sm font-black text-${color}-600`}>R$ {value.toLocaleString()}</p>
-  </div>
-);
+const ReportStat = ({ label, value, color }: any) => {
+  const textColorMap: Record<string, string> = {
+    emerald: "text-emerald-600",
+    indigo: "text-indigo-600",
+    rose: "text-rose-600"
+  };
+  
+  return (
+    <div>
+      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-sm font-black ${textColorMap[color] || 'text-slate-800'}`}>R$ {value.toLocaleString()}</p>
+    </div>
+  );
+};
 
 const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintenance }: any) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -385,11 +403,12 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
       <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl">CADASTRAR VEÍCULO</button></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(vehicles || []).map((v: Vehicle) => {
-          const kmSinceOil = v.km_atual - v.km_ultima_troca;
+          const kmSinceOil = (v.km_atual || 0) - (v.km_ultima_troca || 0);
+          const needsOilChange = kmSinceOil >= 1000;
           return (
-            <div key={v.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+            <div key={v.id} className={`bg-white p-8 rounded-[2.5rem] border ${needsOilChange ? 'border-rose-200 shadow-rose-50 shadow-2xl' : 'border-slate-100 shadow-sm'} relative overflow-hidden group transition-all`}>
                <div className="flex items-center justify-between mb-8">
-                  <div className={`w-16 h-16 ${kmSinceOil >= 1000 ? 'bg-amber-500 text-white' : 'bg-sky-50 text-sky-500'} rounded-2xl flex items-center justify-center`}>
+                  <div className={`w-16 h-16 ${needsOilChange ? 'bg-rose-500 text-white shadow-xl shadow-rose-200 animate-pulse' : 'bg-sky-50 text-sky-500'} rounded-2xl flex items-center justify-center transition-all`}>
                     {v.tipo === 'Caminhão' ? <Truck size={32} /> : v.tipo === 'Moto' ? <Bike size={32} /> : <Car size={32} />}
                   </div>
                   <div className="flex gap-2 no-print">
@@ -401,12 +420,16 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
                <div className="flex flex-wrap gap-2 mt-2">
                   <span className="inline-block font-mono text-xs font-black text-sky-500 bg-sky-50 px-3 py-1 rounded-lg border border-sky-100 uppercase">{v.placa.toUpperCase()}</span>
                </div>
-               <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+               <div className={`mt-8 p-4 rounded-2xl border transition-all ${needsOilChange ? 'bg-rose-50 border-rose-100 animate-ice' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">KM ÓLEO ({kmSinceOil} / 1000)</p>
-                    {kmSinceOil >= 1000 && <AlertTriangle size={12} className="text-amber-500 animate-bounce" />}
+                    <p className={`text-[8px] font-black uppercase tracking-widest ${needsOilChange ? 'text-rose-600' : 'text-slate-400'}`}>KM ÓLEO ({kmSinceOil} / 1000)</p>
+                    {needsOilChange && (
+                      <div className="flex items-center gap-1 bg-rose-600 text-white px-2 py-0.5 rounded-full text-[7px] font-black animate-bounce">
+                        <AlertCircle size={8} /> TROCA URGENTE
+                      </div>
+                    )}
                   </div>
-                  <button onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }} className="mt-2 w-full py-2 bg-white border border-slate-200 rounded-xl text-[8px] font-black uppercase hover:bg-sky-500 hover:text-white transition-all no-print">REGISTRAR TROCA DE ÓLEO</button>
+                  <button onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }} className={`mt-2 w-full py-2 border rounded-xl text-[8px] font-black uppercase transition-all no-print ${needsOilChange ? 'bg-rose-600 text-white border-rose-700 hover:bg-rose-700' : 'bg-white border-slate-200 hover:bg-sky-500 hover:text-white'}`}>REGISTRAR TROCA DE ÓLEO</button>
                </div>
                <div className="grid grid-cols-2 gap-3 mt-4">
                   <div className="bg-slate-50 p-4 rounded-2xl text-center">
@@ -426,9 +449,9 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
         <form onSubmit={handleOilChange} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Responsável / Mecânico</label>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Responsável / Funcionário</label>
               <select className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs" value={oilForm.funcionario_id} onChange={e => setOilForm({...oilForm, funcionario_id: e.target.value})} required>
-                <option value="">SELECIONAR MECÂNICO...</option>
+                <option value="">SELECIONAR FUNCIONÁRIO...</option>
                 {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>

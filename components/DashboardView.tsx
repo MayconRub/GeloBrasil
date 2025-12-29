@@ -4,7 +4,8 @@ import {
   TrendingUp, Snowflake, ArrowUpRight, ArrowDownRight,
   Plus, Users, Truck, Wallet, ChevronRight,
   Droplets, AlertCircle, Sun, ThermometerSun,
-  MapPin, ChevronLeft, Target, ShieldAlert, Timer
+  MapPin, ChevronLeft, Target, ShieldAlert, Timer,
+  CircleDollarSign, Receipt, X
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus } from '../types';
@@ -25,6 +26,7 @@ const DashboardView: React.FC<Props> = ({
   const [navDate, setNavDate] = useState(new Date());
   const [weatherData, setWeatherData] = useState<{ tempAtual: string, tempMax: string, impact: string, advice: string, sources: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
   
   const todayStr = useMemo(() => {
     const now = new Date();
@@ -143,12 +145,12 @@ const DashboardView: React.FC<Props> = ({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-sky-100/20">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg rotate-3">
+            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg rotate-3 shrink-0">
               <Snowflake size={24} className="animate-pulse" />
             </div>
-            <div>
-              <h1 className="text-xl font-black text-slate-800 tracking-tighter uppercase leading-none">Minha <span className="text-sky-500">Operação</span></h1>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gelo Brasil • Montes Claros, MG</p>
+            <div className="min-w-0">
+              <h1 className="text-xl font-black text-slate-800 tracking-tighter uppercase leading-none truncate">Minha <span className="text-sky-500">Operação</span></h1>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">Gelo Brasil • Montes Claros, MG</p>
             </div>
           </div>
 
@@ -158,8 +160,8 @@ const DashboardView: React.FC<Props> = ({
                 <button onClick={handlePrevMonth} className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-sky-500 transition-all active:scale-90">
                   <ChevronLeft size={16} />
                 </button>
-                <button onClick={handleResetMonth} className="px-4 py-1 flex flex-col items-center justify-center hover:bg-white rounded-lg transition-all min-w-[120px]">
-                  <span className="text-[9px] font-black text-slate-800 uppercase tracking-tight text-center">{monthName}</span>
+                <button onClick={handleResetMonth} className="px-4 py-1 flex flex-col items-center justify-center hover:bg-white rounded-lg transition-all min-w-[100px]">
+                  <span className="text-[9px] font-black text-slate-800 uppercase tracking-tight text-center truncate">{monthName}</span>
                 </button>
                 <button onClick={handleNextMonth} className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-sky-500 transition-all active:scale-90">
                   <ChevronRight size={16} />
@@ -170,26 +172,59 @@ const DashboardView: React.FC<Props> = ({
             <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-sm">
               <button 
                 onClick={() => setPeriod('daily')} 
-                className={`px-5 py-2 rounded-lg text-[10px] font-black transition-all ${period === 'daily' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                className={`px-4 sm:px-5 py-2 rounded-lg text-[10px] font-black transition-all ${period === 'daily' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
               >
                 HOJE
               </button>
               <button 
                 onClick={() => setPeriod('monthly')} 
-                className={`px-5 py-2 rounded-lg text-[10px] font-black transition-all ${period === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                className={`px-4 sm:px-5 py-2 rounded-lg text-[10px] font-black transition-all ${period === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
               >
                 MÊS
               </button>
             </div>
-            <button onClick={() => onSwitchView('sales')} className="h-10 px-5 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-900 transition-all shadow-lg shadow-sky-100">
-              <Plus size={16} /> LANÇAR
-            </button>
+            
+            {/* BOTÃO LANÇAR COM MENU DROPDOWN */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowQuickMenu(!showQuickMenu)} 
+                className="h-10 px-5 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-900 transition-all shadow-lg shadow-sky-100"
+              >
+                <Plus size={16} className={`transition-transform duration-300 ${showQuickMenu ? 'rotate-45' : ''}`} /> LANÇAR
+              </button>
+
+              {showQuickMenu && (
+                <>
+                  <div className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-[1px]" onClick={() => setShowQuickMenu(false)} />
+                  <div className="absolute top-12 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in zoom-in-95 duration-200 origin-top-right">
+                    <button 
+                      onClick={() => { onSwitchView('sales'); setShowQuickMenu(false); }}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-emerald-50 rounded-xl transition-all group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
+                        <CircleDollarSign size={18} />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Venda</span>
+                    </button>
+                    <button 
+                      onClick={() => { onSwitchView('expenses'); setShowQuickMenu(false); }}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-rose-50 rounded-xl transition-all group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all shrink-0">
+                        <Receipt size={18} />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Despesa</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* MÉTRICAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <SeniorMetric 
           label="Vendas" 
           value={metrics.totalSales} 
@@ -281,31 +316,31 @@ const DashboardView: React.FC<Props> = ({
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex flex-col">
                 <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] flex items-center gap-2">
-                   STATUS FINANCEIRO <span className="text-slate-400 font-bold">( VISÃO DE VENCIMENTOS )</span>
+                   STATUS FINANCEIRO <span className="text-slate-400 font-bold hidden sm:inline">( VISÃO DE VENCIMENTOS )</span>
                 </h3>
               </div>
-              <button onClick={() => onSwitchView('expenses')} className="text-[9px] font-black text-sky-500 uppercase tracking-widest bg-sky-50 px-3 py-1.5 rounded-xl hover:bg-sky-500 hover:text-white transition-all">Ver Tudo</button>
+              <button onClick={() => onSwitchView('expenses')} className="text-[9px] font-black text-sky-500 uppercase tracking-widest bg-sky-50 px-3 py-1.5 rounded-xl hover:bg-sky-500 hover:text-white transition-all shrink-0">Ver Tudo</button>
             </div>
             <div className="divide-y divide-slate-100">
               {metrics.urgentExps.map(exp => (
-                <div key={exp.id} className={`p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors group ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-50/30' : 'bg-white'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-2xl shadow-sm transition-transform group-hover:scale-110 ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 text-white' : 'bg-amber-100 text-amber-600'}`}>
+                <div key={exp.id} className={`p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors group ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-50/30' : 'bg-white'}`}>
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className={`p-3 rounded-2xl shadow-sm transition-transform group-hover:scale-110 shrink-0 ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 text-white' : 'bg-amber-100 text-amber-600'}`}>
                       {exp.status === ExpenseStatus.VENCIDO ? <ShieldAlert size={20} className="animate-pulse" /> : <Timer size={20} />}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`text-xs font-black uppercase leading-none ${exp.status === ExpenseStatus.VENCIDO ? 'text-rose-700' : 'text-slate-700'}`}>{exp.description}</p>
-                        <span className={`text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-600 text-white' : 'bg-amber-400 text-white'}`}>
+                        <p className={`text-xs font-black uppercase leading-none truncate max-w-[120px] sm:max-w-none ${exp.status === ExpenseStatus.VENCIDO ? 'text-rose-700' : 'text-slate-700'}`}>{exp.description}</p>
+                        <span className={`text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shrink-0 ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-600 text-white' : 'bg-amber-400 text-white'}`}>
                           {exp.status}
                         </span>
                       </div>
-                      <p className="text-[9px] font-bold text-slate-400 mt-1.5 uppercase flex items-center gap-1.5">
-                         <MapPin size={10} className="text-slate-300" /> Vencimento em {new Date(exp.dueDate + 'T00:00:00').toLocaleDateString()}
+                      <p className="text-[9px] font-bold text-slate-400 mt-1.5 uppercase flex items-center gap-1.5 truncate">
+                         <MapPin size={10} className="text-slate-300 shrink-0" /> Venc. {new Date(exp.dueDate + 'T00:00:00').toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <p className={`text-sm font-black tracking-tight ${exp.status === ExpenseStatus.VENCIDO ? 'text-rose-600' : 'text-amber-600'}`}>R$ {exp.value.toLocaleString()}</p>
                     <div className="flex items-center justify-end gap-1 mt-1">
                        <span className={`w-1.5 h-1.5 rounded-full ${exp.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 animate-ping' : 'bg-amber-400'}`} />
@@ -331,7 +366,7 @@ const DashboardView: React.FC<Props> = ({
                 <Sun className="text-amber-400 animate-spin-slow" size={20} />
              </div>
              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+                <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
                    <ThermometerSun size={28} />
                 </div>
                 <div>
@@ -372,22 +407,22 @@ const SeniorMetric = ({ label, value, icon: Icon, color, isProfit, margin, unit,
   const progress = goal > 0 ? (value / goal) * 100 : 0;
 
   return (
-    <div className="bg-white p-5 rounded-[2.2rem] border border-slate-100 shadow-sm hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between min-h-[140px]">
+    <div className="bg-white p-4 sm:p-5 rounded-[2.2rem] border border-slate-100 shadow-sm hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between min-h-[140px] overflow-hidden relative">
       <div>
         <div className="flex items-center justify-between mb-4">
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</span>
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-sm ${themes[color]}`}>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-sm shrink-0 ${themes[color]}`}>
              <Icon size={16} />
           </div>
         </div>
         <div className="flex flex-col items-center text-center">
-          <span className="text-xl font-black text-slate-800 tracking-tighter leading-none">
+          <span className="text-lg sm:text-xl font-black text-slate-800 tracking-tighter leading-none truncate w-full">
             {unit ? `${value.toLocaleString()}${unit}` : `R$ ${value.toLocaleString()}`}
           </span>
           {trend && !showGoalBar && (
-            <div className={`mt-3 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-sm w-fit mx-auto ${themes[color]}`}>
-               <AlertCircle size={10} className="animate-pulse" />
-               <span className="text-[8px] font-black uppercase tracking-tight whitespace-nowrap">
+            <div className={`mt-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border shadow-sm w-fit max-w-full mx-auto ${themes[color]}`}>
+               <AlertCircle size={10} className="animate-pulse shrink-0" />
+               <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-tight truncate">
                   {trend}
                </span>
             </div>
@@ -405,12 +440,12 @@ const SeniorMetric = ({ label, value, icon: Icon, color, isProfit, margin, unit,
       )}
 
       {showGoalBar && goal && (
-        <div className="mt-5 space-y-2.5">
+        <div className="mt-4 sm:mt-5 space-y-2.5">
           <div className="flex items-center justify-center gap-2">
-             <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full ${themes[color]} border shadow-sm`}>
-                <Target size={10} className="animate-pulse" />
-                <span className="text-[8px] font-black uppercase tracking-tight whitespace-nowrap">
-                   {progress.toFixed(0)}% DA META {periodLabel}
+             <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full ${themes[color]} border shadow-sm max-w-full`}>
+                <Target size={10} className="animate-pulse shrink-0" />
+                <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-tight truncate">
+                   {progress.toFixed(0)}% META {periodLabel}
                 </span>
              </div>
           </div>
@@ -427,9 +462,9 @@ const SeniorMetric = ({ label, value, icon: Icon, color, isProfit, margin, unit,
 };
 
 const CompactAction = ({ label, icon: Icon, color, onClick }: any) => (
-  <button onClick={onClick} className={`${color} p-6 rounded-[2.2rem] flex flex-col items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-sm border border-white/50 group`}>
-    <Icon size={24} className="group-hover:text-sky-500 transition-colors" />
-    <span className="text-[9px] font-black tracking-widest uppercase">{label}</span>
+  <button onClick={onClick} className={`${color} p-5 sm:p-6 rounded-[2.2rem] flex flex-col items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-sm border border-white/50 group w-full`}>
+    <Icon size={24} className="group-hover:text-sky-500 transition-colors shrink-0" />
+    <span className="text-[9px] font-black tracking-widest uppercase truncate w-full text-center">{label}</span>
   </button>
 );
 
