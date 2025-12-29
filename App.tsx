@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, Menu, X, Lock, PhoneCall, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, Menu, X, Lock, PhoneCall, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle, AlertCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine } from './store';
 import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog } from './types';
@@ -25,7 +25,7 @@ const App: React.FC = () => {
   
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [],
-    settings: { companyName: 'ICE CONTROL', primaryColor: '#0ea5e9', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [] }
+    settings: { companyName: 'GELO BRASIL', cnpj: '00.000.000/0000-00', primaryColor: '#0ea5e9', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [] }
   });
 
   useEffect(() => { 
@@ -113,34 +113,40 @@ const App: React.FC = () => {
   if (isLoading && !isAuthenticated) return (
     <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-sky-500 mb-4" size={48} />
-      <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em]">Conectando à Rede Glacial...</p>
+      <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em]">Resfriando Ambiente...</p>
     </div>
   );
 
   if (!isAuthenticated) return (
-    <div className="min-h-screen bg-[#f8fbff] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Premium Aurora */}
-      <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-sky-100/50 rounded-full blur-[160px] animate-pulse" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[140px]" />
+    <div className="min-h-screen bg-[#f1f7ff] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Aurora Glacial */}
+      <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-sky-100/40 rounded-full blur-[160px] animate-pulse" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-100/30 rounded-full blur-[140px]" />
       
-      {/* Container Principal */}
+      {/* Cristais Flutuantes (Decoração) */}
+      <div className="absolute top-[15%] right-[15%] w-32 h-32 bg-white/20 rotate-45 border border-white/40 backdrop-blur-md rounded-2xl hidden lg:block animate-bounce duration-[6000ms]" />
+      <div className="absolute bottom-[20%] left-[10%] w-24 h-24 bg-sky-200/10 -rotate-12 border border-white/20 backdrop-blur-md rounded-2xl hidden lg:block animate-pulse duration-[4000ms]" />
+
+      {/* Card de Login Premium */}
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/40 backdrop-blur-[40px] p-10 sm:p-14 rounded-[4rem] border border-white/80 shadow-[0_32px_64px_-16px_rgba(14,165,233,0.15)] animate-in fade-in zoom-in duration-1000">
+        <div className="bg-white/40 backdrop-blur-[40px] p-8 sm:p-14 rounded-[4rem] border border-white/80 shadow-[0_32px_64px_-16px_rgba(14,165,233,0.15)] animate-in fade-in zoom-in duration-700">
           
           <div className="flex flex-col items-center mb-12">
             <div className="w-24 h-24 bg-gradient-to-br from-sky-400 to-sky-600 text-white rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-sky-200 mb-8 animate-ice relative group overflow-hidden">
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
               <Snowflake size={48} className="relative z-10" />
             </div>
+            
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none text-center">
-              {data.settings.companyName}
+              {data.settings.companyName || 'NOME DA EMPRESA'}
             </h1>
+            
             <div className="flex items-center gap-3 mt-4">
-              <div className="h-[1px] w-8 bg-slate-200" />
-              <p className="text-[9px] font-black text-sky-500 uppercase tracking-[0.4em]">
-                System Core
+              <div className="h-[1px] w-6 bg-slate-200" />
+              <p className="text-[9px] font-black text-sky-500 uppercase tracking-[0.3em]">
+                CNPJ: {data.settings.cnpj || '00.000.000/0000-00'}
               </p>
-              <div className="h-[1px] w-8 bg-slate-200" />
+              <div className="h-[1px] w-6 bg-slate-200" />
             </div>
           </div>
 
@@ -155,7 +161,7 @@ const App: React.FC = () => {
                   type="email" 
                   value={loginEmail}
                   onChange={e => setLoginEmail(e.target.value)}
-                  placeholder="email@empresa.com"
+                  placeholder="seu@email.com"
                   className="w-full h-16 pl-16 pr-6 bg-white/60 border border-white/50 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-100/50 focus:border-white transition-all shadow-sm"
                   required
                 />
@@ -163,7 +169,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-6">Token de Acesso</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-6">Chave de Acesso</label>
               <div className="relative group">
                 <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-sky-500 transition-colors">
                   <Key size={20} />
@@ -188,9 +194,7 @@ const App: React.FC = () => {
 
             {loginError && (
               <div className="bg-rose-50/80 backdrop-blur-md border border-rose-100 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-2 duration-300">
-                <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0">
-                  <Lock size={16} />
-                </div>
+                <AlertCircle className="text-rose-500 shrink-0" size={18} />
                 <p className="text-[10px] font-black text-rose-600 uppercase leading-tight tracking-tight">{loginError}</p>
               </div>
             )}
@@ -204,7 +208,7 @@ const App: React.FC = () => {
                 <Loader2 className="animate-spin" size={24} />
               ) : (
                 <>
-                  Acessar Painel 
+                  Entrar no Sistema 
                   <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
                     <ChevronRight size={18} />
                   </div>
@@ -212,28 +216,23 @@ const App: React.FC = () => {
               )}
             </button>
           </form>
-
-          <div className="mt-12 text-center space-y-4">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] leading-relaxed">
-              Segurança Criptografada <br/> 
-              <span className="text-sky-400/60 font-bold italic">Ice Control Systems v5.0</span>
-            </p>
-          </div>
         </div>
 
-        {/* Botão de Suporte Premium */}
+        {/* Botão de Suporte Técnico */}
         <div className="mt-8 flex justify-center animate-in slide-in-from-bottom-4 duration-1000 delay-300">
           <a 
-            href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '')}`} 
+            href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '') || '5538998812856'}`} 
             target="_blank"
-            className="flex items-center gap-3 px-8 py-4 bg-white/50 backdrop-blur-md border border-white rounded-full shadow-lg hover:bg-sky-500 hover:text-white hover:shadow-sky-200 transition-all group"
+            className="flex items-center gap-4 px-10 py-5 bg-white/50 backdrop-blur-md border border-white rounded-full shadow-lg hover:bg-sky-500 hover:text-white transition-all group active:scale-95"
           >
-            <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 group-hover:bg-white/20 group-hover:text-white transition-all">
-              <MessageCircle size={18} />
+            <div className="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 group-hover:bg-white/20 group-hover:text-white transition-all">
+              <MessageCircle size={20} />
             </div>
             <div className="text-left">
-              <p className="text-[8px] font-black uppercase tracking-widest leading-none opacity-50 group-hover:opacity-100">Suporte Técnico</p>
-              <p className="text-[11px] font-black uppercase tracking-tighter mt-0.5">{data.settings.supportPhone || '(38) 99881-2856'}</p>
+              <p className="text-[8px] font-black uppercase tracking-widest leading-none opacity-50 group-hover:opacity-100 mb-1">Suporte Técnico</p>
+              <p className="text-xs font-black uppercase tracking-tighter">
+                {data.settings.supportPhone || '(38) 99881-2856'}
+              </p>
             </div>
           </a>
         </div>
@@ -241,7 +240,7 @@ const App: React.FC = () => {
 
       {/* Footer Design */}
       <div className="absolute bottom-8 text-center w-full">
-         <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">© Gelo Brasil • Todos os direitos reservados</p>
+         <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">© Powered by Gelo Brasil Intelligence</p>
       </div>
     </div>
   );
@@ -254,7 +253,7 @@ const App: React.FC = () => {
           <div className="w-10 h-10 rounded-2xl bg-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-200">
             <Snowflake size={20} />
           </div>
-          <h1 className="text-sm font-black uppercase tracking-tighter text-slate-800">{data.settings.companyName}</h1>
+          <h1 className="text-sm font-black uppercase tracking-tighter text-slate-800 truncate">{data.settings.companyName}</h1>
         </div>
         <nav className="flex-1 space-y-1">
           {menuItems.map(item => (
@@ -280,20 +279,20 @@ const App: React.FC = () => {
 
       {/* Mobile Top Header */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-sky-100 sticky top-0 z-[60] shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-100">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-100 shrink-0">
             <Snowflake size={16} />
           </div>
-          <h1 className="text-[10px] font-black uppercase tracking-tighter text-slate-800">{data.settings.companyName}</h1>
+          <h1 className="text-[10px] font-black uppercase tracking-tighter text-slate-800 truncate">{data.settings.companyName}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[8px] font-black text-sky-500 px-2 py-1 bg-sky-50 rounded-full border border-sky-100 uppercase">Sessão Ativa</span>
+          <span className="text-[8px] font-black text-sky-500 px-2 py-1 bg-sky-50 rounded-full border border-sky-100 uppercase">Online</span>
         </div>
       </div>
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full relative">
-        {view === 'dashboard' && <DashboardView {...data} onSwitchView={setView} expirationDate={data.settings.expirationDate} onOpenPayment={() => {}} settings={data.settings} vehicles={data.vehicles} fuelLogs={data.fuelLogs} maintenanceLogs={data.maintenanceLogs} />}
+        {view === 'dashboard' && <DashboardView {...data} onSwitchView={setView} settings={data.settings} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} />}
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} monthlyGoals={data.monthlyGoals} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} onUpdateSettings={wrap(syncSettings)} />}
         {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={wrap(syncExpense)} onDelete={wrap(deleteExpense)} onUpdateCategories={wrap(syncCategory)} onDeleteCategory={wrap(deleteCategory)} onReorderCategories={wrap(syncCategoriesOrder)} sales={data.sales} />}
@@ -315,48 +314,6 @@ const App: React.FC = () => {
         />}
         {view === 'admin' && <AdminView settings={data.settings} onUpdateSettings={wrap(syncSettings)} users={[]} />}
       </main>
-
-      {/* Mobile "More" Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[100] animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute bottom-24 left-4 right-4 bg-white rounded-[2.5rem] p-6 shadow-2xl border border-sky-100 animate-in slide-in-from-bottom-10 duration-500">
-             <div className="flex items-center justify-between mb-6 border-b border-slate-50 pb-4">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Opções Adicionais</span>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full text-slate-400"><X size={16} /></button>
-             </div>
-             <div className="grid grid-cols-1 gap-3">
-                {mobileExtraItems.map(item => (
-                  <button 
-                    key={item.id} 
-                    onClick={() => handleMobileNav(item.id)}
-                    className={`flex items-center justify-between w-full p-5 rounded-2xl transition-all ${view === item.id ? 'bg-sky-500 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-sky-50'}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${view === item.id ? 'bg-white/20' : 'bg-white shadow-sm text-sky-500'}`}>
-                        <item.icon size={20} />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-tight">{item.label}</span>
-                    </div>
-                    <ChevronRight size={16} className={view === item.id ? 'opacity-50' : 'text-slate-300'} />
-                  </button>
-                ))}
-                
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center justify-between w-full p-5 rounded-2xl bg-rose-50 text-rose-500 transition-all mt-2"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-rose-500">
-                      <LogOut size={20} />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-tight">Sair do Sistema</span>
-                  </div>
-                </button>
-             </div>
-          </div>
-        </div>
-      )}
 
       {/* Bottom Navigation for Mobile */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-sky-100 px-2 py-3 flex items-center justify-around z-[70] shadow-[0_-10px_30px_rgba(14,165,233,0.05)] rounded-t-[2rem]">
@@ -382,6 +339,47 @@ const App: React.FC = () => {
           <span className="text-[8px] font-black uppercase tracking-widest">{isMobileMenuOpen ? 'FECHAR' : 'MAIS'}</span>
         </button>
       </nav>
+
+      {/* Mobile Menu Drawer */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-[100] animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute bottom-24 left-4 right-4 bg-white rounded-[2.5rem] p-6 shadow-2xl border border-sky-100 animate-in slide-in-from-bottom-10 duration-500">
+             <div className="flex items-center justify-between mb-6 border-b border-slate-50 pb-4">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Menu Expandido</span>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full text-slate-400"><X size={16} /></button>
+             </div>
+             <div className="grid grid-cols-1 gap-3">
+                {mobileExtraItems.map(item => (
+                  <button 
+                    key={item.id} 
+                    onClick={() => handleMobileNav(item.id)}
+                    className={`flex items-center justify-between w-full p-5 rounded-2xl transition-all ${view === item.id ? 'bg-sky-500 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-sky-50'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${view === item.id ? 'bg-white/20' : 'bg-white shadow-sm text-sky-500'}`}>
+                        <item.icon size={20} />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-tight">{item.label}</span>
+                    </div>
+                    <ChevronRight size={16} className={view === item.id ? 'opacity-50' : 'text-slate-300'} />
+                  </button>
+                ))}
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center justify-between w-full p-5 rounded-2xl bg-rose-50 text-rose-500 transition-all mt-2"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-rose-500">
+                      <LogOut size={20} />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-tight">Sair do Sistema</span>
+                  </div>
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
