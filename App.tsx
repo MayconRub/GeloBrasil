@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, Menu, X, Lock, PhoneCall, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, Menu, X, Lock, PhoneCall, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine } from './store';
 import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog } from './types';
@@ -113,89 +113,135 @@ const App: React.FC = () => {
   if (isLoading && !isAuthenticated) return (
     <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-sky-500 mb-4" size={48} />
-      <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em]">Autenticando com Supabase...</p>
+      <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.3em]">Conectando à Rede Glacial...</p>
     </div>
   );
 
   if (!isAuthenticated) return (
-    <div className="min-h-screen bg-[#f0f9ff] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-sky-200/30 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-200/20 rounded-full blur-[120px]" />
-
-      <div className="w-full max-w-md bg-white/70 backdrop-blur-2xl p-10 sm:p-12 rounded-[3.5rem] border border-white shadow-2xl relative z-10 animate-in fade-in zoom-in duration-700">
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 bg-sky-500 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-sky-200 mb-6 animate-ice">
-            <Snowflake size={40} />
+    <div className="min-h-screen bg-[#f8fbff] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Premium Aurora */}
+      <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-sky-100/50 rounded-full blur-[160px] animate-pulse" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[140px]" />
+      
+      {/* Container Principal */}
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white/40 backdrop-blur-[40px] p-10 sm:p-14 rounded-[4rem] border border-white/80 shadow-[0_32px_64px_-16px_rgba(14,165,233,0.15)] animate-in fade-in zoom-in duration-1000">
+          
+          <div className="flex flex-col items-center mb-12">
+            <div className="w-24 h-24 bg-gradient-to-br from-sky-400 to-sky-600 text-white rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-sky-200 mb-8 animate-ice relative group overflow-hidden">
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+              <Snowflake size={48} className="relative z-10" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none text-center">
+              {data.settings.companyName}
+            </h1>
+            <div className="flex items-center gap-3 mt-4">
+              <div className="h-[1px] w-8 bg-slate-200" />
+              <p className="text-[9px] font-black text-sky-500 uppercase tracking-[0.4em]">
+                System Core
+              </p>
+              <div className="h-[1px] w-8 bg-slate-200" />
+            </div>
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none text-center">
-            {data.settings.companyName}
-          </h1>
-          <p className="text-[9px] font-black text-sky-500 uppercase tracking-[0.3em] mt-3 bg-sky-50 px-3 py-1 rounded-full border border-sky-100">
-            Acesso Restrito
-          </p>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-6">Usuário Autorizado</label>
+              <div className="relative group">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-sky-500 transition-colors">
+                  <User size={20} />
+                </div>
+                <input 
+                  type="email" 
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                  placeholder="email@empresa.com"
+                  className="w-full h-16 pl-16 pr-6 bg-white/60 border border-white/50 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-100/50 focus:border-white transition-all shadow-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-6">Token de Acesso</label>
+              <div className="relative group">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-sky-500 transition-colors">
+                  <Key size={20} />
+                </div>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full h-16 pl-16 pr-16 bg-white/60 border border-white/50 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-100/50 focus:border-white transition-all shadow-sm"
+                  required
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-sky-500 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="bg-rose-50/80 backdrop-blur-md border border-rose-100 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0">
+                  <Lock size={16} />
+                </div>
+                <p className="text-[10px] font-black text-rose-600 uppercase leading-tight tracking-tight">{loginError}</p>
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full h-20 bg-slate-900 text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.25em] shadow-2xl hover:bg-sky-500 transition-all active:scale-95 flex items-center justify-center gap-4 group disabled:opacity-50"
+            >
+              {isLoggingIn ? (
+                <Loader2 className="animate-spin" size={24} />
+              ) : (
+                <>
+                  Acessar Painel 
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                    <ChevronRight size={18} />
+                  </div>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-12 text-center space-y-4">
+            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] leading-relaxed">
+              Segurança Criptografada <br/> 
+              <span className="text-sky-400/60 font-bold italic">Ice Control Systems v5.0</span>
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">E-mail Administrativo</label>
-            <div className="relative">
-              <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-              <input 
-                type="email" 
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-                placeholder="root@adm.app"
-                className="w-full h-16 pl-14 pr-6 bg-white/50 border border-slate-100 rounded-[1.8rem] font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 focus:border-sky-200 transition-all"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Chave de Acesso</label>
-            <div className="relative">
-              <Key size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-              <input 
-                type={showPassword ? "text" : "password"} 
-                value={loginPassword}
-                onChange={e => setLoginPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full h-16 pl-14 pr-14 bg-white/50 border border-slate-100 rounded-[1.8rem] font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 focus:border-sky-200 transition-all"
-                required
-              />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-sky-500 transition-colors"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          {loginError && (
-            <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 animate-in shake duration-500">
-              <Lock size={16} className="text-rose-500" />
-              <p className="text-[9px] font-black text-rose-600 uppercase leading-tight">{loginError}</p>
-            </div>
-          )}
-
-          <button 
-            type="submit"
-            disabled={isLoggingIn}
-            className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-sky-600 transition-all active:scale-95 flex items-center justify-center gap-3 border-b-4 border-slate-950 hover:border-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* Botão de Suporte Premium */}
+        <div className="mt-8 flex justify-center animate-in slide-in-from-bottom-4 duration-1000 delay-300">
+          <a 
+            href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '')}`} 
+            target="_blank"
+            className="flex items-center gap-3 px-8 py-4 bg-white/50 backdrop-blur-md border border-white rounded-full shadow-lg hover:bg-sky-500 hover:text-white hover:shadow-sky-200 transition-all group"
           >
-            {isLoggingIn ? <Loader2 className="animate-spin" size={18} /> : <>Entrar no Sistema <ChevronRight size={18} /></>}
-          </button>
-        </form>
-
-        <div className="mt-10 text-center">
-          <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">
-            Desenvolvido por <span className="text-sky-400">Maycon Rubem</span><br/>
-            © Todos os direitos reservados
-          </p>
+            <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 group-hover:bg-white/20 group-hover:text-white transition-all">
+              <MessageCircle size={18} />
+            </div>
+            <div className="text-left">
+              <p className="text-[8px] font-black uppercase tracking-widest leading-none opacity-50 group-hover:opacity-100">Suporte Técnico</p>
+              <p className="text-[11px] font-black uppercase tracking-tighter mt-0.5">{data.settings.supportPhone || '(38) 99881-2856'}</p>
+            </div>
+          </a>
         </div>
+      </div>
+
+      {/* Footer Design */}
+      <div className="absolute bottom-8 text-center w-full">
+         <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">© Gelo Brasil • Todos os direitos reservados</p>
       </div>
     </div>
   );
