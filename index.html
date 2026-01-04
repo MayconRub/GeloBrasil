@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gelo Brasil | Gestão Inteligente</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,45 +21,36 @@
             color: #1e293b;
             overflow-x: hidden;
             min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Fundo Light Glacial */
-        .light-dashboard {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%);
-            min-height: 100vh;
+        /* Fundo Dinâmico Glacial */
+        .glacial-bg {
+            background: linear-gradient(-45deg, #e0f2fe, #bae6fd, #f0f9ff, #ffffff);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
         }
 
-        /* Glassmorphism Claro */
-        .ice-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px 0 rgba(94, 204, 227, 0.08);
-            border-radius: 2rem;
-            transition: all 0.3s ease;
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
-        .ice-card:hover {
-            border-color: rgba(94, 204, 227, 0.4);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px 0 rgba(94, 204, 227, 0.12);
+        /* Glassmorphism Puro */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.05);
         }
 
-        .ice-text-glow {
-            color: var(--ice-primary);
-            text-shadow: 0 0 10px rgba(94, 204, 227, 0.2);
-        }
-
-        .ice-progress-bar {
-            background: rgba(94, 204, 227, 0.1);
-            border-radius: 1rem;
-            height: 10px;
-            overflow: hidden;
-        }
-
-        .ice-progress-fill {
-            background: linear-gradient(90deg, #5ecce3, #0ea5e9);
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
         }
 
         /* Scrollbar */
@@ -72,6 +63,13 @@
             50% { opacity: 0.7; transform: scale(1.05); }
         }
         .animate-ice { animation: pulse-ice 3s infinite ease-in-out; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 640px) {
+            .mobile-bottom-sheet {
+                border-radius: 2.5rem 2.5rem 0 0 !important;
+            }
+        }
 
         @media print {
             .no-print { display: none !important; }
