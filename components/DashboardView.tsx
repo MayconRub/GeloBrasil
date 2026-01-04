@@ -8,19 +8,20 @@ import {
   CircleDollarSign, Receipt, X, QrCode, Copy, Check, MessageCircle, BellOff
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus } from '../types';
+import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus, Vehicle } from '../types';
 import { GoogleGenAI } from '@google/genai';
 
 interface Props {
   sales: Sale[];
   expenses: Expense[];
   production: Production[];
+  vehicles: Vehicle[];
   onSwitchView: (view: ViewType) => void;
   settings: AppSettings;
 }
 
 const DashboardView: React.FC<Props> = ({ 
-  sales, expenses, production, onSwitchView, settings 
+  sales, expenses, production, vehicles, onSwitchView, settings 
 }) => {
   const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
   const [navDate, setNavDate] = useState(new Date());
@@ -96,6 +97,10 @@ const DashboardView: React.FC<Props> = ({
     const diffTime = expDate.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }, [settings.expirationDate]);
+
+  const hasOilAlert = useMemo(() => {
+    return (vehicles || []).some(v => ((v.km_atual || 0) - (v.km_ultima_troca || 0)) >= 1000);
+  }, [vehicles]);
 
   const handlePrevMonth = () => {
     setNavDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -490,7 +495,12 @@ const DashboardView: React.FC<Props> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <CompactAction label="FROTA" icon={Truck} color="bg-slate-100 text-slate-600" onClick={() => onSwitchView('fleet')} />
+            <CompactAction 
+              label="FROTA" 
+              icon={Truck} 
+              color={hasOilAlert ? "bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-200" : "bg-slate-100 text-slate-600"} 
+              onClick={() => onSwitchView('fleet')} 
+            />
             <CompactAction label="EQUIPE" icon={Users} color="bg-slate-100 text-slate-600" onClick={() => onSwitchView('team')} />
           </div>
         </div>

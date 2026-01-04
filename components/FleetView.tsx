@@ -375,6 +375,20 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
   const [form, setForm] = useState<Partial<Vehicle>>({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX' });
   const [oilForm, setOilForm] = useState({ veiculo_id: '', custo: 0, pago: true, data: new Date().toISOString().split('T')[0], funcionario_id: '' });
 
+  // Ordenação prioritária: veículos que precisam de óleo aparecem primeiro
+  const sortedVehicles = useMemo(() => {
+    return [...(vehicles || [])].sort((a, b) => {
+      const diffA = (a.km_atual || 0) - (a.km_ultima_troca || 0);
+      const diffB = (b.km_atual || 0) - (b.km_ultima_troca || 0);
+      const needsA = diffA >= 1000;
+      const needsB = diffB >= 1000;
+
+      if (needsA && !needsB) return -1;
+      if (!needsA && needsB) return 1;
+      return 0; // Mantém ordem original entre iguais
+    });
+  }, [vehicles]);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdate({ ...form, id: form.id || crypto.randomUUID() } as Vehicle);
@@ -394,7 +408,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
     <div className="space-y-4">
       <div className="flex justify-end no-print px-1"><button onClick={() => setIsOpen(true)} className="bg-slate-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">CADASTRAR VEÍCULO</button></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-1 sm:px-0">
-        {(vehicles || []).map((v: Vehicle) => {
+        {sortedVehicles.map((v: Vehicle) => {
           const kmSinceOil = (v.km_atual || 0) - (v.km_ultima_troca || 0);
           const needsOilChange = kmSinceOil >= 1000;
           return (
