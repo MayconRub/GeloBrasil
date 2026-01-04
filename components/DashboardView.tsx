@@ -5,7 +5,7 @@ import {
   Plus, Users, Truck, Wallet, ChevronRight,
   Droplets, AlertCircle, Sun, ThermometerSun,
   MapPin, ChevronLeft, Target, ShieldAlert, Timer,
-  CircleDollarSign, Receipt, X, QrCode, Copy, Check, MessageCircle
+  CircleDollarSign, Receipt, X, QrCode, Copy, Check, MessageCircle, BellOff
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus } from '../types';
@@ -29,6 +29,7 @@ const DashboardView: React.FC<Props> = ({
   const [showQuickMenu, setShowQuickMenu] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [isAlertDismissed, setIsAlertDismissed] = useState(false);
 
   const PIX_CODE = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
   
@@ -159,9 +160,18 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-[1500px] mx-auto pb-10">
       
-      {/* ALERTA DE VENCIMENTO DE LICENÇA - OTIMIZADO PARA MOBILE */}
-      {daysUntilExpiration !== null && daysUntilExpiration <= 3 && daysUntilExpiration >= 0 && (
-        <div className="bg-rose-50 border border-rose-100 p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-lg shadow-rose-100/20 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+      {/* ALERTA DE VENCIMENTO DE LICENÇA - COM FUNÇÃO "AVISE-ME DEPOIS" */}
+      {daysUntilExpiration !== null && daysUntilExpiration <= 3 && daysUntilExpiration >= 0 && !isAlertDismissed && (
+        <div className="bg-rose-50 border border-rose-100 p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-lg shadow-rose-100/20 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700 relative overflow-hidden">
+          {/* Botão de fechar discreto no canto */}
+          <button 
+            onClick={() => setIsAlertDismissed(true)}
+            className="absolute top-3 right-3 text-rose-300 hover:text-rose-500 transition-colors p-1"
+            title="Lembrar mais tarde"
+          >
+            <X size={16} />
+          </button>
+
           <div className="flex items-center gap-3 sm:gap-5 text-center md:text-left flex-col md:flex-row w-full md:w-auto">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 shrink-0 animate-bounce">
               <ShieldAlert size={24} className="sm:size-[32px]" />
@@ -173,12 +183,21 @@ const DashboardView: React.FC<Props> = ({
               </p>
             </div>
           </div>
-          <button 
-            onClick={() => setShowPixModal(true)}
-            className="w-full md:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-rose-600 text-white rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-xl shadow-rose-200 hover:bg-rose-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            <QrCode size={16} className="sm:size-[18px]" /> Pagar Agora
-          </button>
+
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+            <button 
+              onClick={() => setShowPixModal(true)}
+              className="w-full md:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-rose-600 text-white rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-xl shadow-rose-200 hover:bg-rose-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <QrCode size={16} className="sm:size-[18px]" /> Pagar Agora
+            </button>
+            <button 
+              onClick={() => setIsAlertDismissed(true)}
+              className="w-full md:w-auto px-4 py-2 text-[8px] sm:text-[9px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-600 transition-all flex items-center justify-center gap-1"
+            >
+              <BellOff size={14} /> Avise-me depois
+            </button>
+          </div>
         </div>
       )}
 
