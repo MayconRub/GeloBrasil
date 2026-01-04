@@ -431,52 +431,52 @@ const DashboardView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* MODAL DE PAGAMENTO PIX */}
+      {/* MODAL DE PAGAMENTO PIX - OTIMIZADO PARA NÃO ESTOURAR EM MOBILE */}
       {showPixModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 shadow-2xl relative animate-in zoom-in-95 duration-300 flex flex-col items-center">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-2xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-2xl relative animate-in zoom-in-95 duration-300 flex flex-col items-center max-h-[95vh] overflow-y-auto">
               <button 
                 onClick={() => setShowPixModal(false)}
-                className="absolute top-8 right-8 text-slate-300 hover:text-rose-500 transition-colors"
+                className="absolute top-4 right-4 sm:top-8 sm:right-8 text-slate-300 hover:text-rose-500 transition-colors z-20"
               >
-                <X size={28} />
+                <X size={24} className="sm:size-[28px]" />
               </button>
 
-              <div className="w-20 h-20 bg-sky-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-sky-100 mb-6">
-                <QrCode size={36} />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-sky-500 text-white rounded-2xl sm:rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-sky-100 mb-4 sm:mb-6 shrink-0 mt-4 sm:mt-0">
+                <QrCode size={32} className="sm:size-[36px]" />
               </div>
 
-              <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase mb-2">Renovação de Acesso</h3>
-              <p className="text-xs font-bold text-slate-400 text-center max-w-xs mb-8 uppercase tracking-widest leading-relaxed">
+              <h3 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tighter uppercase mb-2 text-center">Renovação de Acesso</h3>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-400 text-center max-w-xs mb-6 sm:mb-8 uppercase tracking-widest leading-relaxed">
                 Escaneie o código abaixo ou copie a chave para realizar o pagamento.
               </p>
 
-              <div className="bg-sky-50 p-6 rounded-3xl mb-8 border border-sky-100">
+              <div className="bg-sky-50 p-4 sm:p-6 rounded-3xl mb-6 sm:mb-8 border border-sky-100 shrink-0">
                 <img 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(PIX_CODE)}`} 
                   alt="PIX QR Code" 
-                  className="w-48 h-48 rounded-xl"
+                  className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl"
                 />
               </div>
 
-              <div className="w-full space-y-4">
+              <div className="w-full space-y-4 pb-4">
                 <button 
                   onClick={handleCopyPix}
-                  className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl border transition-all active:scale-95 group ${copiedPix ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:border-sky-200'}`}
+                  className={`w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 rounded-xl sm:rounded-2xl border transition-all active:scale-95 group ${copiedPix ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:border-sky-200'}`}
                 >
                   <div className="flex flex-col items-start overflow-hidden mr-4">
-                    <span className={`text-[8px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>
                       {copiedPix ? 'Copiado!' : 'PIX Copia e Cola'}
                     </span>
-                    <span className="text-[10px] font-black text-slate-700 truncate w-full text-left">
+                    <span className="text-[9px] sm:text-[10px] font-black text-slate-700 truncate w-full text-left">
                       {PIX_CODE}
                     </span>
                   </div>
-                  {copiedPix ? <Check size={20} className="text-emerald-500 shrink-0" /> : <Copy size={20} className="text-slate-300 group-hover:text-sky-500 shrink-0" />}
+                  {copiedPix ? <Check size={18} className="text-emerald-500 shrink-0" /> : <Copy size={18} className="text-slate-300 group-hover:text-sky-500 shrink-0" />}
                 </button>
 
-                <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 text-center">
-                   <p className="text-[9px] font-black text-emerald-700 uppercase leading-relaxed">
+                <div className="bg-emerald-50/50 p-4 rounded-xl sm:rounded-2xl border border-emerald-100 text-center">
+                   <p className="text-[8px] sm:text-[9px] font-black text-emerald-700 uppercase leading-relaxed">
                       Após o pagamento, envie o comprovante para o suporte para liberação imediata.
                    </p>
                 </div>
@@ -484,7 +484,7 @@ const DashboardView: React.FC<Props> = ({
                 <a 
                   href={`https://wa.me/${settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} 
                   target="_blank"
-                  className="w-full flex items-center justify-center gap-3 py-5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 hover:brightness-105 transition-all"
+                  className="w-full flex items-center justify-center gap-3 py-4 sm:py-5 bg-emerald-500 text-white rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 hover:brightness-105 transition-all"
                 >
                   <MessageCircle size={18} /> Enviar Comprovante
                 </a>
