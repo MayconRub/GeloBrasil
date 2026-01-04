@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Plus, Trash2, Search, Pencil, ChevronLeft, ChevronRight, CheckCircle2,
   Receipt, Clock, X, User, Filter, ArrowDown, Wallet, Calendar,
-  Save, RotateCcw
+  Save, RotateCcw, ArrowUpRight, ArrowDownRight, Printer, Download
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
@@ -35,27 +35,38 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'TODOS' | ExpenseStatus>('TODOS');
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const monthTotalExpenses = useMemo(() => {
-    return expenses.filter(e => {
+  // Estatísticas Rápidas (P&L Mode)
+  const stats = useMemo(() => {
+    const filtered = expenses.filter(e => {
       const d = new Date(e.dueDate + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).reduce((sum, e) => sum + e.value, 0);
+    });
+
+    const total = filtered.reduce((sum, e) => sum + e.value, 0);
+    const paid = filtered.filter(e => e.status === ExpenseStatus.PAGO).reduce((sum, e) => sum + e.value, 0);
+    const pending = total - paid;
+    const overDue = filtered.filter(e => e.status === ExpenseStatus.VENCIDO).reduce((sum, e) => sum + e.value, 0);
+
+    return { total, paid, pending, overDue };
   }, [expenses, currentMonth, currentYear]);
 
   const filteredExpenses = useMemo(() => {
     return expenses
       .filter(e => {
         const d = new Date(e.dueDate + 'T00:00:00');
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear && 
-               (e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'TODOS' || e.status === statusFilter;
+        const matchesMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        return matchesSearch && matchesStatus && matchesMonth;
       })
       .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
-  }, [expenses, currentMonth, currentYear, searchTerm]);
+  }, [expenses, currentMonth, currentYear, searchTerm, statusFilter]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,26 +86,13 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   };
 
   const handleEdit = (exp: Expense) => {
-    if (confirm(`DESEJA EDITAR A DESPESA "${exp.description}" NO VALOR DE R$ ${exp.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}?`)) {
-      setEditingId(exp.id);
-      setDescription(exp.description);
-      setValue(exp.value.toString());
-      setDueDate(exp.dueDate);
-      setCategory(exp.category);
-      setEmployeeId(exp.employeeId || '');
-      
-      if (window.innerWidth < 1024) {
-        setIsMobileFormOpen(true);
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-  };
-
-  const handleDelete = (exp: Expense) => {
-    if (confirm(`ATENÇÃO: DESEJA REALMENTE EXCLUIR A DESPESA "${exp.description}"? ESTA AÇÃO É IRREVERSÍVEL.`)) {
-      onDelete(exp.id);
-    }
+    setEditingId(exp.id);
+    setDescription(exp.description);
+    setValue(exp.value.toString());
+    setDueDate(exp.dueDate);
+    setCategory(exp.category);
+    setEmployeeId(exp.employeeId || '');
+    if (window.innerWidth < 1024) setIsMobileFormOpen(true);
   };
 
   const resetForm = () => {
@@ -109,300 +107,200 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
 
   const getEmployeeName = (id?: string) => employees.find(e => e.id === id)?.name;
 
-  const renderForm = (isModal = false) => (
-    <form onSubmit={handleAdd} className={`${isModal ? '' : 'hidden lg:flex bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex-wrap items-end gap-4 no-print'}`}>
-      <div className={`${isModal ? 'space-y-4' : 'flex flex-wrap items-end gap-4 w-full'}`}>
-        <div className={`${isModal ? 'w-full' : 'w-full sm:flex-1 min-w-[140px]'} space-y-1.5`}>
-          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1">
-             CATEGORIA <Filter size={10} className="text-sky-400" />
-          </label>
-          <select 
-            value={category} 
-            onChange={e => setCategory(e.target.value)}
-            className="w-full h-14 px-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-black text-[10px] text-sky-600 uppercase"
-          >
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div className={`${isModal ? 'w-full' : 'w-full sm:flex-[2] min-w-[200px]'} space-y-1.5`}>
-          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">DESCRIÇÃO DA CONTA</label>
-          <input 
-            type="text" 
-            value={description} 
-            onChange={e => setDescription(e.target.value)} 
-            placeholder="EX: CONTA DE LUZ" 
-            className="w-full h-14 px-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-bold text-xs uppercase" 
-            required
-          />
-        </div>
-
-        <div className={`${isModal ? 'w-full' : 'w-full sm:flex-1 min-w-[120px]'} space-y-1.5`}>
-          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">VALOR</label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">R$</span>
-            <input 
-              type="text" 
-              value={value} 
-              onChange={e => setValue(e.target.value)} 
-              placeholder="0,00" 
-              className="w-full h-14 pl-10 pr-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-black text-xs" 
-              required
-            />
-          </div>
-        </div>
-
-        <div className={`${isModal ? 'w-full' : 'w-full sm:flex-1 min-w-[140px]'} space-y-1.5`}>
-          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">VENCIMENTO</label>
-          <input 
-            type="date" 
-            value={dueDate} 
-            onChange={e => setDueDate(e.target.value)} 
-            className="w-full h-14 px-5 bg-[#f8fafc] border border-slate-100 rounded-2xl outline-none font-bold text-xs" 
-            required
-          />
-        </div>
-
-        {!isModal && (
-          <div className="w-full sm:w-14">
-            <button 
-              type="submit" 
-              className="w-full h-14 bg-[#0f172a] text-white rounded-2xl font-black shadow-lg hover:bg-sky-600 transition-all flex items-center justify-center active:scale-95"
-            >
-              {editingId ? <Pencil size={20} /> : <Plus size={24} />}
-            </button>
-          </div>
-        )}
-
-        <div className={`${isModal ? 'w-full' : 'w-full'} flex flex-col sm:flex-row gap-4 mt-2`}>
-           <select 
-             value={employeeId} 
-             onChange={e => setEmployeeId(e.target.value)}
-             className="flex-1 h-12 px-4 bg-[#f8fafc] border border-slate-100 rounded-xl outline-none text-[9px] font-black text-slate-400 uppercase"
-           >
-             <option value="">VINCULAR FUNCIONÁRIO (OPCIONAL)</option>
-             {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-           </select>
-           {editingId && !isModal && (
-            <button type="button" onClick={resetForm} className="h-12 px-6 bg-slate-100 text-slate-500 rounded-xl text-[9px] font-black uppercase">Cancelar Edição</button>
-           )}
-        </div>
-
-        {isModal && (
-          <div className="flex gap-3 pt-4">
-            <button 
-              type="submit" 
-              className="flex-1 h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
-            >
-              <Save size={18} /> {editingId ? 'Atualizar' : 'Lançar'}
-            </button>
-            <button type="button" onClick={resetForm} className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center">
-              <X size={20} />
-            </button>
-          </div>
-        )}
-      </div>
-    </form>
-  );
-
   return (
-    <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-20">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto">
       
-      {/* Top Header */}
-      <header className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-black text-[#1e293b] tracking-tighter uppercase flex items-center gap-2 leading-none">
-              FLUXO <span className="text-[#f43f5e]">DESPESAS</span>
-            </h1>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
-              PLANILHA DE CONTAS {monthName.toUpperCase()}
+      {/* Header Estilo P&L */}
+      <header className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-5 w-full lg:w-auto">
+          <div className="w-14 h-14 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl rotate-2 shrink-0">
+            <Receipt size={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">Gestão <span className="text-rose-500">Financeira</span></h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+              <Calendar size={12} /> Planilha {monthName}
             </p>
           </div>
-          
-          {/* Botão Ação Rápida Mobile */}
-          <button 
-            onClick={() => setIsMobileFormOpen(true)}
-            className="md:hidden w-12 h-12 bg-[#0f172a] text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"
-          >
-            <Plus size={24} />
-          </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
-          <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center">
-              <ArrowDown size={20} />
-            </div>
-            <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SAÍDA TOTAL</p>
-              <h4 className="text-xl font-black text-slate-800 text-sm sm:text-xl leading-none">R$ {monthTotalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
-            </div>
-          </div>
-
-          <div className="flex bg-white p-1 border border-slate-100 rounded-2xl shadow-sm no-print">
-            <button onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, 1))} className="p-2.5 text-slate-400 hover:text-sky-500"><ChevronLeft size={18} /></button>
-            <div className="px-4 py-2 flex items-center font-black text-[10px] text-slate-700 uppercase min-w-[140px] justify-center text-center">
-              {monthName}
-            </div>
-            <button onClick={() => setSelectedDate(new Date(currentYear, currentMonth + 1, 1))} className="p-2.5 text-slate-400 hover:text-sky-500"><ChevronRight size={18} /></button>
-          </div>
+        <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+           <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200">
+              <button onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, 1))} className="p-2 text-slate-400 hover:text-slate-700 transition-all"><ChevronLeft size={18} /></button>
+              <div className="px-4 py-2 text-[10px] font-black text-slate-700 uppercase min-w-[120px] text-center">{monthName}</div>
+              <button onClick={() => setSelectedDate(new Date(currentYear, currentMonth + 1, 1))} className="p-2 text-slate-400 hover:text-slate-700 transition-all"><ChevronRight size={18} /></button>
+           </div>
+           <button onClick={() => setIsMobileFormOpen(true)} className="flex-1 lg:flex-none h-12 px-6 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
+              <Plus size={18} /> Novo Lançamento
+           </button>
         </div>
       </header>
 
-      {/* Input de Lançamento Responsivo - Desktop Only */}
-      {renderForm()}
+      {/* Cards de Resumo Estilo Dashboard Financeiro */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total do Mês" value={stats.total} icon={ArrowDown} color="slate" />
+        <StatCard label="Total Pago" value={stats.paid} icon={CheckCircle2} color="emerald" />
+        <StatCard label="Pendente" value={stats.pending} icon={Clock} color="amber" />
+        <StatCard label="Vencido" value={stats.overDue} icon={X} color="rose" />
+      </div>
 
-      {/* Listagem Responsiva */}
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-50 flex items-center gap-4 bg-slate-50/30">
-           <Search size={20} className="text-slate-300" />
-           <input 
-             type="text" 
-             placeholder="FILTRAR LANÇAMENTOS..." 
-             value={searchTerm} 
-             onChange={e => setSearchTerm(e.target.value)} 
-             className="bg-transparent border-none outline-none text-[10px] font-black uppercase w-full placeholder:text-slate-300" 
-           />
-        </div>
-        
-        {/* Mobile View: Cards */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {filteredExpenses.map(e => (
-            <div key={e.id} className="p-5 space-y-4 group active:bg-sky-50/30 transition-all">
-               <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                     <h4 className="font-black text-slate-800 text-xs uppercase">{e.description}</h4>
-                     <div className="flex flex-wrap gap-2">
-                        <span className="inline-block px-2 py-0.5 bg-sky-50 text-sky-600 rounded text-[7px] font-black uppercase border border-sky-100">
-                          {e.category}
-                        </span>
-                        {e.employeeId && (
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded text-[7px] font-bold border border-indigo-100">
-                            <User size={8} /> {getEmployeeName(e.employeeId)}
-                          </div>
-                        )}
-                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => handleEdit(e)} className="p-2 text-slate-300"><Pencil size={18}/></button>
-                    <button onClick={() => handleDelete(e)} className="p-2 text-rose-200"><Trash2 size={18}/></button>
-                  </div>
-               </div>
-               
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                     <Calendar size={12} className="text-slate-300" /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                  </div>
-                  <div className="flex items-center gap-4">
-                     <span className="font-black text-slate-800 text-sm">
-                       R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                     </span>
-                     <button onClick={() => onUpdate({...e, status: ExpenseStatus.PAGO})} className={`p-2 rounded-lg transition-colors ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}>
-                        <CheckCircle2 size={16} />
-                     </button>
-                  </div>
-               </div>
-
-               <div className="flex justify-between items-center">
-                  <span className={`px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-50 text-emerald-600' : e.status === ExpenseStatus.VENCIDO ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
-                    {e.status}
-                  </span>
-               </div>
+      {/* Planilha de Despesas (Modo Planilha P&L) */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[600px]">
+        {/* Barra de Filtros da Planilha */}
+        <div className="p-4 sm:p-6 border-b border-slate-50 bg-slate-50/30 flex flex-col sm:row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <input 
+                type="text" 
+                placeholder="PROCURAR NA PLANILHA..." 
+                className="w-full h-11 pl-12 pr-4 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-4 focus:ring-sky-50"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
             </div>
-          ))}
-          {filteredExpenses.length === 0 && (
-            <div className="py-20 text-center text-slate-300 italic text-[10px] uppercase font-black tracking-widest">
-              Nenhum lançamento
-            </div>
-          )}
+            <select 
+              value={statusFilter} 
+              onChange={e => setStatusFilter(e.target.value as any)}
+              className="h-11 px-4 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase outline-none"
+            >
+              <option value="TODOS">TODOS STATUS</option>
+              <option value={ExpenseStatus.PAGO}>PAGO</option>
+              <option value={ExpenseStatus.A_VENCER}>A VENCER</option>
+              <option value={ExpenseStatus.VENCIDO}>VENCIDO</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+             <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-sky-500"><Printer size={16} /></button>
+             <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-emerald-500"><Download size={16} /></button>
+          </div>
         </div>
 
-        {/* Desktop View: Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[9px] font-black uppercase tracking-widest">
-                <th className="px-8 py-5">DESCRIÇÃO</th>
-                <th className="px-8 py-5">CATEGORIA / RESPONSÁVEL</th>
-                <th className="px-8 py-5">VALOR</th>
-                <th className="px-8 py-5">VENCIMENTO</th>
-                <th className="px-8 py-5">STATUS</th>
-                <th className="px-8 py-5 text-right">AÇÕES</th>
+        {/* Corpo da Planilha */}
+        <div className="flex-1 overflow-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 bg-white z-10">
+              <tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-100">
+                <th className="px-6 py-4 w-12">#</th>
+                <th className="px-6 py-4">Descrição da Conta</th>
+                <th className="px-6 py-4">Categoria</th>
+                <th className="px-6 py-4">Vencimento</th>
+                <th className="px-6 py-4 text-right">Valor</th>
+                <th className="px-6 py-4 text-center">Status</th>
+                <th className="px-6 py-4 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredExpenses.map(e => (
-                <tr key={e.id} className="group hover:bg-sky-50/20 transition-all">
-                  <td className="px-8 py-5">
-                    <span className="font-black text-[#1e293b] text-xs uppercase">{e.description}</span>
-                  </td>
-                  <td className="px-8 py-5 space-y-1">
-                    <span className="inline-block px-3 py-1 bg-sky-50 text-sky-600 rounded-lg text-[8px] font-black uppercase border border-sky-100">
-                      {e.category}
-                    </span>
-                    {e.employeeId && (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded text-[7px] font-bold border border-indigo-100 w-fit">
-                        <User size={10} /> {getEmployeeName(e.employeeId)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className="font-black text-[#1e293b] text-sm">
-                      R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                      <Clock size={14} className="text-slate-300" /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+            <tbody className="divide-y divide-slate-50">
+              {filteredExpenses.map((e, idx) => (
+                <tr key={e.id} className="hover:bg-slate-50/50 group transition-colors">
+                  <td className="px-6 py-4 text-[10px] font-bold text-slate-300">{idx + 1}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-700 uppercase">{e.description}</span>
+                      {e.employeeId && <span className="text-[8px] font-bold text-sky-400 uppercase flex items-center gap-1 mt-1"><User size={8}/> {getEmployeeName(e.employeeId)}</span>}
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <span className={`inline-block px-4 py-1.5 rounded-full text-[8px] font-black uppercase border ${e.status === ExpenseStatus.PAGO ? 'bg-[#10b981] border-[#10b981] text-white shadow-sm shadow-emerald-100' : e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 border-rose-500 text-white' : 'bg-amber-400 border-amber-400 text-white'}`}>
-                      {e.status}
-                    </span>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 bg-slate-100 rounded text-[8px] font-black text-slate-500 uppercase">{e.category}</span>
                   </td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(e)} title="Editar" className="p-2 text-slate-400 hover:text-sky-500 transition-colors"><Pencil size={16}/></button>
-                      <button onClick={() => onUpdate({...e, status: ExpenseStatus.PAGO})} title="Marcar como Pago" className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircle2 size={16}/></button>
-                      <button onClick={() => handleDelete(e)} title="Excluir" className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
+                  <td className="px-6 py-4">
+                    <span className="text-[10px] font-bold text-slate-500">{new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-xs font-black text-slate-800">R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button 
+                      onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})}
+                      className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-50 text-emerald-600' : e.status === ExpenseStatus.VENCIDO ? 'bg-rose-50 text-rose-600 animate-pulse' : 'bg-amber-50 text-amber-600'}`}
+                    >
+                      {e.status}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEdit(e)} className="p-2 text-slate-400 hover:text-sky-500"><Pencil size={14} /></button>
+                      <button onClick={() => onDelete(e.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {filteredExpenses.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 opacity-20">
+               <Receipt size={64} className="mb-4" />
+               <p className="text-[10px] font-black uppercase tracking-widest">Nenhum lançamento encontrado</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Modal Mobile para Novo Lançamento */}
+      {/* Form Modal (Mobile & Desktop) */}
       {isMobileFormOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 md:hidden">
-           <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-              <button 
-                onClick={() => setIsMobileFormOpen(false)}
-                className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors"
-              >
-                <X size={24} />
-              </button>
-              
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center">
-                  <Receipt size={24} />
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={resetForm} />
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95">
+             <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">{editingId ? 'Editar Conta' : 'Nova Despesa'}</h3>
+                <button onClick={resetForm} className="p-2 text-slate-300"><X size={24}/></button>
+             </div>
+             <form onSubmit={handleAdd} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Categoria</label>
+                      <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl font-black text-[10px] uppercase">
+                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Vencimento</label>
+                      <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-xs" required />
+                   </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-800 tracking-tighter uppercase leading-none">Lançar Despesa</h3>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Fluxo de Caixa Mobile</p>
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Descrição / Fornecedor</label>
+                   <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="EX: CEMIG" className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-xs uppercase" required />
                 </div>
-              </div>
-
-              <div className="mt-4">
-                {renderForm(true)}
-              </div>
-           </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Valor R$</label>
+                      <input type="text" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl font-black text-xs" required />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Funcionário</label>
+                      <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase">
+                         <option value="">NENHUM</option>
+                         {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                      </select>
+                   </div>
+                </div>
+                <button type="submit" className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest mt-4">SALVAR NA PLANILHA</button>
+             </form>
+          </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const StatCard = ({ label, value, icon: Icon, color }: any) => {
+  const themes: any = {
+    slate: "bg-white border-slate-100 text-slate-600",
+    emerald: "bg-emerald-50 border-emerald-100 text-emerald-600",
+    amber: "bg-amber-50 border-amber-100 text-amber-600",
+    rose: "bg-rose-50 border-rose-100 text-rose-600"
+  };
+
+  return (
+    <div className={`p-5 rounded-[2rem] border shadow-sm flex items-center gap-4 ${themes[color]}`}>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-white`}>
+        <Icon size={18} />
+      </div>
+      <div>
+        <p className="text-[8px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">{label}</p>
+        <p className="text-sm sm:text-lg font-black leading-none truncate">R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+      </div>
     </div>
   );
 };

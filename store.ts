@@ -1,6 +1,6 @@
 
 import { supabase } from './supabaseClient';
-import { Sale, Expense, Employee, Vehicle, FuelLog, MaintenanceLog, FineLog, ExpenseStatus, AppSettings, Production, MonthlyGoal, UserProfile } from './types';
+import { Sale, Expense, Employee, Vehicle, FuelLog, MaintenanceLog, FineLog, ExpenseStatus, AppSettings, Production, MonthlyGoal, UserProfile, Client, Delivery, DeliveryStatus } from './types';
 
 export interface AppData {
   sales: Sale[];
@@ -15,6 +15,8 @@ export interface AppData {
   categories: string[];
   settings: AppSettings;
   users: UserProfile[];
+  clients: Client[];
+  deliveries: Delivery[];
 }
 
 export const fetchSettings = async (): Promise<AppSettings> => {
@@ -41,7 +43,7 @@ export const fetchSettings = async (): Promise<AppSettings> => {
 };
 
 export const fetchAllData = async (): Promise<AppData> => {
-  const [sales, expenses, employees, vehicles, fuels, maints, fines, prod, cats, goals, settings] = await Promise.all([
+  const [sales, expenses, employees, vehicles, fuels, maints, fines, prod, cats, goals, clients, deliveries, settings] = await Promise.all([
     supabase.from('vendas').select('*').order('data', { ascending: false }),
     supabase.from('despesas').select('*').order('data_vencimento', { ascending: false }),
     supabase.from('funcionarios').select('*').order('nome'),
@@ -52,13 +54,15 @@ export const fetchAllData = async (): Promise<AppData> => {
     supabase.from('producao').select('*').order('data', { ascending: false }),
     supabase.from('categorias').select('nome').order('ordem', { ascending: true }),
     supabase.from('metas_mensais').select('*'),
+    supabase.from('clientes').select('*').order('name'),
+    supabase.from('entregas').select('*').order('scheduled_date', { ascending: true }),
     fetchSettings(),
   ]);
 
   const today = new Date().toISOString().split('T')[0];
   
   return {
-    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao?.toUpperCase() || '' })),
+    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao?.toUpperCase() || '', clientId: s.cliente_id })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.data, observation: p.observacao?.toUpperCase() })),
     monthlyGoals: (goals.data || []).map(g => ({ type: g.tipo, month: g.mes, year: g.ano, value: g.valor })),
     expenses: (expenses.data || []).map(e => ({
@@ -67,7 +71,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       value: e.valor, 
       dueDate: e.data_vencimento,
       status: e.status === 'Pago' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
-      category: e.category?.toUpperCase() || 'GERAL', 
+      category: e.categoria?.toUpperCase() || 'GERAL', 
       vehicleId: e.veiculo_id, 
       employeeId: e.funcionario_id, 
       kmReading: e.km_reading, 
@@ -79,10 +83,47 @@ export const fetchAllData = async (): Promise<AppData> => {
     maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase()})),
     fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: f.tipo_infracao.toUpperCase()})),
     categories: (cats.data || []).map(c => c.nome.toUpperCase()),
+    clients: (clients.data || []).map(c => ({ id: c.id, name: c.name, phone: c.phone, address: c.address, type: c.type, cnpj_cpf: c.cnpj_cpf, created_at: c.created_at })),
+    deliveries: (deliveries.data || []).map(d => ({ 
+      id: d.id, 
+      saleId: d.sale_id, 
+      clientId: d.cliente_id, 
+      driverId: d.funcionario_id, 
+      vehicleId: d.veiculo_id, 
+      status: d.status as DeliveryStatus, 
+      scheduledDate: d.scheduled_date, 
+      deliveredAt: d.delivered_at, 
+      notes: d.notes 
+    })),
     settings,
     users: [] 
   };
 };
+
+export const syncClient = (c: Client) => supabase.from('clientes').upsert({
+  id: c.id,
+  name: c.name.toUpperCase(),
+  phone: c.phone,
+  address: c.address.toUpperCase(),
+  type: c.type,
+  cnpj_cpf: c.cnpj_cpf
+});
+
+export const deleteClient = (id: string) => supabase.from('clientes').delete().eq('id', id);
+
+export const syncDelivery = (d: Delivery) => supabase.from('entregas').upsert({
+  id: d.id,
+  sale_id: d.saleId,
+  cliente_id: d.clientId,
+  funcionario_id: d.driverId,
+  veiculo_id: d.vehicleId,
+  status: d.status,
+  scheduled_date: d.scheduledDate,
+  delivered_at: d.deliveredAt,
+  notes: d.notes?.toUpperCase()
+});
+
+export const deleteDelivery = (id: string) => supabase.from('entregas').delete().eq('id', id);
 
 export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({
   ...v, 
@@ -91,7 +132,7 @@ export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({
   tipo_combustivel: v.tipo_combustivel?.toUpperCase() || 'FLEX',
   km_atual: Number(v.km_atual) || 0,
   km_ultima_troca: Number(v.km_ultima_troca) || 0
-}, { onConflict: 'id' });
+});
 
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
@@ -116,7 +157,7 @@ export const syncFuel = async (f: FuelLog) => {
         valor: payload.valor_total,
         data_vencimento: payload.data,
         status: 'Pago',
-        category: 'COMBUSTÍVEL',
+        categoria: 'COMBUSTÍVEL',
         veiculo_id: f.veiculo_id,
         funcionario_id: f.funcionario_id,
         km_reading: payload.km_registro
@@ -149,7 +190,7 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
             valor: maintPayload.custo,
             data_vencimento: maintPayload.data,
             status: m.pago ? 'Pago' : 'A Vencer',
-            category: 'MANUTENÇÃO',
+            categoria: 'MANUTENÇÃO',
             veiculo_id: maintPayload.veiculo_id,
             funcionario_id: m.funcionario_id,
             km_reading: maintPayload.km_registro
@@ -172,7 +213,7 @@ export const syncFine = async (f: FineLog) => {
             valor: f.valor,
             data_vencimento: f.data_vencimento,
             status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer',
-            category: 'MULTAS',
+            categoria: 'MULTAS',
             veiculo_id: f.veiculo_id,
             funcionario_id: f.funcionario_id
         });
@@ -180,7 +221,7 @@ export const syncFine = async (f: FineLog) => {
     return { error };
 };
 
-export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description.toUpperCase() });
+export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: s.value, data: s.date, descricao: s.description.toUpperCase(), cliente_id: s.clientId });
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description.toUpperCase(), valor: e.value, data_vencimento: e.dueDate, status: e.status, categoria: e.category.toUpperCase(), veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: p.quantityKg, data: p.date, observacao: p.observation?.toUpperCase() });
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: e.salary, data_admissao: e.joinedAt });

@@ -5,11 +5,41 @@ export enum ExpenseStatus {
   PAGO = 'Pago'
 }
 
+export enum DeliveryStatus {
+  PENDENTE = 'Pendente',
+  EM_ROTA = 'Em Rota',
+  ENTREGUE = 'Entregue',
+  CANCELADO = 'Cancelado'
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  type: 'REVENDEDOR' | 'PARTICULAR';
+  cnpj_cpf?: string;
+  created_at: string;
+}
+
+export interface Delivery {
+  id: string;
+  saleId?: string;
+  clientId: string;
+  driverId: string;
+  vehicleId: string;
+  status: DeliveryStatus;
+  scheduledDate: string;
+  deliveredAt?: string;
+  notes?: string;
+}
+
 export interface Sale {
   id: string;
   value: number;
   date: string;
   description: string;
+  clientId?: string;
 }
 
 export interface Production {
@@ -130,4 +160,4 @@ export interface AppSettings {
   adminPassword?: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries';
