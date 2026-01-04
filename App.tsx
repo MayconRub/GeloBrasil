@@ -104,6 +104,12 @@ const App: React.FC = () => {
     loadAppData();
   };
 
+  // Extrai o nome do usuário do e-mail (antes do @)
+  const userName = useMemo(() => {
+    if (!currentUserEmail) return 'CONECTADO';
+    return currentUserEmail.split('@')[0].toUpperCase();
+  }, [currentUserEmail]);
+
   // Verifica se o usuário atual é o administrador (Hardcoded para root@adm.app ou vindo das configurações)
   const isAdmin = useMemo(() => {
     if (!currentUserEmail) return false;
@@ -392,7 +398,9 @@ const App: React.FC = () => {
           <h1 className="text-[10px] font-black uppercase tracking-tighter text-slate-800 truncate">{data.settings.companyName}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[8px] font-black text-[#5ecce3] px-2 py-1 bg-sky-50 rounded-full border border-sky-100 uppercase">Online</span>
+          <span className="text-[8px] font-black text-[#5ecce3] px-2 py-1 bg-sky-50 rounded-full border border-sky-100 uppercase">
+            {userName}
+          </span>
         </div>
       </div>
 

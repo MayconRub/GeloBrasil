@@ -5,7 +5,7 @@ import {
   Plus, Users, Truck, Wallet, ChevronRight,
   Droplets, AlertCircle, Sun, ThermometerSun,
   MapPin, ChevronLeft, Target, ShieldAlert, Timer,
-  CircleDollarSign, Receipt, X
+  CircleDollarSign, Receipt, X, QrCode, Copy, Check, MessageCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus } from '../types';
@@ -27,6 +27,10 @@ const DashboardView: React.FC<Props> = ({
   const [weatherData, setWeatherData] = useState<{ tempAtual: string, tempMax: string, impact: string, advice: string, sources: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickMenu, setShowQuickMenu] = useState(false);
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [copiedPix, setCopiedPix] = useState(false);
+
+  const PIX_CODE = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
   
   const todayStr = useMemo(() => {
     const now = new Date();
@@ -36,6 +40,15 @@ const DashboardView: React.FC<Props> = ({
   const currentMonth = navDate.getMonth();
   const currentYear = navDate.getFullYear();
   const monthName = navDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  const daysUntilExpiration = useMemo(() => {
+    if (!settings.expirationDate || settings.expirationDate === '2099-12-31') return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expDate = new Date(settings.expirationDate + 'T00:00:00');
+    const diffTime = expDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [settings.expirationDate]);
 
   const handlePrevMonth = () => {
     setNavDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -50,6 +63,12 @@ const DashboardView: React.FC<Props> = ({
   const handleResetMonth = () => {
     setNavDate(new Date());
     setPeriod('daily');
+  };
+
+  const handleCopyPix = () => {
+    navigator.clipboard.writeText(PIX_CODE);
+    setCopiedPix(true);
+    setTimeout(() => setCopiedPix(false), 3000);
   };
 
   const metrics = useMemo(() => {
@@ -78,7 +97,6 @@ const DashboardView: React.FC<Props> = ({
     const salesGoal = period === 'daily' ? (settings.salesGoalDaily || 2000) : (settings.salesGoalMonthly || 60000);
     const prodGoal = period === 'daily' ? (settings.productionGoalDaily || 1000) : (settings.productionGoalMonthly || 30000);
 
-    // Agregação unificada por data para o gráfico de 2 linhas
     const allUniqueDates = Array.from(new Set([
       ...sales.map(s => s.date),
       ...expenses.map(e => e.dueDate)
@@ -141,7 +159,30 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-[1500px] mx-auto pb-10">
       
-      {/* HEADER - Increased z-index container to ensure dropdown is on top */}
+      {/* ALERTA DE VENCIMENTO DE LICENÇA - OTIMIZADO PARA MOBILE */}
+      {daysUntilExpiration !== null && daysUntilExpiration <= 3 && daysUntilExpiration >= 0 && (
+        <div className="bg-rose-50 border border-rose-100 p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-lg shadow-rose-100/20 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+          <div className="flex items-center gap-3 sm:gap-5 text-center md:text-left flex-col md:flex-row w-full md:w-auto">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 shrink-0 animate-bounce">
+              <ShieldAlert size={24} className="sm:size-[32px]" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-xl font-black text-rose-900 tracking-tighter uppercase leading-none">Renovação Necessária</h3>
+              <p className="text-[9px] sm:text-[10px] font-black text-rose-400 uppercase tracking-widest mt-1.5 leading-tight">
+                O acesso expira em <span className="text-rose-600 underline font-black">{daysUntilExpiration === 0 ? 'HOJE' : `${daysUntilExpiration} DIAS`}</span>.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowPixModal(true)}
+            className="w-full md:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-rose-600 text-white rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-xl shadow-rose-200 hover:bg-rose-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            <QrCode size={16} className="sm:size-[18px]" /> Pagar Agora
+          </button>
+        </div>
+      )}
+
+      {/* HEADER */}
       <div className={`flex flex-col gap-4 relative ${showQuickMenu ? 'z-[100]' : 'z-10'}`}>
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-sky-100/20 relative z-10">
           <div className="flex items-center gap-4">
@@ -184,7 +225,6 @@ const DashboardView: React.FC<Props> = ({
               </button>
             </div>
             
-            {/* BOTÃO LANÇAR COM MENU DROPDOWN */}
             <div className="relative">
               <button 
                 onClick={() => setShowQuickMenu(!showQuickMenu)} 
@@ -196,7 +236,6 @@ const DashboardView: React.FC<Props> = ({
               {showQuickMenu && (
                 <>
                   <div className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-[1px]" onClick={() => setShowQuickMenu(false)} />
-                  {/* Fixed position for mobile to avoid stacking context issues, absolute for desktop */}
                   <div className="fixed sm:absolute top-[180px] sm:top-12 left-1/2 sm:left-auto sm:right-0 -translate-x-1/2 sm:translate-x-0 w-[90%] sm:w-48 bg-white rounded-3xl sm:rounded-2xl shadow-2xl border border-slate-100 p-3 sm:p-2 z-[101] animate-in zoom-in-95 duration-200 origin-top sm:origin-top-right">
                     <div className="sm:hidden text-center mb-3 pb-2 border-b border-slate-50">
                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Selecione uma ação</p>
@@ -219,14 +258,6 @@ const DashboardView: React.FC<Props> = ({
                       </div>
                       <span className="text-xs sm:text-[10px] font-black text-slate-600 uppercase tracking-widest">Lançar Despesa</span>
                     </button>
-                    <div className="sm:hidden mt-2 pt-2 border-t border-slate-50">
-                      <button 
-                        onClick={() => setShowQuickMenu(false)}
-                        className="w-full py-3 text-[10px] font-black text-slate-300 uppercase tracking-widest"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
                   </div>
                 </>
               )}
@@ -361,9 +392,6 @@ const DashboardView: React.FC<Props> = ({
                   </div>
                 </div>
               ))}
-              {metrics.urgentExps.length === 0 && (
-                <div className="p-16 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest italic opacity-40">Fluxo financeiro sem pendências críticas</div>
-              )}
             </div>
           </div>
         </div>
@@ -402,6 +430,68 @@ const DashboardView: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {/* MODAL DE PAGAMENTO PIX */}
+      {showPixModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 shadow-2xl relative animate-in zoom-in-95 duration-300 flex flex-col items-center">
+              <button 
+                onClick={() => setShowPixModal(false)}
+                className="absolute top-8 right-8 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <X size={28} />
+              </button>
+
+              <div className="w-20 h-20 bg-sky-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-sky-100 mb-6">
+                <QrCode size={36} />
+              </div>
+
+              <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase mb-2">Renovação de Acesso</h3>
+              <p className="text-xs font-bold text-slate-400 text-center max-w-xs mb-8 uppercase tracking-widest leading-relaxed">
+                Escaneie o código abaixo ou copie a chave para realizar o pagamento.
+              </p>
+
+              <div className="bg-sky-50 p-6 rounded-3xl mb-8 border border-sky-100">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(PIX_CODE)}`} 
+                  alt="PIX QR Code" 
+                  className="w-48 h-48 rounded-xl"
+                />
+              </div>
+
+              <div className="w-full space-y-4">
+                <button 
+                  onClick={handleCopyPix}
+                  className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl border transition-all active:scale-95 group ${copiedPix ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:border-sky-200'}`}
+                >
+                  <div className="flex flex-col items-start overflow-hidden mr-4">
+                    <span className={`text-[8px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>
+                      {copiedPix ? 'Copiado!' : 'PIX Copia e Cola'}
+                    </span>
+                    <span className="text-[10px] font-black text-slate-700 truncate w-full text-left">
+                      {PIX_CODE}
+                    </span>
+                  </div>
+                  {copiedPix ? <Check size={20} className="text-emerald-500 shrink-0" /> : <Copy size={20} className="text-slate-300 group-hover:text-sky-500 shrink-0" />}
+                </button>
+
+                <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 text-center">
+                   <p className="text-[9px] font-black text-emerald-700 uppercase leading-relaxed">
+                      Após o pagamento, envie o comprovante para o suporte para liberação imediata.
+                   </p>
+                </div>
+
+                <a 
+                  href={`https://wa.me/${settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} 
+                  target="_blank"
+                  className="w-full flex items-center justify-center gap-3 py-5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 hover:brightness-105 transition-all"
+                >
+                  <MessageCircle size={18} /> Enviar Comprovante
+                </a>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
