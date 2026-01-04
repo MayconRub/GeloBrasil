@@ -29,9 +29,13 @@ const DashboardView: React.FC<Props> = ({
   const [showQuickMenu, setShowQuickMenu] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
-  const [isAlertDismissed, setIsAlertDismissed] = useState(false);
+  
+  // Estado para controlar se o alerta deve ser exibido baseado no tempo de pausa
+  const [shouldShowAlert, setShouldShowAlert] = useState(false);
 
   const PIX_CODE = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
+  const DISMISS_KEY = 'renewal_alert_dismissed_at';
+  const PAUSE_DURATION = 6 * 60 * 60 * 1000; // 6 Horas em milissegundos
   
   const todayStr = useMemo(() => {
     const now = new Date();
@@ -41,6 +45,48 @@ const DashboardView: React.FC<Props> = ({
   const currentMonth = navDate.getMonth();
   const currentYear = navDate.getFullYear();
   const monthName = navDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  // Verifica se o alerta deve ser exibido ao montar o componente
+  useEffect(() => {
+    const checkAlertVisibility = () => {
+      if (!settings.expirationDate || settings.expirationDate === '2099-12-31') {
+        setShouldShowAlert(false);
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expDate = new Date(settings.expirationDate + 'T00:00:00');
+      const diffTime = expDate.getTime() - today.getTime();
+      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Se não estiver no período de 3 dias, não mostra
+      if (daysLeft < 0 || daysLeft > 3) {
+        setShouldShowAlert(false);
+        return;
+      }
+
+      // Verifica se houve um "avisar depois" recente
+      const dismissedAt = localStorage.getItem(DISMISS_KEY);
+      if (dismissedAt) {
+        const lastTime = parseInt(dismissedAt, 10);
+        const now = Date.now();
+        if (now - lastTime < PAUSE_DURATION) {
+          setShouldShowAlert(false);
+          return;
+        }
+      }
+
+      setShouldShowAlert(true);
+    };
+
+    checkAlertVisibility();
+  }, [settings.expirationDate]);
+
+  const handleDismissAlert = () => {
+    localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    setShouldShowAlert(false);
+  };
 
   const daysUntilExpiration = useMemo(() => {
     if (!settings.expirationDate || settings.expirationDate === '2099-12-31') return null;
@@ -160,14 +206,14 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-[1500px] mx-auto pb-10">
       
-      {/* ALERTA DE VENCIMENTO DE LICENÇA - COM FUNÇÃO "AVISE-ME DEPOIS" */}
-      {daysUntilExpiration !== null && daysUntilExpiration <= 3 && daysUntilExpiration >= 0 && !isAlertDismissed && (
+      {/* ALERTA DE VENCIMENTO DE LICENÇA - COM PERSISTÊNCIA DE 6 HORAS */}
+      {shouldShowAlert && daysUntilExpiration !== null && (
         <div className="bg-rose-50 border border-rose-100 p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-lg shadow-rose-100/20 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700 relative overflow-hidden">
           {/* Botão de fechar discreto no canto */}
           <button 
-            onClick={() => setIsAlertDismissed(true)}
+            onClick={handleDismissAlert}
             className="absolute top-3 right-3 text-rose-300 hover:text-rose-500 transition-colors p-1"
-            title="Lembrar mais tarde"
+            title="Lembrar daqui a 6 horas"
           >
             <X size={16} />
           </button>
@@ -179,7 +225,7 @@ const DashboardView: React.FC<Props> = ({
             <div className="min-w-0">
               <h3 className="text-base sm:text-xl font-black text-rose-900 tracking-tighter uppercase leading-none">Renovação Necessária</h3>
               <p className="text-[9px] sm:text-[10px] font-black text-rose-400 uppercase tracking-widest mt-1.5 leading-tight">
-                O acesso expira em <span className="text-rose-600 underline font-black">{daysUntilExpiration === 0 ? 'HOJE' : `${daysUntilExpiration} DIAS`}</span>.
+                O acesso expira em <span className="text-rose-600 underline font-black">{daysUntilExpiration <= 0 ? 'HOJE' : `${daysUntilExpiration} DIAS`}</span>.
               </p>
             </div>
           </div>
@@ -192,10 +238,10 @@ const DashboardView: React.FC<Props> = ({
               <QrCode size={16} className="sm:size-[18px]" /> Pagar Agora
             </button>
             <button 
-              onClick={() => setIsAlertDismissed(true)}
+              onClick={handleDismissAlert}
               className="w-full md:w-auto px-4 py-2 text-[8px] sm:text-[9px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-600 transition-all flex items-center justify-center gap-1"
             >
-              <BellOff size={14} /> Avise-me depois
+              <BellOff size={14} /> Avise-me depois (6h)
             </button>
           </div>
         </div>
