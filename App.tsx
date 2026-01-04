@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -25,7 +26,7 @@ const App: React.FC = () => {
   
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [],
-    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [] }
+    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], adminEmail: 'root@adm.app' }
   });
 
   useEffect(() => { 
@@ -33,6 +34,7 @@ const App: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
+        setCurrentUserEmail(session.user.email || null);
       }
       await loadAppData(); 
     };
@@ -69,6 +71,7 @@ const App: React.FC = () => {
           : error.message.toUpperCase());
       } else if (authData.user) {
         setIsAuthenticated(true);
+        setCurrentUserEmail(authData.user.email || null);
       }
     } catch (err) {
       setLoginError('ERRO AO CONECTAR COM O SERVIDOR.');
@@ -81,6 +84,7 @@ const App: React.FC = () => {
     if (confirm('DESEJA REALMENTE ENCERRAR A SESSÃO?')) {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
+      setCurrentUserEmail(null);
       setView('dashboard');
     }
   };
@@ -91,6 +95,9 @@ const App: React.FC = () => {
     loadAppData();
   };
 
+  // Verifica se o usuário atual é o administrador
+  const isAdmin = currentUserEmail?.toLowerCase() === (data.settings.adminEmail?.toLowerCase() || 'root@adm.app');
+
   const menuItems = [
     { id: 'dashboard', label: 'INÍCIO', icon: LayoutDashboard },
     { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
@@ -99,7 +106,13 @@ const App: React.FC = () => {
     { id: 'team', label: 'EQUIPE', icon: Users },
     { id: 'fleet', label: 'FROTA', icon: Truck },
     { id: 'admin', label: 'ADMIN', icon: Shield },
-  ].filter(item => !data.settings.hiddenViews.includes(item.id));
+  ].filter(item => {
+    // Esconde itens marcados como ocultos nas configurações
+    if (data.settings.hiddenViews.includes(item.id)) return false;
+    // Esconde a aba ADMIN se o usuário não for o root@adm.app
+    if (item.id === 'admin' && !isAdmin) return false;
+    return true;
+  });
 
   const mobileFixedItems = menuItems.slice(0, 4);
   const mobileExtraItems = menuItems.slice(4);
@@ -299,7 +312,8 @@ const App: React.FC = () => {
             onUpdateFine={wrap(syncFine)} 
             onDeleteFine={wrap(deleteFine)} 
         />}
-        {view === 'admin' && <AdminView settings={data.settings} onUpdateSettings={wrap(syncSettings)} users={[]} />}
+        {view === 'admin' && isAdmin && <AdminView settings={data.settings} onUpdateSettings={wrap(syncSettings)} users={[]} />}
+        {view === 'admin' && !isAdmin && <div className="p-10 text-center font-black text-slate-400">ACESSO RESTRITO AO ADMINISTRADOR</div>}
       </main>
 
       {/* Bottom Navigation for Mobile */}
