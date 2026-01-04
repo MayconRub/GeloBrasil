@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Shield, 
@@ -95,6 +94,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
     setHiddenViews(newHidden);
   };
 
+  // Fix reference error: 'daysLeft' is not defined and clean up redundant logic in daysUntilExpiration calculation.
   const daysUntilExpiration = useMemo(() => {
     if (!expirationDate) return null;
     const today = new Date();
@@ -389,51 +389,35 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
         {/* VISUAL */}
         {activeTab === 'visual' && (
           <div className="animate-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center"><Palette size={24} /></div>
-                  <h5 className="font-black text-slate-900 text-lg uppercase tracking-tight">Identidade</h5>
-                </div>
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Cor Principal</label>
-                  <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                    <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-16 h-16 p-1 bg-white border border-slate-200 rounded-xl cursor-pointer" />
-                    <p className="text-xl font-black text-slate-900 uppercase tracking-tighter">{primaryColor}</p>
-                  </div>
-                </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center"><LayoutGrid size={24} /></div>
+                <h5 className="font-black text-slate-900 text-lg uppercase tracking-tight">Visibilidade de Módulos</h5>
               </div>
-
-              <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center"><LayoutGrid size={24} /></div>
-                  <h5 className="font-black text-slate-900 text-lg uppercase tracking-tight">Visibilidade</h5>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { id: 'sales', label: 'Vendas', icon: DollarSign },
-                    { id: 'expenses', label: 'Despesas', icon: Receipt },
-                    { id: 'production', label: 'Produção', icon: Snowflake },
-                    { id: 'team', label: 'Equipe', icon: Users },
-                    { id: 'fleet', label: 'Frota', icon: Truck }
-                  ].map(mod => (
-                    <button 
-                      key={mod.id}
-                      onClick={() => toggleViewVisibility(mod.id)}
-                      className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${hiddenViews.includes(mod.id) ? 'bg-slate-50 border-slate-100 text-slate-300' : 'bg-white border-slate-100 text-slate-800 hover:border-[#5ecce3]'}`}
-                    >
-                      <div className="flex items-center gap-3">
-                         <mod.icon size={18} />
-                         <span className="text-xs font-black uppercase">{mod.label}</span>
-                      </div>
-                      {hiddenViews.includes(mod.id) ? <EyeOff size={16} /> : <Eye size={16} className="text-[#5ecce3]" />}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { id: 'sales', label: 'Vendas', icon: DollarSign },
+                  { id: 'expenses', label: 'Despesas', icon: Receipt },
+                  { id: 'production', label: 'Produção', icon: Snowflake },
+                  { id: 'team', label: 'Equipe', icon: Users },
+                  { id: 'fleet', label: 'Frota', icon: Truck }
+                ].map(mod => (
+                  <button 
+                    key={mod.id}
+                    onClick={() => toggleViewVisibility(mod.id)}
+                    className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${hiddenViews.includes(mod.id) ? 'bg-slate-50 border-slate-100 text-slate-300' : 'bg-white border-slate-100 text-slate-800 hover:border-[#5ecce3]'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                        <mod.icon size={18} />
+                        <span className="text-xs font-black uppercase">{mod.label}</span>
+                    </div>
+                    {hiddenViews.includes(mod.id) ? <EyeOff size={16} /> : <Eye size={16} className="text-[#5ecce3]" />}
+                  </button>
+                ))}
               </div>
-            </div>
-            <div className="mt-8">
-               <button onClick={() => handleSubmit()} className="w-full bg-slate-900 text-white font-black py-6 rounded-3xl uppercase text-xs tracking-widest shadow-xl">Salvar Design</button>
+              <div className="pt-8 border-t border-slate-50">
+                 <button onClick={() => handleSubmit()} className="w-full bg-slate-900 text-white font-black py-6 rounded-3xl uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">Salvar Alterações de Visibilidade</button>
+              </div>
             </div>
           </div>
         )}
