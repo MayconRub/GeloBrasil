@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles, ShieldAlert, Calendar, QrCode, Copy, Check } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine } from './store';
 import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog } from './types';
@@ -23,11 +23,14 @@ const App: React.FC = () => {
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [copiedPix, setCopiedPix] = useState(false);
   
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [],
     settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], adminEmail: 'root@adm.app' }
   });
+
+  const PIX_CODE = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
 
   useEffect(() => { 
     const checkUser = async () => {
@@ -89,6 +92,12 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCopyPix = () => {
+    navigator.clipboard.writeText(PIX_CODE);
+    setCopiedPix(true);
+    setTimeout(() => setCopiedPix(false), 3000);
+  };
+
   const wrap = (fn: any) => async (payload: any) => {
     const result = await fn(payload);
     if (result?.error) { alert("ERRO: " + result.error.message.toUpperCase()); return; }
@@ -96,7 +105,16 @@ const App: React.FC = () => {
   };
 
   // Verifica se o usuário atual é o administrador
-  const isAdmin = currentUserEmail?.toLowerCase() === (data.settings.adminEmail?.toLowerCase() || 'root@adm.app');
+  const isAdmin = useMemo(() => currentUserEmail?.toLowerCase() === (data.settings.adminEmail?.toLowerCase() || 'root@adm.app'), [currentUserEmail, data.settings.adminEmail]);
+
+  // Lógica de Expiração de Sistema
+  const isSystemExpired = useMemo(() => {
+    if (!data.settings.expirationDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expDate = new Date(data.settings.expirationDate + 'T00:00:00');
+    return today > expDate;
+  }, [data.settings.expirationDate]);
 
   const menuItems = [
     { id: 'dashboard', label: 'INÍCIO', icon: LayoutDashboard },
@@ -127,6 +145,79 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#5ecce3] mb-4" size={48} />
       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">CARREGANDO...</p>
+    </div>
+  );
+
+  // TELA DE BLOQUEIO POR EXPIRAÇÃO
+  if (isAuthenticated && isSystemExpired && !isAdmin) return (
+    <div className="min-h-screen bg-rose-50 flex flex-col items-center p-6 text-center font-['Plus_Jakarta_Sans'] overflow-y-auto pb-12">
+      <div className="w-20 h-20 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-rose-200 mb-6 mt-8 animate-bounce shrink-0">
+        <ShieldAlert size={36} />
+      </div>
+      
+      <h1 className="text-2xl font-black text-rose-900 tracking-tighter uppercase mb-2">Acesso Suspenso</h1>
+      <p className="text-xs font-bold text-rose-700/60 max-w-sm mb-8 uppercase tracking-widest leading-relaxed">
+        O prazo de utilização expirou em <span className="text-rose-600 underline">{new Date(data.settings.expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span>. Realize o pagamento abaixo para reativar.
+      </p>
+
+      {/* Card PIX */}
+      <div className="w-full max-w-md bg-white p-8 rounded-[3rem] shadow-xl border border-rose-100 mb-8 flex flex-col items-center">
+        <div className="bg-sky-50 p-4 rounded-3xl mb-6">
+          <img 
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(PIX_CODE)}`} 
+            alt="PIX QR Code" 
+            className="w-48 h-48 rounded-xl"
+          />
+        </div>
+        
+        <div className="w-full space-y-4">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <QrCode size={18} className="text-[#5ecce3]" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Escaneie ou copie o código</span>
+          </div>
+
+          <button 
+            onClick={handleCopyPix}
+            className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl border transition-all active:scale-95 group ${copiedPix ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}
+          >
+            <div className="flex flex-col items-start overflow-hidden mr-4">
+              <span className={`text-[8px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>
+                {copiedPix ? 'Copiado!' : 'PIX Copia e Cola'}
+              </span>
+              <span className="text-[10px] font-black text-slate-700 truncate w-full text-left">
+                {PIX_CODE}
+              </span>
+            </div>
+            {copiedPix ? <Check size={20} className="text-emerald-500 shrink-0" /> : <Copy size={20} className="text-slate-300 group-hover:text-sky-500 shrink-0" />}
+          </button>
+
+          <div className="bg-sky-50/50 p-4 rounded-2xl border border-sky-100 text-center">
+             <p className="text-[9px] font-black text-sky-700 uppercase leading-relaxed">
+                Após o pagamento, envie o comprovante para o suporte para liberação imediata.
+             </p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-4 w-full max-w-xs">
+        <a 
+          href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} 
+          target="_blank"
+          className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 hover:scale-105 transition-all"
+        >
+          <MessageCircle size={18} /> Enviar Comprovante
+        </a>
+        <button 
+          onClick={handleLogout}
+          className="w-full py-4 text-rose-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-600 transition-colors"
+        >
+          Sair do Sistema
+        </button>
+      </div>
+
+      <div className="mt-12">
+         <p className="text-[10px] font-black text-rose-300 uppercase tracking-[0.3em]">Desenvolvido por Maycon Rubem</p>
+      </div>
     </div>
   );
 
@@ -247,8 +338,18 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] uppercase transition-colors duration-500 pb-20 lg:pb-0`}>
+      
+      {/* Aviso de Licença Expirada (Apenas para Admin se expirado) */}
+      {isSystemExpired && isAdmin && (
+        <div className="fixed top-0 left-0 right-0 bg-rose-600 text-white p-3 z-[100] text-center flex items-center justify-center gap-4 shadow-xl no-print animate-in slide-in-from-top duration-500">
+           <ShieldAlert size={18} className="animate-pulse" />
+           <p className="text-[9px] font-black uppercase tracking-[0.2em]">SISTEMA EXPIRADO! RENOVE O ACESSO NA ABA "ADMIN" IMEDIATAMENTE.</p>
+           <button onClick={() => setView('admin')} className="bg-white text-rose-600 px-4 py-1.5 rounded-lg text-[8px] font-black uppercase shadow-sm">Renovar</button>
+        </div>
+      )}
+
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex w-64 flex-col bg-white border-r border-sky-100 py-10 px-4 sticky top-0 h-screen z-50">
+      <aside className={`hidden lg:flex w-64 flex-col bg-white border-r border-sky-100 py-10 px-4 sticky top-0 h-screen z-50 ${isSystemExpired && isAdmin ? 'pt-24' : ''}`}>
         <div className="flex items-center gap-3 px-4 mb-12">
           <div className="w-10 h-10 rounded-2xl bg-[#5ecce3] flex items-center justify-center text-white shadow-lg shadow-[#5ecce3]/20">
             <Snowflake size={20} />
@@ -278,7 +379,7 @@ const App: React.FC = () => {
       </aside>
 
       {/* Mobile Top Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-sky-100 sticky top-0 z-[60] shadow-sm">
+      <div className={`lg:hidden flex items-center justify-between p-4 bg-white border-b border-sky-100 sticky top-0 z-[60] shadow-sm ${isSystemExpired && isAdmin ? 'mt-12' : ''}`}>
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="w-8 h-8 rounded-lg bg-[#5ecce3] flex items-center justify-center text-white shadow-md shadow-[#5ecce3]/10 shrink-0">
             <Snowflake size={16} />
@@ -291,7 +392,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full relative">
+      <main className={`flex-1 max-w-7xl mx-auto w-full relative ${isSystemExpired && isAdmin && view !== 'admin' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
         {view === 'dashboard' && <DashboardView {...data} onSwitchView={setView} settings={data.settings} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} />}
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} monthlyGoals={data.monthlyGoals} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} onUpdateSettings={wrap(syncSettings)} />}
