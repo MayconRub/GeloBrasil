@@ -37,7 +37,7 @@ const App: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
-        setCurrentUserEmail(session.user.email || null);
+        setCurrentUserEmail(session.user.email?.toLowerCase().trim() || null);
       }
       await loadAppData(); 
     };
@@ -74,7 +74,7 @@ const App: React.FC = () => {
           : error.message.toUpperCase());
       } else if (authData.user) {
         setIsAuthenticated(true);
-        setCurrentUserEmail(authData.user.email || null);
+        setCurrentUserEmail(authData.user.email?.toLowerCase().trim() || null);
       }
     } catch (err) {
       setLoginError('ERRO AO CONECTAR COM O SERVIDOR.');
@@ -104,12 +104,16 @@ const App: React.FC = () => {
     loadAppData();
   };
 
-  // Verifica se o usuário atual é o administrador
-  const isAdmin = useMemo(() => currentUserEmail?.toLowerCase() === (data.settings.adminEmail?.toLowerCase() || 'root@adm.app'), [currentUserEmail, data.settings.adminEmail]);
+  // Verifica se o usuário atual é o administrador (Hardcoded para root@adm.app ou vindo das configurações)
+  const isAdmin = useMemo(() => {
+    if (!currentUserEmail) return false;
+    const adminFromSettings = data.settings.adminEmail?.toLowerCase().trim();
+    return currentUserEmail === 'root@adm.app' || currentUserEmail === adminFromSettings;
+  }, [currentUserEmail, data.settings.adminEmail]);
 
   // Lógica de Expiração de Sistema
   const isSystemExpired = useMemo(() => {
-    if (!data.settings.expirationDate) return false;
+    if (!data.settings.expirationDate || data.settings.expirationDate === '2099-12-31') return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expDate = new Date(data.settings.expirationDate + 'T00:00:00');
@@ -127,7 +131,7 @@ const App: React.FC = () => {
   ].filter(item => {
     // Esconde itens marcados como ocultos nas configurações
     if (data.settings.hiddenViews.includes(item.id)) return false;
-    // Esconde a aba ADMIN se o usuário não for o root@adm.app
+    // Esconde a aba ADMIN se o usuário não for administrador
     if (item.id === 'admin' && !isAdmin) return false;
     return true;
   });
@@ -141,6 +145,7 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Enquanto carrega e não está autenticado, mostra o loader
   if (isLoading && !isAuthenticated) return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#5ecce3] mb-4" size={48} />
@@ -148,7 +153,7 @@ const App: React.FC = () => {
     </div>
   );
 
-  // TELA DE BLOQUEIO POR EXPIRAÇÃO
+  // TELA DE BLOQUEIO POR EXPIRAÇÃO (Apenas para não-admins)
   if (isAuthenticated && isSystemExpired && !isAdmin) return (
     <div className="min-h-screen bg-rose-50 flex flex-col items-center p-6 text-center font-['Plus_Jakarta_Sans'] overflow-y-auto pb-12">
       <div className="w-20 h-20 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-rose-200 mb-6 mt-8 animate-bounce shrink-0">
