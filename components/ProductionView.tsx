@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -7,31 +7,26 @@ import {
   Pencil, 
   ChevronLeft, 
   ChevronRight, 
-  Scale, 
   Printer, 
-  Target,
-  Save,
-  Check,
-  TrendingUp,
   RotateCcw,
-  Calendar,
-  Trophy,
   Clock,
-  X
+  X,
+  Sparkles,
+  Package,
+  // Added missing Check icon
+  Check
 } from 'lucide-react';
-import { Production, AppSettings, MonthlyGoal } from '../types';
+import { Production, AppSettings, Product } from '../types';
 
 interface Props {
   production: Production[];
   onUpdate: (production: Production) => void;
   onDelete: (id: string) => void;
-  monthlyGoals: MonthlyGoal[];
-  onUpdateMonthlyGoal: (goal: MonthlyGoal) => void;
   settings: AppSettings;
-  onUpdateSettings: (settings: AppSettings) => void;
+  products?: Product[]; 
 }
 
-const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, monthlyGoals, onUpdateMonthlyGoal, settings, onUpdateSettings }) => {
+const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, settings }) => {
   const getTodayString = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -41,7 +36,11 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
   };
 
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [quantity, setQuantity] = useState('');
+  
+  const [selectedProductType, setSelectedProductType] = useState<'2KG' | '4KG' | '10KG' | '20KG' | 'BRITADO10' | 'BRITADO20' | 'CUSTOM'>('4KG');
+  const [units, setUnits] = useState('');
+  const [customWeight, setCustomWeight] = useState('');
+  
   const [date, setDate] = useState(getTodayString());
   const [observation, setObservation] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,17 +50,18 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const currentGoalValue = useMemo(() => {
-    const goal = monthlyGoals.find(g => g.type === 'production' && g.month === currentMonth && g.year === currentYear);
-    return goal ? goal.value : settings.productionGoalMonthly || 30000;
-  }, [monthlyGoals, currentMonth, currentYear, settings.productionGoalMonthly]);
-
-  const [localMonthlyGoal, setLocalMonthlyGoal] = useState(currentGoalValue.toString());
-  const [isSavingGoal, setIsSavingGoal] = useState(false);
-
-  useEffect(() => {
-    setLocalMonthlyGoal(currentGoalValue.toString());
-  }, [currentGoalValue, currentMonth, currentYear]);
+  const calculatedTotalWeight = useMemo(() => {
+    const u = parseFloat(units) || 0;
+    switch(selectedProductType) {
+      case '2KG': return u * 2;
+      case '4KG': return u * 4;
+      case '10KG': return u * 10;
+      case '20KG': return u * 20;
+      case 'BRITADO10': return u * 10;
+      case 'BRITADO20': return u * 20;
+      default: return parseFloat(customWeight) || 0;
+    }
+  }, [selectedProductType, units, customWeight]);
 
   const handlePrint = () => window.print();
 
@@ -71,35 +71,35 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    const numericQuantity = parseFloat(quantity);
-    if (isNaN(numericQuantity) || !date) return;
+    if (calculatedTotalWeight <= 0 || !date) return;
+
+    const labels: Record<string, string> = {
+      '2KG': 'CUBO 2KG',
+      '4KG': 'CUBO 4KG',
+      '10KG': 'CUBO 10KG',
+      '20KG': 'CUBO 20KG',
+      'BRITADO10': 'BRITADO 10KG',
+      'BRITADO20': 'BRITADO 20KG',
+      'CUSTOM': 'PESO PERSONALIZADO'
+    };
+
+    const obsWithDetails = `${selectedProductType !== 'CUSTOM' ? `PROD: ${units} UN DE ${labels[selectedProductType]}` : ''} ${observation}`.trim();
 
     onUpdate({ 
       id: editingId || crypto.randomUUID(), 
-      quantityKg: numericQuantity, 
+      quantityKg: calculatedTotalWeight, 
       date, 
-      observation 
+      observation: obsWithDetails.toUpperCase()
     });
     
     resetForm();
   };
 
-  const handleSaveGoal = async () => {
-    setIsSavingGoal(true);
-    const newValue = parseFloat(localMonthlyGoal);
-    await onUpdateMonthlyGoal({
-      type: 'production',
-      month: currentMonth,
-      year: currentYear,
-      value: isNaN(newValue) ? 0 : newValue
-    });
-    setTimeout(() => setIsSavingGoal(false), 800);
-  };
-
   const handleEdit = (p: Production) => {
     if (confirm(`DESEJA EDITAR O REGISTRO DE PRODUÇÃO DE ${p.quantityKg} KG?`)) {
       setEditingId(p.id);
-      setQuantity(p.quantityKg.toString());
+      setSelectedProductType('CUSTOM');
+      setCustomWeight(p.quantityKg.toString());
       setDate(p.date);
       setObservation(p.observation || '');
       
@@ -119,7 +119,9 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
 
   const resetForm = () => {
     setEditingId(null);
-    setQuantity('');
+    setUnits('');
+    setCustomWeight('');
+    setSelectedProductType('4KG');
     setDate(getTodayString());
     setObservation('');
     setIsMobileFormOpen(false);
@@ -133,53 +135,118 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
   }, [production, currentMonth, currentYear]);
 
   const totalProduced = useMemo(() => filteredProduction.reduce((sum, p) => sum + p.quantityKg, 0), [filteredProduction]);
-  const progressPercent = Math.min(100, currentGoalValue > 0 ? (totalProduced / currentGoalValue) * 100 : 0);
 
   const renderForm = (isModal = false) => (
     <form onSubmit={handleAdd} className={`${isModal ? '' : 'bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24 lg:top-8'}`}>
       <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3 uppercase text-[10px] tracking-[0.2em] border-b border-slate-100 pb-4 leading-none">
-        <Plus className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Lançar Produção'}
+        <Sparkles className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Lançar Produção'}
       </h3>
+      
       <div className="space-y-5">
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Quantidade (KG)</label>
-          <input 
-            type="number" 
-            value={quantity} 
-            onChange={e => setQuantity(e.target.value)} 
-            className="w-full h-14 sm:h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-2xl sm:text-xl focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
-            required 
-          />
+        <div className="space-y-2">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tipo de Pacote (Cubo)</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: '2KG', label: '2 KG' },
+              { id: '4KG', label: '4 KG' },
+              { id: '10KG', label: '10 KG' },
+              { id: '20KG', label: '20 KG' }
+            ].map(type => (
+              <button 
+                key={type.id}
+                type="button"
+                onClick={() => setSelectedProductType(type.id as any)}
+                className={`py-3 rounded-xl text-[9px] font-black border transition-all ${selectedProductType === type.id ? 'bg-sky-500 border-sky-600 text-white shadow-lg shadow-sky-100' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-sky-50'}`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data do Lote</label>
-          <input 
-            type="date" 
-            value={date} 
-            onChange={e => setDate(e.target.value)} 
-            className="w-full h-14 sm:h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm sm:text-xs" 
-            required 
-          />
+
+        <div className="space-y-2">
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tipo de Pacote (Britado)</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'BRITADO10', label: 'BRITADO 10KG' },
+              { id: 'BRITADO20', label: 'BRITADO 20KG' }
+            ].map(type => (
+              <button 
+                key={type.id}
+                type="button"
+                onClick={() => setSelectedProductType(type.id as any)}
+                className={`py-3 rounded-xl text-[9px] font-black border transition-all ${selectedProductType === type.id ? 'bg-indigo-500 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-indigo-50'}`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {selectedProductType !== 'CUSTOM' ? (
+          <div className="space-y-1.5 animate-in slide-in-from-top-2">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Qtd de Pacotes / Unidades</label>
+            <div className="relative">
+               <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+               <input 
+                type="number" 
+                placeholder="Ex: 100"
+                value={units} 
+                onChange={e => setUnits(e.target.value)} 
+                className="w-full h-14 pl-12 pr-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-xl focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
+                required 
+              />
+            </div>
+            {calculatedTotalWeight > 0 && (
+              <p className="text-[9px] font-black text-emerald-500 uppercase ml-2 mt-2">Cálculo: {calculatedTotalWeight} KG Totais</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-1.5 animate-in slide-in-from-top-2">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Peso Total (KG)</label>
+            <input 
+              type="number" 
+              value={customWeight} 
+              onChange={e => setCustomWeight(e.target.value)} 
+              className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-xl focus:ring-4 focus:ring-sky-50 outline-none transition-all" 
+              required 
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data do Lote</label>
+            <input 
+              type="date" 
+              value={date} 
+              onChange={e => setDate(e.target.value)} 
+              className="w-full h-14 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm" 
+              required 
+            />
+          </div>
+        </div>
+
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Notas/Lote</label>
-          <textarea 
+          <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Notas Extras</label>
+          <input 
             value={observation} 
             onChange={e => setObservation(e.target.value)} 
-            placeholder="Ex: Turno da manhã..."
-            className="w-full h-24 sm:h-20 p-5 bg-slate-50 border border-slate-200 rounded-2xl resize-none text-sm font-bold placeholder:text-slate-300 uppercase"
+            placeholder="Turno, observação..."
+            className="w-full h-14 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold uppercase"
           />
         </div>
-        <div className="flex gap-3">
+
+        <div className="flex gap-3 pt-2">
           <button 
             type="submit" 
-            className="flex-1 h-14 sm:h-12 bg-slate-900 text-white font-black rounded-2xl hover:bg-sky-600 transition-all shadow-xl uppercase text-[10px] tracking-widest active:scale-95"
+            className="flex-1 h-16 bg-slate-900 text-white font-black rounded-2xl hover:bg-sky-600 transition-all shadow-xl uppercase text-[10px] tracking-widest active:scale-95"
           >
-            {editingId ? 'Atualizar' : 'Salvar'}
+            {editingId ? 'Atualizar' : 'Salvar Lote'}
           </button>
           {(editingId || isModal) && (
-            <button type="button" onClick={resetForm} className="w-14 sm:w-12 h-14 sm:h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all">
-              {isModal ? <X size={20} /> : <RotateCcw size={18} />}
+            <button type="button" onClick={resetForm} className="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all">
+              {isModal ? <X size={24} /> : <RotateCcw size={20} />}
             </button>
           )}
         </div>
@@ -196,10 +263,9 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
             <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none flex items-center gap-3">
               <Snowflake className="text-sky-500" size={32} /> Produção
             </h2>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Gestão de Fabricação e Metas</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Gestão de Fabricação</p>
           </div>
           
-          {/* Botão de Ação Rápida Mobile */}
           <button 
             onClick={() => setIsMobileFormOpen(true)}
             className="lg:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"
@@ -230,69 +296,23 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
         </div>
       </header>
 
-      {/* Grid de Metas Oculta no Mobile */}
-      <div className="hidden lg:grid grid-cols-3 gap-6 no-print">
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner">
-              <Calendar size={20} />
+      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center justify-between no-print">
+         <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-sky-50 text-sky-500 rounded-2xl flex items-center justify-center shadow-inner">
+               <Package size={32} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Definir Meta para</p>
-              <h4 className="font-black text-slate-900 leading-tight capitalize">{monthName}</h4>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Fabricação Total do Mês</p>
+               <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{totalProduced.toLocaleString('pt-BR')} KG</h3>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <input 
-              type="number" 
-              value={localMonthlyGoal}
-              onChange={(e) => setLocalMonthlyGoal(e.target.value)}
-              placeholder="Ex: 30000"
-              className="flex-1 h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-lg focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
-            />
-            <button 
-              onClick={handleSaveGoal}
-              disabled={isSavingGoal}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all shadow-lg active:scale-90 ${isSavingGoal ? 'bg-emerald-500' : 'bg-slate-900 hover:bg-indigo-600'}`}
-            >
-              {isSavingGoal ? <Check size={20} className="animate-in zoom-in" /> : <Save size={20} />}
-            </button>
-          </div>
-        </div>
-
-        <div className={`lg:col-span-2 p-6 rounded-[2.5rem] border shadow-sm flex flex-col justify-between transition-all duration-500 ${progressPercent >= 100 ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-          <div className="flex items-center justify-between mb-4">
-             <div className="flex items-center gap-2">
-               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${progressPercent >= 100 ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-500'}`}>
-                 {progressPercent >= 100 ? <Trophy size={16} /> : <Target size={16} />}
-               </div>
-               <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${progressPercent >= 100 ? 'text-white/80' : 'text-slate-400'}`}>
-                 {progressPercent >= 100 ? 'META ALCANÇADA' : `Desempenho ${monthName}`}
-               </span>
-             </div>
-             <p className={`text-3xl font-black tracking-tighter ${progressPercent >= 100 ? 'text-white' : 'text-slate-900'}`}>{progressPercent.toFixed(1)}%</p>
-          </div>
-          <div className="space-y-3">
-            <div className={`h-4 sm:h-5 w-full rounded-full overflow-hidden border p-1 ${progressPercent >= 100 ? 'bg-white/20 border-white/30' : 'bg-slate-100 border-slate-200'}`}>
-              <div 
-                className={`h-full rounded-full transition-all duration-1000 ease-out shadow-lg ${progressPercent >= 100 ? 'bg-amber-400' : 'bg-gradient-to-r from-sky-500 to-indigo-600'}`}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-               <span className={progressPercent >= 100 ? 'text-white/80' : 'text-slate-400'}>
-                 {progressPercent >= 100 ? 'PARABÉNS! OBJETIVO CONCLUÍDO! 🏆' : 'Total Produzido'}
-               </span>
-               <div className={`${progressPercent >= 100 ? 'bg-white text-indigo-600' : 'bg-slate-900 text-white'} px-3 py-1 rounded-lg`}>
-                 {totalProduced.toLocaleString('pt-BR')} / {currentGoalValue.toLocaleString('pt-BR')} KG
-               </div>
-            </div>
-          </div>
-        </div>
+         </div>
+         <div className="hidden sm:flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
+            <Check size={18} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Registros Atualizados</span>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Formulário lateral oculto no Mobile */}
         <div className="hidden lg:block lg:col-span-1 no-print">
           {renderForm()}
         </div>
@@ -300,7 +320,6 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
         <div className="lg:col-span-2">
           <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
             
-            {/* Mobile List View */}
             <div className="block md:hidden divide-y divide-slate-100">
                {filteredProduction.map((p) => (
                  <div key={p.id} className="p-5 flex flex-col gap-4 active:bg-sky-50/20 transition-all">
@@ -329,22 +348,15 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
                     )}
                  </div>
                ))}
-               {filteredProduction.length === 0 && (
-                 <div className="py-24 text-center opacity-20 flex flex-col items-center">
-                    <Snowflake size={48} className="mb-4" />
-                    <p className="text-[11px] font-black uppercase tracking-widest">Sem registros no período</p>
-                 </div>
-               )}
             </div>
 
-            {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-100">
                     <th className="px-8 py-5">📅 Data</th>
                     <th className="px-8 py-5 text-sky-600">⚖️ Quantidade</th>
-                    <th className="px-8 py-5">📝 Notas</th>
+                    <th className="px-8 py-5">📝 Detalhes</th>
                     <th className="px-8 py-5 text-center no-print">Ações</th>
                   </tr>
                 </thead>
@@ -363,11 +375,11 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
                         {p.observation || '-'}
                       </td>
                       <td className="px-8 py-5 text-center no-print">
-                        <div className="flex justify-center gap-2 transition-all">
-                          <button onClick={() => handleEdit(p)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => handleEdit(p)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => handleDelete(p)} className="p-2.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-100">
+                          <button onClick={() => handleDelete(p)} className="p-2.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -381,7 +393,6 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, month
         </div>
       </div>
 
-      {/* Modal Mobile para Novo Lançamento */}
       {isMobileFormOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 lg:hidden">
            <div className="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">

@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   UserPlus, Search, Phone, MapPin, 
-  Trash2, Pencil, X, Save, MessageCircle,
+  Trash2, Pencil, X, MessageCircle,
   Building2, User
 } from 'lucide-react';
 import { Client } from '../types';
@@ -16,30 +16,75 @@ interface Props {
 const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [form, setForm] = useState<Partial<Client>>({ type: 'PARTICULAR' });
+  const [form, setForm] = useState<Partial<Client>>({ 
+    type: 'PARTICULAR', 
+    street: '', 
+    number: '', 
+    neighborhood: '', 
+    city: 'MONTES CLAROS' 
+  });
 
   const filtered = useMemo(() => {
     return clients.filter(c => 
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      c.address.toLowerCase().includes(searchTerm.toLowerCase())
+      c.street.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.neighborhood.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.city.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [clients, searchTerm]);
 
+  // Função para aplicar máscara de telefone (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    value = value.replace(/\D/g, ""); // Remove tudo que não é dígito
+    value = value.substring(0, 11); // Limita a 11 dígitos
+
+    if (value.length > 10) {
+      // Formato Celular: (99) 99999-9999
+      return value.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+    } else if (value.length > 6) {
+      // Formato Fixo: (99) 9999-9999
+      return value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+    } else if (value.length > 2) {
+      // Formato Inicial: (99) 9...
+      return value.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2");
+    } else if (value.length > 0) {
+      // Formato DDD: (9...
+      return value.replace(/^(\d{0,2}).*/, "($1");
+    }
+    return value;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maskedValue = formatPhone(e.target.value);
+    setForm({ ...form, phone: maskedValue });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.phone) return;
+    if (!form.name || !form.phone || !form.street) return;
     onUpdate({
       ...form,
       id: form.id || crypto.randomUUID(),
       created_at: form.created_at || new Date().toISOString()
     } as Client);
     setIsOpen(false);
-    setForm({ type: 'PARTICULAR' });
+    resetForm();
   };
 
   const handleEdit = (c: Client) => {
     setForm(c);
     setIsOpen(true);
+  };
+
+  const resetForm = () => {
+    setForm({ 
+      type: 'PARTICULAR', 
+      street: '', 
+      number: '', 
+      neighborhood: '', 
+      city: 'MONTES CLAROS' 
+    });
   };
 
   return (
@@ -62,7 +107,7 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
           <Search size={20} className="text-slate-300" />
           <input 
             type="text" 
-            placeholder="BUSCAR NOME OU ENDEREÇO..." 
+            placeholder="BUSCAR NOME, RUA, BAIRRO OU CIDADE..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full bg-transparent outline-none font-black text-[10px] uppercase"
@@ -87,9 +132,12 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
                </span>
 
                <div className="mt-6 space-y-3">
-                  <div className="flex items-center gap-3 text-slate-500">
-                    <MapPin size={14} className="shrink-0 text-slate-300" />
-                    <p className="text-[9px] font-bold uppercase truncate">{c.address}</p>
+                  <div className="flex items-start gap-3 text-slate-500">
+                    <MapPin size={14} className="shrink-0 text-slate-300 mt-0.5" />
+                    <div className="text-[9px] font-bold uppercase leading-relaxed">
+                      <p>{c.street}, {c.number}</p>
+                      <p>{c.neighborhood} - {c.city}</p>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 text-slate-500">
@@ -112,7 +160,7 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
 
       {isOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsOpen(false); resetForm(); }} />
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95">
             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-8">{form.id ? 'Editar Cliente' : 'Cadastrar Cliente'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -129,14 +177,16 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Telefone (WhatsApp)</label>
                   <input 
+                    type="tel"
+                    placeholder="(00) 00000-0000"
                     className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-xs" 
                     value={form.phone || ''} 
-                    onChange={e => setForm({...form, phone: e.target.value})} 
+                    onChange={handlePhoneChange} 
                     required 
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Tipo</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Tipo de Cliente</label>
                   <select 
                     className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-[10px] uppercase" 
                     value={form.type} 
@@ -147,16 +197,32 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
                   </select>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Endereço de Entrega</label>
-                <input 
-                  className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-xs uppercase" 
-                  value={form.address || ''} 
-                  onChange={e => setForm({...form, address: e.target.value})} 
-                  required 
-                />
+              
+              <div className="pt-4 border-t border-slate-50">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Endereço de Entrega</p>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="col-span-3 space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase ml-2">Rua / Logradouro</label>
+                    <input className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-xs uppercase" value={form.street || ''} onChange={e => setForm({...form, street: e.target.value})} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase ml-2">Nº</label>
+                    <input className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-xs" value={form.number || ''} onChange={e => setForm({...form, number: e.target.value})} required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase ml-2">Bairro</label>
+                    <input className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-xs uppercase" value={form.neighborhood || ''} onChange={e => setForm({...form, neighborhood: e.target.value})} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase ml-2">Cidade</label>
+                    <input className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-xs uppercase" value={form.city || ''} onChange={e => setForm({...form, city: e.target.value})} required />
+                  </div>
+                </div>
               </div>
-              <button className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest mt-4">SALVAR CLIENTE</button>
+
+              <button className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest mt-6">SALVAR CADASTRO</button>
             </form>
           </div>
         </div>

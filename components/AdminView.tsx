@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Shield, 
@@ -60,8 +61,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
   const [dashboardNotice, setDashboardNotice] = useState(settings.dashboardNotice || '');
   const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
-  const [productionGoalDaily, setProductionGoalDaily] = useState(settings.productionGoalDaily || 1000);
-  const [productionGoalMonthly, setProductionGoalMonthly] = useState(settings.productionGoalMonthly || 30000);
   const [salesGoalDaily, setSalesGoalDaily] = useState(settings.salesGoalDaily || 2000);
   const [salesGoalMonthly, setSalesGoalMonthly] = useState(settings.salesGoalMonthly || 60000);
   
@@ -69,7 +68,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
   const [isSaved, setIsSaved] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // ESSENCIAL: Sincroniza estados locais se as props mudarem (ex: após loadAppData())
+  // ESSENCIAL: Sincroniza estados locais se as props mudarem
   useEffect(() => {
     setCompanyName(settings.companyName);
     setCnpj(settings.cnpj || '');
@@ -81,8 +80,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
     setExpirationDate(settings.expirationDate);
     setDashboardNotice(settings.dashboardNotice || '');
     setHiddenViews(settings.hiddenViews || []);
-    setProductionGoalDaily(settings.productionGoalDaily || 1000);
-    setProductionGoalMonthly(settings.productionGoalMonthly || 30000);
     setSalesGoalDaily(settings.salesGoalDaily || 2000);
     setSalesGoalMonthly(settings.salesGoalMonthly || 60000);
   }, [settings]);
@@ -94,7 +91,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
     setHiddenViews(newHidden);
   };
 
-  // Fix reference error: 'daysLeft' is not defined and clean up redundant logic in daysUntilExpiration calculation.
   const daysUntilExpiration = useMemo(() => {
     if (!expirationDate) return null;
     const today = new Date();
@@ -119,8 +115,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
       expirationDate, 
       hiddenViews, 
       dashboardNotice,
-      productionGoalDaily,
-      productionGoalMonthly,
       salesGoalDaily,
       salesGoalMonthly
     });
@@ -136,7 +130,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
     await onUpdateSettings({ 
       ...settings, 
       expirationDate: pastDate,
-      companyName, cnpj, address, primaryColor, logoId, supportPhone, footerText, hiddenViews, dashboardNotice, productionGoalDaily, productionGoalMonthly, salesGoalDaily, salesGoalMonthly
+      companyName, cnpj, address, primaryColor, logoId, supportPhone, footerText, hiddenViews, dashboardNotice, salesGoalDaily, salesGoalMonthly
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -152,7 +146,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
     await onUpdateSettings({ 
       ...settings, 
       expirationDate: dateStr,
-      companyName, cnpj, address, primaryColor, logoId, supportPhone, footerText, hiddenViews, dashboardNotice, productionGoalDaily, productionGoalMonthly, salesGoalDaily, salesGoalMonthly
+      companyName, cnpj, address, primaryColor, logoId, supportPhone, footerText, hiddenViews, dashboardNotice, salesGoalDaily, salesGoalMonthly
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -165,8 +159,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
     const expDate = new Date(expirationDate + 'T00:00:00');
     return today > expDate;
   };
-
-  const isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration >= 0 && daysUntilExpiration <= 7;
 
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-32">
@@ -205,7 +197,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
         </div>
       </header>
 
-      {/* Navigation Tabs - Optimized for Mobile Scroll */}
+      {/* Navigation Tabs */}
       <nav className="flex items-center p-1 bg-slate-100/60 backdrop-blur-md rounded-[2rem] w-full border border-slate-200 shadow-inner overflow-x-auto no-scrollbar scrollbar-hide">
         {[
           { id: 'license', label: 'Licença', icon: ShieldCheck },
@@ -317,7 +309,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
           </div>
         )}
 
-        {/* BUSINESS RULES - Institucional */}
+        {/* BUSINESS RULES */}
         {activeTab === 'company' && (
           <div className="animate-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white p-6 sm:p-12 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
@@ -344,32 +336,16 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, onOpenPayment,
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-sky-50/50 p-6 rounded-[2rem] border border-sky-100 space-y-6">
-                  <h5 className="text-[11px] font-black text-sky-900 uppercase tracking-widest flex items-center gap-3"><Target size={20} /> Metas Produção (KG)</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-sky-400 ml-2">DIÁRIA</label>
-                      <input type="number" value={productionGoalDaily} onChange={e => setProductionGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white border border-sky-100 rounded-xl font-black text-sky-900" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-sky-400 ml-2">MENSUAL</label>
-                      <input type="number" value={productionGoalMonthly} onChange={e => setProductionGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white border border-sky-100 rounded-xl font-black text-sky-900" />
-                    </div>
+              <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 space-y-6">
+                <h5 className="text-[11px] font-black text-emerald-900 uppercase tracking-widest flex items-center gap-3"><DollarSign size={20} /> Metas Venda (R$)</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-emerald-400 ml-2">DIÁRIA</label>
+                    <input type="number" value={salesGoalDaily} onChange={e => setSalesGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white border border-emerald-100 rounded-xl font-black text-emerald-900" />
                   </div>
-                </div>
-
-                <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 space-y-6">
-                  <h5 className="text-[11px] font-black text-emerald-900 uppercase tracking-widest flex items-center gap-3"><DollarSign size={20} /> Metas Venda (R$)</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-emerald-400 ml-2">DIÁRIA</label>
-                      <input type="number" value={salesGoalDaily} onChange={e => setSalesGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white border border-emerald-100 rounded-xl font-black text-emerald-900" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-emerald-400 ml-2">MENSUAL</label>
-                      <input type="number" value={salesGoalMonthly} onChange={e => setSalesGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white border border-emerald-100 rounded-xl font-black text-emerald-900" />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-emerald-400 ml-2">MENSUAL</label>
+                    <input type="number" value={salesGoalMonthly} onChange={e => setSalesGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white border border-emerald-100 rounded-xl font-black text-emerald-900" />
                   </div>
                 </div>
               </div>

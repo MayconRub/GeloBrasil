@@ -5,11 +5,11 @@ import {
   Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, 
   MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles, 
   ShieldAlert, Calendar, QrCode, Copy, Check, Fingerprint, ShieldCheck,
-  UserPlus, MapPin, PackageCheck
+  UserPlus, MapPin, PackageCheck, Boxes
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
-import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery } from './store';
-import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog, Client, Delivery } from './types';
+import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProduct, deleteProduct, syncStockMovement } from './store';
+import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog, Client, Delivery, Product, StockMovement } from './types';
 import DashboardView from './components/DashboardView';
 import SalesView from './components/SalesView';
 import ProductionView from './components/ProductionView';
@@ -19,6 +19,7 @@ import FleetView from './components/FleetView';
 import AdminView from './components/AdminView';
 import ClientsView from './components/ClientsView';
 import DeliveriesView from './components/DeliveriesView';
+import InventoryView from './components/InventoryView';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('dashboard');
@@ -34,7 +35,7 @@ const App: React.FC = () => {
   const [copiedPix, setCopiedPix] = useState(false);
   
   const [data, setData] = useState<AppData>({
-    sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [],
+    sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [], products: [], stockMovements: [],
     settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], adminEmail: 'root@adm.app' }
   });
 
@@ -133,6 +134,7 @@ const App: React.FC = () => {
 
   const menuItems = [
     { id: 'dashboard', label: 'INÍCIO', icon: LayoutDashboard },
+    { id: 'inventory', label: 'ESTOQUE', icon: Boxes },
     { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
     { id: 'clients', label: 'CLIENTES', icon: UserPlus },
     { id: 'deliveries', label: 'ENTREGAS', icon: PackageCheck },
@@ -163,7 +165,6 @@ const App: React.FC = () => {
     </div>
   );
 
-  // ... (Código de login e expirado permanece o mesmo) ...
   if (isAuthenticated && isSystemExpired && !isAdmin) return (
      <div className="min-h-screen glacial-bg flex flex-col items-center p-6 text-center font-['Plus_Jakarta_Sans'] overflow-y-auto pb-12">
       <div className="w-20 h-20 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-rose-200 mb-6 mt-8 animate-bounce shrink-0">
@@ -299,10 +300,11 @@ const App: React.FC = () => {
 
       <main className={`flex-1 max-w-7xl mx-auto w-full relative pt-2 lg:pt-0 ${isSystemExpired && isAdmin && view !== 'admin' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
         {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} vehicles={data.vehicles} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
+        {view === 'inventory' && <InventoryView products={data.products} movements={data.stockMovements} onUpdateProduct={wrap(syncProduct)} onDeleteProduct={wrap(deleteProduct)} onAddMovement={wrap(syncStockMovement)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
-        {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} onUpdate={wrap(syncDelivery)} onDelete={wrap(deleteDelivery)} />}
-        {view === 'production' && <ProductionView settings={data.settings} production={data.production} monthlyGoals={data.monthlyGoals} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} onUpdateSettings={wrap(syncSettings)} />}
+        {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={wrap(syncDelivery)} onDelete={wrap(deleteDelivery)} />}
+        {view === 'production' && <ProductionView settings={data.settings} production={data.production} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateSettings={wrap(syncSettings)} />}
         {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={wrap(syncExpense)} onDelete={wrap(deleteExpense)} onUpdateCategories={wrap(syncCategory)} onDeleteCategory={wrap(deleteCategory)} onReorderCategories={wrap(syncCategoriesOrder)} sales={data.sales} />}
         {view === 'team' && <TeamView employees={data.employees} onUpdate={wrap(syncEmployee)} onDelete={wrap(deleteEmployee)} onAddExpense={wrap(syncExpense)} companyName={data.settings.companyName} />}
         {view === 'fleet' && <FleetView vehicles={data.vehicles} employees={data.employees} fuelLogs={data.fuelLogs} maintenanceLogs={data.maintenanceLogs} fineLogs={data.fineLogs} onUpdateVehicle={wrap(syncVehicle)} onDeleteVehicle={wrap(deleteVehicle)} onUpdateFuel={wrap(syncFuel)} onDeleteFuel={wrap(deleteFuel)} onUpdateMaintenance={wrap(syncMaintenance)} onDeleteMaintenance={wrap(deleteMaintenance)} onUpdateFine={wrap(syncFine)} onDeleteFine={wrap(deleteFine)} />}

@@ -16,10 +16,18 @@ export interface Client {
   id: string;
   name: string;
   phone: string;
-  address: string;
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
   type: 'REVENDEDOR' | 'PARTICULAR';
   cnpj_cpf?: string;
   created_at: string;
+}
+
+export interface DeliveryItem {
+  productId: string;
+  quantity: number;
 }
 
 export interface Delivery {
@@ -31,6 +39,27 @@ export interface Delivery {
   status: DeliveryStatus;
   scheduledDate: string;
   deliveredAt?: string;
+  notes?: string;
+  items?: DeliveryItem[];
+  totalValue?: number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  unit: 'KG' | 'SACO' | 'UN' | 'BARRA';
+  current_quantity: number;
+  min_quantity: number;
+  category: string;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  quantity: number;
+  type: 'IN' | 'OUT';
+  reason: 'PRODUÇÃO' | 'VENDA' | 'PERDA' | 'AJUSTE' | 'COMPRA';
+  date: string;
   notes?: string;
 }
 
@@ -152,12 +181,10 @@ export interface AppSettings {
   expirationDate: string;
   hiddenViews: string[]; 
   dashboardNotice?: string;
-  productionGoalDaily?: number;
-  productionGoalMonthly?: number;
   salesGoalDaily?: number;
   salesGoalMonthly?: number;
   adminEmail?: string;
   adminPassword?: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries' | 'inventory';
