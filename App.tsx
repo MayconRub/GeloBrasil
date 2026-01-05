@@ -5,7 +5,7 @@ import {
   Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, 
   MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles, 
   ShieldAlert, Calendar, QrCode, Copy, Check, Fingerprint, ShieldCheck,
-  UserPlus, MapPin, PackageCheck, Boxes
+  UserPlus, MapPin, PackageCheck, Boxes, Moon, Sun
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProduct, deleteProduct, syncStockMovement } from './store';
@@ -33,6 +33,9 @@ const App: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [copiedPix, setCopiedPix] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
   
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [], products: [], stockMovements: [],
@@ -40,6 +43,16 @@ const App: React.FC = () => {
   });
 
   const PIX_CODE = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => { 
     const checkUser = async () => {
@@ -65,6 +78,8 @@ const App: React.FC = () => {
       setIsLoading(false); 
     }
   };
+
+  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +148,7 @@ const App: React.FC = () => {
   }, [data.settings.expirationDate]);
 
   const menuItems = [
-    { id: 'dashboard', label: 'INÍCIO', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'MINHA OPERAÇÃO', icon: LayoutDashboard },
     { id: 'inventory', label: 'ESTOQUE', icon: Boxes },
     { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
     { id: 'clients', label: 'CLIENTES', icon: UserPlus },
@@ -159,9 +174,9 @@ const App: React.FC = () => {
   };
 
   if (isLoading && !isAuthenticated) return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#5ecce3] mb-4" size={48} />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">SINCRONIZANDO...</p>
+      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">SINCRONIZANDO...</p>
     </div>
   );
 
@@ -170,12 +185,12 @@ const App: React.FC = () => {
       <div className="w-20 h-20 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-rose-200 mb-6 mt-8 animate-bounce shrink-0">
         <ShieldAlert size={36} />
       </div>
-      <h1 className="text-2xl font-black text-rose-900 tracking-tighter uppercase mb-2">Acesso Suspenso</h1>
-      <p className="text-xs font-bold text-rose-700/60 max-w-sm mb-8 uppercase tracking-widest leading-relaxed">
-        O prazo de utilização expirou em <span className="text-rose-600 underline">{new Date(data.settings.expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span>. Realize o pagamento abaixo para reativar.
+      <h1 className="text-2xl font-black text-rose-900 dark:text-rose-100 tracking-tighter uppercase mb-2">Acesso Suspenso</h1>
+      <p className="text-xs font-bold text-rose-700/60 dark:text-rose-300/60 max-w-sm mb-8 uppercase tracking-widest leading-relaxed">
+        O prazo de utilização expirou em <span className="text-rose-600 dark:text-rose-400 underline">{new Date(data.settings.expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span>. Realize o pagamento abaixo para reativar.
       </p>
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-xl border border-rose-100 mb-8 flex flex-col items-center">
-        <div className="bg-sky-50 p-4 rounded-3xl mb-6">
+      <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-xl border border-rose-100 dark:border-rose-900/30 mb-8 flex flex-col items-center">
+        <div className="bg-sky-50 dark:bg-slate-800 p-4 rounded-3xl mb-6">
           <img 
             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(PIX_CODE)}`} 
             alt="PIX QR Code" 
@@ -185,14 +200,14 @@ const App: React.FC = () => {
         <div className="w-full space-y-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <QrCode size={18} className="text-[#5ecce3]" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Escaneie ou copie o código</span>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Escaneie ou copie o código</span>
           </div>
-          <button onClick={handleCopyPix} className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl border transition-all active:scale-95 group ${copiedPix ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}>
+          <button onClick={handleCopyPix} className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl border transition-all active:scale-95 group ${copiedPix ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800'}`}>
             <div className="flex flex-col items-start overflow-hidden mr-4">
               <span className={`text-[8px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>{copiedPix ? 'Copiado!' : 'PIX Copia e Cola'}</span>
-              <span className="text-[10px] font-black text-slate-700 truncate w-full text-left">{PIX_CODE}</span>
+              <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 truncate w-full text-left">{PIX_CODE}</span>
             </div>
-            {copiedPix ? <Check size={20} className="text-emerald-500 shrink-0" /> : <Copy size={20} className="text-slate-300 group-hover:text-sky-500 shrink-0" />}
+            {copiedPix ? <Check size={20} className="text-emerald-500 shrink-0" /> : <Copy size={20} className="text-slate-300 dark:text-slate-600 group-hover:text-sky-50 shrink-0" />}
           </button>
         </div>
       </div>
@@ -205,6 +220,11 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) return (
     <div className="min-h-screen glacial-bg flex flex-col items-center justify-center p-4 sm:p-6 font-['Plus_Jakarta_Sans'] relative overflow-hidden">
+      {/* Botão de Tema no Login */}
+      <button onClick={toggleDarkMode} className="absolute top-6 right-6 w-12 h-12 glass-panel rounded-2xl flex items-center justify-center text-slate-400 hover:text-sky-500 transition-all z-[100]">
+        {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
+
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#5ecce3]/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="w-full max-w-[420px] relative z-10 animate-in fade-in zoom-in-95 duration-700">
@@ -214,31 +234,31 @@ const App: React.FC = () => {
             <Snowflake size={48} strokeWidth={1.5} className="relative z-10 animate-spin-slow group-hover:scale-110 transition-transform duration-700" />
           </div>
           <div className="text-center mt-6">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter uppercase leading-tight">GELO <span className="text-[#5ecce3]">BRASIL</span></h1>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 opacity-70">SISTEMA DE GESTÃO INTELIGENTE</p>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-tight">GELO <span className="text-[#5ecce3]">BRASIL</span></h1>
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mt-1 opacity-70">SISTEMA DE GESTÃO INTELIGENTE</p>
           </div>
         </div>
-        <div className="glass-panel p-8 sm:p-12 rounded-[2.5rem] border border-white/60 relative overflow-hidden">
+        <div className="glass-panel p-8 sm:p-12 rounded-[2.5rem] border border-white/60 dark:border-white/5 relative overflow-hidden">
           <div className="flex items-center gap-4 mb-10">
-             <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg"><ShieldCheck size={24} /></div>
+             <div className="w-12 h-12 bg-slate-900 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg"><ShieldCheck size={24} /></div>
              <div>
-                <h2 className="text-xl font-black text-slate-800 leading-none uppercase tracking-tight">Bem-vindo</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Acesso Corporativo</p>
+                <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none uppercase tracking-tight">Bem-vindo</h2>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Acesso Corporativo</p>
              </div>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</label>
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">E-mail Corporativo</label>
               <div className="relative group">
-                <Mail size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#5ecce3] transition-colors" />
-                <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="seu@email.com" className="w-full h-14 pl-14 pr-6 bg-white/50 border border-slate-100 rounded-2xl font-bold text-slate-600 outline-none focus:ring-4 focus:ring-[#5ecce3]/10 focus:border-[#5ecce3]/30 focus:bg-white transition-all" required />
+                <Mail size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-[#5ecce3] transition-colors" />
+                <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="seu@email.com" className="w-full h-14 pl-14 pr-6 bg-white/50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-slate-600 dark:text-slate-200 outline-none focus:ring-4 focus:ring-[#5ecce3]/10 focus:border-[#5ecce3]/30 focus:bg-white dark:focus:bg-slate-900 transition-all" required />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chave de Acesso</label>
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Chave de Acesso</label>
               <div className="relative group">
-                <Lock size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#5ecce3] transition-colors" />
-                <input type={showPassword ? "text" : "password"} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="••••••••" className="w-full h-14 pl-14 pr-14 bg-white/50 border border-slate-100 rounded-2xl font-bold text-slate-600 outline-none focus:ring-4 focus:ring-[#5ecce3]/10 focus:border-[#5ecce3]/30 focus:bg-white transition-all" required />
+                <Lock size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-[#5ecce3] transition-colors" />
+                <input type={showPassword ? "text" : "password"} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="••••••••" className="w-full h-14 pl-14 pr-14 bg-white/50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-slate-600 dark:text-slate-200 outline-none focus:ring-4 focus:ring-[#5ecce3]/10 focus:border-[#5ecce3]/30 focus:bg-white dark:focus:bg-slate-900 transition-all" required />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#5ecce3] transition-colors">{showPassword ? <EyeOff size={22} /> : <Eye size={22} />}</button>
               </div>
             </div>
@@ -248,12 +268,12 @@ const App: React.FC = () => {
                 <p className="text-[11px] font-black text-rose-600 uppercase tracking-tight leading-snug">{loginError}</p>
               </div>
             )}
-            <button type="submit" disabled={isLoggingIn} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50">
+            <button type="submit" disabled={isLoggingIn} className="w-full h-16 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl hover:bg-slate-800 dark:hover:bg-white active:scale-[0.98] transition-all disabled:opacity-50">
               {isLoggingIn ? <Loader2 className="animate-spin" size={22} /> : <><LogIn size={20} strokeWidth={2.5} />Entrar no Sistema</>}
             </button>
           </form>
-          <div className="mt-10 pt-6 border-t border-slate-100/50 flex flex-col items-center">
-             <a href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} target="_blank" className="flex items-center gap-3 px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 hover:text-[#5ecce3] transition-all group">
+          <div className="mt-10 pt-6 border-t border-slate-100/50 dark:border-white/5 flex flex-col items-center">
+             <a href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} target="_blank" className="flex items-center gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-[#5ecce3] transition-all group">
                <Phone size={16} className="group-hover:animate-bounce" /><span className="text-[10px] font-black uppercase tracking-widest">Suporte Técnico</span>
              </a>
           </div>
@@ -263,7 +283,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] uppercase transition-colors duration-500 pb-28 lg:pb-0`}>
+    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 uppercase transition-colors duration-500 pb-28 lg:pb-0`}>
       
       {isSystemExpired && isAdmin && (
         <div className="fixed top-0 left-0 right-0 bg-rose-600 text-white p-3 z-[100] text-center flex items-center justify-center gap-4 shadow-xl no-print animate-in slide-in-from-top duration-500">
@@ -273,33 +293,45 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <aside className={`hidden lg:flex w-64 flex-col bg-white border-r border-sky-100 py-10 px-4 sticky top-0 h-screen z-50 ${isSystemExpired && isAdmin ? 'pt-24' : ''}`}>
-        <div className="flex items-center gap-3 px-4 mb-12">
+      <aside className={`hidden lg:flex w-64 flex-col bg-white dark:bg-slate-900 border-r border-sky-100 dark:border-slate-800 py-10 px-4 sticky top-0 h-screen z-50 transition-colors ${isSystemExpired && isAdmin ? 'pt-24' : ''}`}>
+        <div className="flex items-center gap-3 px-4 mb-8">
           <div className="w-10 h-10 rounded-2xl bg-[#5ecce3] flex items-center justify-center text-white shadow-lg shadow-[#5ecce3]/20"><Snowflake size={20} /></div>
-          <h1 className="text-sm font-black uppercase tracking-tighter text-slate-800 truncate">{data.settings.companyName}</h1>
+          <h1 className="text-sm font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate">{data.settings.companyName}</h1>
         </div>
-        <nav className="flex-1 space-y-1">
+
+        {/* Toggle Theme em Desktop */}
+        <div className="px-4 mb-8">
+          <button onClick={toggleDarkMode} className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-sky-500 transition-all">
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            <span className="text-[9px] font-black tracking-widest">{isDarkMode ? 'MODO CLARO' : 'MODO ESCURO'}</span>
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar pr-1 custom-scrollbar">
           {menuItems.map(item => (
-            <button key={item.id} onClick={() => setView(item.id as ViewType)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${view === item.id ? 'bg-[#5ecce3] text-white shadow-xl shadow-[#5ecce3]/20' : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'}`}><item.icon size={18} /> {item.label}</button>
+            <button key={item.id} onClick={() => setView(item.id as ViewType)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${view === item.id ? 'bg-[#5ecce3] text-white shadow-xl shadow-[#5ecce3]/20' : 'text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 hover:text-sky-600'}`}><item.icon size={18} /> {item.label}</button>
           ))}
         </nav>
-        <div className="mt-auto pt-4 border-t border-slate-50">
-          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-all"><LogOut size={18} /> Sair</button>
+        <div className="mt-auto pt-4 border-t border-slate-50 dark:border-white/5">
+          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 transition-all"><LogOut size={18} /> Sair</button>
         </div>
       </aside>
 
-      <div className={`lg:hidden flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-lg border-b border-sky-50 sticky top-0 z-[60] ${isSystemExpired && isAdmin ? 'mt-12' : ''}`}>
+      <div className={`lg:hidden flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-sky-50 dark:border-slate-800 sticky top-0 z-[60] transition-colors ${isSystemExpired && isAdmin ? 'mt-12' : ''}`}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg shrink-0"><Snowflake size={18} /></div>
-          <h1 className="text-[11px] font-black uppercase tracking-tighter text-slate-800 truncate leading-none">{data.settings.companyName}</h1>
+          <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-white shadow-lg shrink-0"><Snowflake size={18} /></div>
+          <h1 className="text-[11px] font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate leading-none">{data.settings.companyName}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[8px] font-black text-sky-500 px-3 py-1.5 bg-sky-50 rounded-full border border-sky-100 uppercase tracking-widest">{userName}</span>
+        <div className="flex items-center gap-3">
+          <button onClick={toggleDarkMode} className="p-2 text-slate-400 dark:text-slate-500">
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <span className="text-[8px] font-black text-sky-500 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/30 rounded-full border border-sky-100 dark:border-sky-900/30 uppercase tracking-widest">{userName}</span>
         </div>
       </div>
 
       <main className={`flex-1 max-w-7xl mx-auto w-full relative pt-2 lg:pt-0 ${isSystemExpired && isAdmin && view !== 'admin' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-        {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} vehicles={data.vehicles} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
+        {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} vehicles={data.vehicles} deliveries={data.deliveries} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
         {view === 'inventory' && <InventoryView products={data.products} movements={data.stockMovements} onUpdateProduct={wrap(syncProduct)} onDeleteProduct={wrap(deleteProduct)} onAddMovement={wrap(syncStockMovement)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
@@ -313,14 +345,14 @@ const App: React.FC = () => {
       </main>
 
       <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[80] no-print">
-        <nav className="glass-nav flex items-center justify-around px-3 py-3 rounded-[2rem] shadow-2xl border border-white/50">
+        <nav className="glass-nav dark:bg-slate-900/90 flex items-center justify-around px-3 py-3 rounded-[2rem] shadow-2xl border border-white/50 dark:border-white/5">
           {mobileFixedItems.map(item => (
-            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${view === item.id && !isMobileMenuOpen ? 'text-sky-500 bg-sky-50/50 scale-105' : 'text-slate-400 active:scale-90'}`}>
+            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${view === item.id && !isMobileMenuOpen ? 'text-sky-500 bg-sky-50/50 dark:bg-sky-950/30 scale-105' : 'text-slate-400 active:scale-90'}`}>
               <item.icon size={20} strokeWidth={view === item.id && !isMobileMenuOpen ? 3 : 2} />
               <span className="text-[8px] font-black uppercase tracking-[0.15em]">{item.label}</span>
             </button>
           ))}
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${isMobileMenuOpen ? 'text-sky-500 bg-sky-50/50 scale-105' : 'text-slate-400 active:scale-90'}`}>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${isMobileMenuOpen ? 'text-sky-500 bg-sky-50/50 dark:bg-sky-950/30 scale-105' : 'text-slate-400 active:scale-90'}`}>
             <div className={`transition-transform duration-500 ${isMobileMenuOpen ? 'rotate-90' : ''}`}>{isMobileMenuOpen ? <X size={20} strokeWidth={3} /> : <MoreHorizontal size={20} strokeWidth={2} />}</div>
             <span className="text-[8px] font-black uppercase tracking-[0.15em]">{isMobileMenuOpen ? 'FECHAR' : 'MAIS'}</span>
           </button>
@@ -329,26 +361,26 @@ const App: React.FC = () => {
 
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[100] animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white mobile-bottom-sheet p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto">
-             <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8"></div>
-             <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Menu Expandido</span>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center bg-slate-50 rounded-full text-slate-300"><X size={18} /></button>
+          <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-950 mobile-bottom-sheet p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto">
+             <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-8"></div>
+             <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50 dark:border-white/5">
+                <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Menu Expandido</span>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-full text-slate-300"><X size={18} /></button>
              </div>
              <div className="grid grid-cols-1 gap-3">
                 {mobileExtraItems.map(item => (
-                  <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex items-center justify-between w-full p-5 rounded-2xl transition-all duration-300 ${view === item.id ? 'bg-sky-500 text-white shadow-xl shadow-sky-100' : 'bg-slate-50 text-slate-600 active:bg-sky-50'}`}>
+                  <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex items-center justify-between w-full p-5 rounded-2xl transition-all duration-300 ${view === item.id ? 'bg-sky-500 text-white shadow-xl shadow-sky-100' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 active:bg-sky-50'}`}>
                     <div className="flex items-center gap-4">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ${view === item.id ? 'bg-white/20' : 'bg-white text-sky-500'}`}><item.icon size={22} /></div>
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ${view === item.id ? 'bg-white/20' : 'bg-white dark:bg-slate-800 text-sky-500'}`}><item.icon size={22} /></div>
                       <span className="text-sm font-black uppercase tracking-tight">{item.label}</span>
                     </div>
-                    <ChevronRight size={18} className={view === item.id ? 'opacity-50' : 'text-slate-300'} />
+                    <ChevronRight size={18} className={view === item.id ? 'opacity-50' : 'text-slate-300 dark:text-slate-700'} />
                   </button>
                 ))}
-                <button onClick={handleLogout} className="flex items-center justify-between w-full p-5 rounded-2xl bg-rose-50 text-rose-500 transition-all mt-4 border border-rose-100/50 shadow-sm active:scale-95">
+                <button onClick={handleLogout} className="flex items-center justify-between w-full p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-500 transition-all mt-4 border border-rose-100/50 dark:border-rose-900/30 shadow-sm active:scale-95">
                   <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-rose-500"><LogOut size={22} /></div>
+                    <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-rose-500"><LogOut size={22} /></div>
                     <span className="text-sm font-black uppercase tracking-tight">Sair</span>
                   </div>
                 </button>

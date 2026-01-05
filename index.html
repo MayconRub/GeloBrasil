@@ -5,7 +5,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gelo Brasil | Gestão Inteligente</title>
+    
+    <!-- PWA & Mobile Optimization -->
+    <meta name="theme-color" content="#5ecce3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gelo Brasil">
+    
+    <!-- App Icon (Ice Cube SVG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSIjMDIwNjE3Ii8+CjxwYXRoIGQ9Ik0xNDAgMTU1QzE0MCAxMzAuNjkzIDE1OS42OTMgMTExIDE4NCAxMTFIMzI4QzM1Mi4zMDcgMTExIDM3MiAxMzAuNjkzIDM3MiAxNTVWMjk5QzM3MiAzMjMuMzA3IDM1Mi4zMDcgMzQzIDMyOCAzNDNIMTg0QzE1OS42OTMgMzQzIDE0MCAzMjMuMzA3IDE0MCAyOTlWMTU1WiIgZmlsbD0idXJsKCNwYWludDBfbGluZWFyXzFfMikiLz4KPHBhdGggZD0iTTE0MCAxNTVDMTQwIDEzMC42OTMgMTU5LjY5MyAxMTEgMTg0IDExMUgzMjhDMzUyLjMwNyAxMTEgMzcyIDEzMC42OTMgMzcyIDE1NVYyOTlDMzcyIDMyMy4zMDcgMzUyLjMwNyAzNDMgMzI4IDM0M0gxODRDMTU5LjY5MyAzNDMgMTQwIDMyMy4zMDcgMTQwIDI5OVYxNTVaIiBmaWxsPSJ1cmwoI3BhaW50MV9yYWRpYWxfMV8yKSIgZmlsbC1vcGFjaXR5PSIwLjUiLz4KPHBhdGggZD0iTTI1NiAxNTRWMzAwTTMxOSAyMjdIMTkzIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzFfMiIgeDE9IjI1NiIgeTE9IjExMSIgeDI9IjI1NiIgeTI9IjM0MyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNUVDQ0UzIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA4OThCOCIvPgo8L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9InBhaW50MV9yYWRpYWxfMV8yIiBjeD0iMCIgY3k9IjAiIHI9IjEiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBncmFkaWVudFRyYW5zZm9ybT0idHJhbnNsYXRlKDE4MiAxNDkpIHJvdGF0ZSg0NSkgc2NhbGUoMTYwKSI+CjxzdG9wIHN0b3AtY29sb3I9IndoaXRlIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0id2hpdGUiIHN0b3Atb3BhY2l0eT0iMCIvPgo8L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPgo=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSIjMDIwNjE3Ii8+CjxwYXRoIGQ9Ik0xNDAgMTU1QzE0MCAxMzAuNjkzIDE1OS42OTMgMTExIDE4NCAxMTFIMzI4QzM1Mi4zMDcgMTExIDM3MiAxMzAuNjkzIDM3MiAxNTVWMjk5QzM3MiAzMjMuMzA3IDM1Mi4zMDcgMzQzIDMyOCAzNDNIMTg0QzE1OS42OTMgMzQzIDE0MCAzMjMuMzA3IDE0MCAyOTlWMTU1WiIgZmlsbD0idXJsKCNwYWludDBfbGluZWFyXzFfMikiLz4KPHBhdGggZD0iTTE0MCAxNTVDMTQwIDEzMC42OTMgMTU5LjY5MyAxMTEgMTg0IDExMUgzMjhDMzUyLjMwNyAxMTEgMzcyIDEzMC42OTMgMzcyIDE1NVYyOTlDMzcyIDMyMy4zMDcgMzUyLjMwNyAzNDMgMzI4IDM0M0gxODRDMTU5LjY5MyAzNDMgMTQwIDMyMy4zMDcgMTQwIDI5OVYxNTVaIiBmaWxsPSJ1cmwoI3BhaW50MV9yYWRpYWxfMV8yKSIgZmlsbC1vcGFjaXR5PSIwLjUiLz4KPHBhdGggZD0iTTI1NiAxNTRWMzAwTTMxOSAyMjdIMTkzIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzFfMiIgeDE9IjI1NiIgeTE9IjExMSIgeDI9IjI1NiIgeTI9IjM0MyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNUVDQ0UzIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA4OThCOCIvPgo8L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9InBhaW50MV9yYWRpYWxfMV8yIiBjeD0iMCIgY3k9IjAiIHI9IjEiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBncmFkaWVudFRyYW5zZm9ybT0idHJhbnNsYXRlKDE4MiAxNDkpIHJvdGF0ZSg0NSkgc2NhbGUoMTYwKSI+CjxzdG9wIHN0b3AtY29sb3I9IndoaXRlIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0id2hpdGUiIHN0b3Atb3BhY2l0eT0iMCIvPgo8L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPgo=">
+    <link rel="manifest" href="/manifest.json">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,6 +40,12 @@
             --glass-border: rgba(94, 204, 227, 0.2);
         }
 
+        .dark {
+            --ice-bg: #020617;
+            --glass-bg: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
             background: var(--ice-bg);
@@ -22,6 +53,12 @@
             overflow-x: hidden;
             min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .dark body {
+            background-color: #020617;
+            color: #f1f5f9;
         }
 
         /* Fundo Dinâmico Glacial */
@@ -31,45 +68,53 @@
             animation: gradient 15s ease infinite;
         }
 
+        .dark .glacial-bg {
+            background: radial-gradient(circle at top left, #0f172a, #020617);
+        }
+
         @keyframes gradient {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
 
-        /* Glassmorphism Puro */
         .glass-panel {
             background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.05);
+        }
+
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: none !important;
         }
 
         .glass-nav {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.5);
         }
 
-        /* Scrollbar */
+        .dark .glass-nav {
+            background: rgba(2, 6, 23, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #1e293b; }
 
-        @keyframes pulse-ice {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.05); }
-        }
-        .animate-ice { animation: pulse-ice 3s infinite ease-in-out; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
 
-        /* Mobile Adjustments */
-        @media (max-width: 640px) {
-            .mobile-bottom-sheet {
-                border-radius: 2.5rem 2.5rem 0 0 !important;
-            }
-        }
+        /* Ajustes específicos para inputs no modo escuro */
+        .dark input::placeholder { color: #475569; }
+        .dark select { color-scheme: dark; }
 
         @media print {
             .no-print { display: none !important; }

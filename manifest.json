@@ -1,0 +1,18 @@
+
+{
+  "name": "Gelo Brasil | Gestão",
+  "short_name": "Gelo Brasil",
+  "description": "Sistema de Gestão Inteligente Gelo Brasil",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#5ecce3",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSIjMDIwNjE3Ii8+CjxwYXRoIGQ9Ik0xNDAgMTU1QzE0MCAxMzAuNjkzIDE1OS42OTMgMTExIDE4NCAxMTFIMzI4QzM1Mi4zMDcgMTExIDM3MiAxMzAuNjkzIDM3MiAxNTVWMjk5QzM3MiAzMjMuMzA3IDM1Mi4zMDcgMzQzIDMyOCAzNDNIMTg0QzE1OS42OTMgMzQzIDE0MCAzMjMuMzA3IDE0MCAyOTlWMTU1WiIgZmlsbD0idXJsKCNwYWludDBfbGluZWFyXzFfMikiLz4KPHBhdGggZD0iTTE0MCAxNTVDMTQwIDEzMC42OTMgMTU5LjY5MyAxMTEgMTg0IDExMUgzMjhDMzUyLjMwNyAxMTEgMzcyIDEzMC42OTMgMzcyIDE1NVYyOTlDMzcyIDMyMy4zMDcgMzUyLjMwNyAzNDMgMzI4IDM0M0gxODRDMTU5LjY5MyAzNDMgMTQwIDMyMy4zMDcgMTQwIDI5OVYxNTVaIiBmaWxsPSJ1cmwoI3BhaW50MV9yYWRpYWxfMV8yKSIgZmlsbC1vcGFjaXR5PSIwLjUiLz4KPHBhdGggZD0iTTI1NiAxNTRWMzAwTTMxOSAyMjdIMTkzIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzFfMiIgeDE9IjI1NiIgeTE9IjExMSIgeDI9IjI1NiIgeTI9IjM0MyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNUVDQ0UzIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA4OThCOCIvPgo8L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9InBhaW50MV9yYWRpYWxfMV8yIiBjeD0iMCIgY3k9IjAiIHI9IjEiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBncmFkaWVudFRyYW5zZm9ybT0idHJhbnNsYXRlKDE4MiAxNDkpIHJvdGF0ZSg0NSkgc2NhbGUoMTYwKSI+CjxzdG9wIHN0b3AtY29sb3I9IndoaXRlIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0id2hpdGUiIHN0b3Atb3BhY2l0eT0iMCIvPgo8L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPgo=",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
