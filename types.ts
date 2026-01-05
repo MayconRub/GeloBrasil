@@ -38,6 +38,7 @@ export interface Delivery {
   vehicleId: string;
   status: DeliveryStatus;
   scheduledDate: string;
+  scheduledTime?: string;
   deliveredAt?: string;
   notes?: string;
   items?: DeliveryItem[];

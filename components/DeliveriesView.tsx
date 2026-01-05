@@ -14,7 +14,8 @@ import {
   Trash2,
   Truck,
   User,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle } from '../types';
@@ -38,11 +39,17 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     return `${year}-${month}-${day}`;
   };
 
+  const getNowTimeString = () => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  };
+
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<DeliveryStatus | 'TODOS'>('TODOS');
   const [form, setForm] = useState<Partial<Delivery>>({ 
     status: DeliveryStatus.PENDENTE, 
     scheduledDate: getTodayString(),
+    scheduledTime: getNowTimeString(),
     items: [],
     totalValue: 0
   });
@@ -117,6 +124,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     setForm({ 
       status: DeliveryStatus.PENDENTE, 
       scheduledDate: getTodayString(),
+      scheduledTime: getNowTimeString(),
       items: [],
       totalValue: 0
     });
@@ -187,9 +195,16 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
                         <Truck size={20} className="sm:size-24" />
                      </div>
                      <div className="min-w-0">
-                        <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                           {d.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                           <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                              {d.status}
+                           </span>
+                           {d.scheduledTime && (
+                              <span className="flex items-center gap-1 text-[7px] font-black text-sky-500 bg-sky-50 px-2 py-0.5 rounded">
+                                 <Clock size={8} /> {d.scheduledTime}
+                              </span>
+                           )}
+                        </div>
                         <p className="text-[9px] font-black text-slate-400 mt-0.5 uppercase">ID: {d.id.slice(0, 8)}</p>
                      </div>
                   </div>
@@ -345,9 +360,15 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
                             </select>
                           </div>
                        </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data Programada</label>
-                          <input type="date" className="w-full h-14 sm:h-16 px-6 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 transition-all" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required />
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data Programada</label>
+                            <input type="date" className="w-full h-14 sm:h-16 px-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 transition-all" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Hora Agendada</label>
+                            <input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 transition-all" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required />
+                          </div>
                        </div>
                     </div>
                  </div>
