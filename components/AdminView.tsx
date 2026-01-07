@@ -243,14 +243,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
         {/* VISUAL & MENU ORDERING */}
         {activeTab === 'visual' && (
           <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-8">
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 p-6 rounded-[2rem] flex items-start gap-4">
-               <AlertTriangle className="text-amber-500 shrink-0" size={24} />
-               <div>
-                  <h4 className="text-[11px] font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1">Ação Necessária no Banco de Dados</h4>
-                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-600 uppercase leading-relaxed">Para salvar a nova ordem do menu, você deve adicionar a coluna <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">menu_order</code> como <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">text[]</code> na tabela <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">configuracoes</code> no seu painel do Supabase.</p>
-               </div>
-            </div>
-
             <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
               <div>
                 <div className="flex items-center gap-4 mb-2">
