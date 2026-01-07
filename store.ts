@@ -23,6 +23,10 @@ export interface AppData {
 
 export const fetchSettings = async (): Promise<AppSettings> => {
   const { data: settings } = await supabase.from('configuracoes').select('*').single();
+  
+  // Lista padrão caso a coluna não exista ou venha vazia
+  const defaultOrder = ['dashboard', 'inventory', 'sales', 'clients', 'deliveries', 'expenses', 'production', 'team', 'fleet', 'admin'];
+
   return {
     companyName: settings?.nome_empresa?.toUpperCase() || 'GELO BRASIL LTDA',
     cnpj: settings?.cnpj || '42.996.710/0001-63',
@@ -34,7 +38,7 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     footerText: settings?.footer_text?.toUpperCase() || '',
     expirationDate: settings?.data_expiracao || '2099-12-31',
     hiddenViews: settings?.paginas_ocultas || [],
-    menuOrder: settings?.menu_order || ['dashboard', 'inventory', 'sales', 'clients', 'deliveries', 'expenses', 'production', 'team', 'fleet', 'admin'],
+    menuOrder: settings?.menu_order || defaultOrder,
     dashboardNotice: settings?.aviso_dashboard?.toUpperCase() || '',
     salesGoalDaily: settings?.meta_vendas_diaria || 2000,
     salesGoalMonthly: settings?.meta_vendas_mensal || 60000,
@@ -67,7 +71,7 @@ export const fetchAllData = async (): Promise<AppData> => {
   return {
     sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao?.toUpperCase() || '', clientId: s.cliente_id })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.data, observation: p.observacao?.toUpperCase() })),
-    monthlyGoals: (goals.data || []).map(g => ({ type: g.tipo, month: g.mes, year: g.ano, value: g.valor })),
+    monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: g.valor })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
       description: e.descricao?.toUpperCase(), 
@@ -132,6 +136,39 @@ export const fetchAllData = async (): Promise<AppData> => {
     settings,
     users: [] 
   };
+};
+
+export const syncSettings = async (s: AppSettings) => {
+  const payload: any = {
+    id: 1,
+    nome_empresa: s.companyName.toUpperCase(),
+    cnpj: s.cnpj,
+    endereco: s.address?.toUpperCase(),
+    cor_primaria: s.primaryColor,
+    meta_vendas_mensal: s.salesGoalMonthly,
+    data_expiracao: s.expirationDate,
+    paginas_ocultas: s.hiddenViews,
+    support_phone: s.supportPhone,
+    footer_text: s.footerText?.toUpperCase(),
+    aviso_dashboard: s.dashboardNotice?.toUpperCase(),
+    meta_vendas_diaria: s.salesGoalDaily,
+    admin_email: s.adminEmail,
+    admin_password: s.adminPassword
+  };
+
+  // Tenta salvar com menu_order
+  const { error } = await supabase.from('configuracoes').upsert({
+    ...payload,
+    menu_order: s.menuOrder
+  }, { onConflict: 'id' });
+
+  // Se o erro for especificamente a coluna faltando, tenta salvar sem ela
+  if (error && (error.message.includes('menu_order') || error.code === '42703')) {
+    console.warn("Coluna 'menu_order' não encontrada no banco. Salve as outras configs e peça ao admin para rodar o SQL.");
+    return supabase.from('configuracoes').upsert(payload, { onConflict: 'id' });
+  }
+
+  return { error };
 };
 
 export const syncProduct = (p: Product) => supabase.from('estoque_produtos').upsert({
@@ -199,26 +236,6 @@ export const syncProduction = (p: Production) => supabase.from('producao').upser
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: Number(e.salary), data_admissao: e.joinedAt });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome: nome.toUpperCase() });
 export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: Number(g.value) }, { onConflict: 'tipo,mes,ano' });
-
-export const syncSettings = (s: AppSettings) => {
-  return supabase.from('configuracoes').upsert({
-    id: 1,
-    nome_empresa: s.companyName.toUpperCase(),
-    cnpj: s.cnpj,
-    endereco: s.address?.toUpperCase(),
-    cor_primaria: s.primaryColor,
-    meta_vendas_mensal: s.salesGoalMonthly,
-    data_expiracao: s.expirationDate,
-    paginas_ocultas: s.hiddenViews,
-    menu_order: s.menuOrder,
-    support_phone: s.supportPhone,
-    footer_text: s.footerText?.toUpperCase(),
-    aviso_dashboard: s.dashboardNotice?.toUpperCase(),
-    meta_vendas_diaria: s.salesGoalDaily,
-    admin_email: s.adminEmail,
-    admin_password: s.adminPassword
-  }, { onConflict: 'id' });
-};
 
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
 export const deleteExpense = (id: string) => supabase.from('despesas').delete().eq('id', id);
@@ -305,6 +322,7 @@ export const syncFuel = async (f: FuelLog) => {
   return { error };
 };
 
+// Fixed error in syncMaintenance: property km_reading does not exist on type MaintenanceLog, changed to use km_registro.
 export const syncMaintenance = async (m: MaintenanceLog) => {
   const maintPayload = {
     ...m,

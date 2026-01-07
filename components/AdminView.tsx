@@ -41,7 +41,9 @@ import {
   CircleDollarSign,
   UserPlus,
   PackageCheck,
-  Boxes
+  Boxes,
+  Database,
+  Terminal
 } from 'lucide-react';
 import { AppSettings, UserProfile, ViewType } from '../types';
 
@@ -199,7 +201,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
             <h2 className="text-xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none uppercase truncate">CENTRAL <span className="text-[#5ecce3]">ADMIN</span></h2>
             <div className="flex items-center gap-2 mt-2">
               <span className="flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest bg-slate-50 dark:bg-slate-950 p-1.5 rounded-full border border-slate-100 dark:border-slate-800 leading-none">
-                <Server size={10} className="text-[#5ecce3]" /> v6.0
+                <Server size={10} className="text-[#5ecce3]" /> v6.1
               </span>
             </div>
           </div>
@@ -238,155 +240,17 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
       </nav>
 
       <div className="grid grid-cols-1 gap-6 sm:gap-8">
-        
-        {/* USERS */}
-        {activeTab === 'users' && (
-          <div className="animate-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-               <div className="p-6 sm:p-10 border-b border-slate-50 dark:border-slate-800 flex flex-col sm:row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-2xl flex items-center justify-center">
-                      <Users size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Perfis de Acesso</h3>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Usuários autenticados no sistema</p>
-                    </div>
-                  </div>
-               </div>
-               <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                        <th className="px-6 py-4">USUÁRIO</th>
-                        <th className="px-6 py-4 hidden sm:table-cell text-center">STATUS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                      {users.length === 0 ? (
-                        <tr><td colSpan={2} className="p-10 text-center text-slate-300 dark:text-slate-700 font-black text-[10px] uppercase">Nenhum perfil listado</td></tr>
-                      ) : (
-                        users.map(user => (
-                          <tr key={user.id}>
-                            <td className="px-6 py-4 font-black text-slate-700 dark:text-slate-200 text-xs uppercase">{user.email}</td>
-                            <td className="px-6 py-4 hidden sm:table-cell text-center"><span className="px-3 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black">ATIVO</span></td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-               </div>
-            </div>
-          </div>
-        )}
-
-        {/* LICENSE */}
-        {activeTab === 'license' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-            <div className={`p-8 rounded-[2.5rem] border-2 sm:border-4 flex flex-col lg:flex-row items-center justify-between gap-6 transition-all duration-700 ${isExpired() ? 'bg-rose-500 border-rose-600 text-white shadow-3xl shadow-rose-100' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white shadow-xl dark:shadow-none'}`}>
-              <div className="flex items-center gap-6 text-center lg:text-left flex-col lg:flex-row">
-                <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] flex items-center justify-center shadow-xl ${isExpired() ? 'bg-white/20' : 'bg-slate-900 dark:bg-slate-800 text-white'}`}>
-                  {isExpired() ? <Lock size={32} /> : <Unlock size={32} />}
-                </div>
-                <div>
-                  <h4 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter leading-none mb-2">Licença de Uso</h4>
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${isExpired() ? 'text-rose-100' : 'text-slate-400 dark:text-slate-500'}`}>
-                    Expira em: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={handleSetBlock}
-                className="w-full lg:w-auto px-10 py-4 bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95"
-              >
-                Bloquear Agora
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6">
-                <div>
-                  <h5 className="font-black text-slate-900 dark:text-white text-lg uppercase tracking-tight flex items-center gap-2"><Zap size={20} className="text-sky-500" /> Renovar Plano</h5>
-                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Dias adicionais</p>
-                </div>
-                <div className="flex gap-3">
-                  <input type="number" value={renewDays} onChange={e => setRenewDays(parseInt(e.target.value) || 0)} className="w-24 h-14 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-xl text-center dark:text-white" />
-                  <button onClick={handleRenewCustomDays} className="flex-1 bg-sky-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-sky-700 shadow-lg active:scale-95 transition-all">Ativar Renovação</button>
-                </div>
-              </div>
-
-              <div className="bg-indigo-900 p-8 rounded-[2.5rem] border border-indigo-950 shadow-2xl text-white">
-                <div className="flex items-center gap-4 mb-4">
-                  <Fingerprint size={24} className="text-sky-400" />
-                  <h5 className="font-black text-white text-lg uppercase tracking-tight">Console Root</h5>
-                </div>
-                <p className="text-[10px] font-medium text-indigo-100 uppercase tracking-tight mb-6 leading-relaxed">
-                  Acesso de alta segurança para gerenciamento de permissões e infraestrutura do banco de dados.
-                </p>
-                <a href="https://supabase.com/dashboard" target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-white text-indigo-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                  Abrir Supabase <ExternalLink size={14} />
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* BUSINESS RULES */}
-        {activeTab === 'company' && (
-          <div className="animate-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
-              <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4 flex items-center gap-2"><Building2 size={14} className="text-[#5ecce3]" /> Nome da Empresa (Institucional)</label>
-                  <input 
-                    type="text" 
-                    value={companyName} 
-                    onChange={e => setCompanyName(e.target.value.toUpperCase())} 
-                    placeholder="EX: GELO BRASIL LTDA" 
-                    className="w-full h-16 px-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4 flex items-center gap-2"><Fingerprint size={14} className="text-[#5ecce3]" /> CNPJ de Registro</label>
-                  <input 
-                    type="text" 
-                    value={cnpj} 
-                    onChange={e => setCnpj(e.target.value)} 
-                    placeholder="00.000.000/0000-00" 
-                    className="w-full h-16 px-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all" 
-                  />
-                </div>
-              </div>
-
-              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/30 space-y-6">
-                <h5 className="text-[11px] font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-3"><DollarSign size={20} /> Metas Venda (R$)</h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-emerald-400 ml-2">DIÁRIA</label>
-                    <input type="number" value={salesGoalDaily} onChange={e => setSalesGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-emerald-900 dark:text-emerald-100" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-emerald-400 ml-2">MENSUAL</label>
-                    <input type="number" value={salesGoalMonthly} onChange={e => setSalesGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-emerald-900 dark:text-emerald-100" />
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => handleSubmit()}
-                disabled={isUpdating}
-                className="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black py-6 rounded-3xl hover:bg-[#5ecce3] dark:hover:bg-sky-400 transition-all active:scale-95 shadow-2xl flex items-center justify-center gap-4 uppercase text-xs tracking-[0.2em]"
-              >
-                {isUpdating ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                Confirmar Configurações
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* VISUAL & MENU ORDERING */}
         {activeTab === 'visual' && (
           <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-8">
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 p-6 rounded-[2rem] flex items-start gap-4">
+               <AlertTriangle className="text-amber-500 shrink-0" size={24} />
+               <div>
+                  <h4 className="text-[11px] font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1">Ação Necessária no Banco de Dados</h4>
+                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-600 uppercase leading-relaxed">Para salvar a nova ordem do menu, você deve adicionar a coluna <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">menu_order</code> como <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">text[]</code> na tabela <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">configuracoes</code> no seu painel do Supabase.</p>
+               </div>
+            </div>
+
             <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
               <div>
                 <div className="flex items-center gap-4 mb-2">
@@ -444,6 +308,151 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
                    Salvar Organização do Menu
                  </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* LICENSE */}
+        {activeTab === 'license' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+            <div className={`p-8 rounded-[2.5rem] border-2 sm:border-4 flex flex-col lg:flex-row items-center justify-between gap-6 transition-all duration-700 ${isExpired() ? 'bg-rose-500 border-rose-600 text-white shadow-3xl shadow-rose-100' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white shadow-xl dark:shadow-none'}`}>
+              <div className="flex items-center gap-6 text-center lg:text-left flex-col lg:flex-row">
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] flex items-center justify-center shadow-xl ${isExpired() ? 'bg-white/20' : 'bg-slate-900 dark:bg-slate-800 text-white'}`}>
+                  {isExpired() ? <Lock size={32} /> : <Unlock size={32} />}
+                </div>
+                <div>
+                  <h4 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter leading-none mb-2">Licença de Uso</h4>
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${isExpired() ? 'text-rose-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                    Expira em: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={handleSetBlock}
+                className="w-full lg:w-auto px-10 py-4 bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95"
+              >
+                Bloquear Agora
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6">
+                <div>
+                  <h5 className="font-black text-slate-900 dark:text-white text-lg uppercase tracking-tight flex items-center gap-2"><Zap size={20} className="text-sky-500" /> Renovar Plano</h5>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Dias adicionais</p>
+                </div>
+                <div className="flex gap-3">
+                  <input type="number" value={renewDays} onChange={e => setRenewDays(parseInt(e.target.value) || 0)} className="w-24 h-14 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-xl text-center dark:text-white" />
+                  <button onClick={handleRenewCustomDays} className="flex-1 bg-sky-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-sky-700 shadow-lg active:scale-95 transition-all">Ativar Renovação</button>
+                </div>
+              </div>
+
+              <div className="bg-indigo-900 p-8 rounded-[2.5rem] border border-indigo-950 shadow-2xl text-white">
+                <div className="flex items-center gap-4 mb-4">
+                  <Fingerprint size={24} className="text-sky-400" />
+                  <h5 className="font-black text-white text-lg uppercase tracking-tight">Console Root</h5>
+                </div>
+                <p className="text-[10px] font-medium text-indigo-100 uppercase tracking-tight mb-6 leading-relaxed">
+                  Acesso de alta segurança para gerenciamento de permissões e infraestrutura do banco de dados.
+                </p>
+                <a href="https://supabase.com/dashboard" target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-white text-indigo-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                  Abrir Supabase <ExternalLink size={14} />
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* USERS */}
+        {activeTab === 'users' && (
+          <div className="animate-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+               <div className="p-6 sm:p-10 border-b border-slate-50 dark:border-slate-800 flex flex-col sm:row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-2xl flex items-center justify-center">
+                      <Users size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Perfis de Acesso</h3>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Usuários autenticados no sistema</p>
+                    </div>
+                  </div>
+               </div>
+               <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                        <th className="px-6 py-4">USUÁRIO</th>
+                        <th className="px-6 py-4 hidden sm:table-cell text-center">STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                      {users.length === 0 ? (
+                        <tr><td colSpan={2} className="p-10 text-center text-slate-300 dark:text-slate-700 font-black text-[10px] uppercase">Nenhum perfil listado</td></tr>
+                      ) : (
+                        users.map(user => (
+                          <tr key={user.id}>
+                            <td className="px-6 py-4 font-black text-slate-700 dark:text-slate-200 text-xs uppercase">{user.email}</td>
+                            <td className="px-6 py-4 hidden sm:table-cell text-center"><span className="px-3 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black">ATIVO</span></td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {/* BUSINESS RULES */}
+        {activeTab === 'company' && (
+          <div className="animate-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4 flex items-center gap-2"><Building2 size={14} className="text-[#5ecce3]" /> Nome da Empresa (Institucional)</label>
+                  <input 
+                    type="text" 
+                    value={companyName} 
+                    onChange={e => setCompanyName(e.target.value.toUpperCase())} 
+                    placeholder="EX: GELO BRASIL LTDA" 
+                    className="w-full h-16 px-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4 flex items-center gap-2"><Fingerprint size={14} className="text-[#5ecce3]" /> CNPJ de Registro</label>
+                  <input 
+                    type="text" 
+                    value={cnpj} 
+                    onChange={e => setCnpj(e.target.value)} 
+                    placeholder="00.000.000/0000-00" 
+                    className="w-full h-16 px-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all" 
+                  />
+                </div>
+              </div>
+
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/30 space-y-6">
+                <h5 className="text-[11px] font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-3"><DollarSign size={20} /> Metas Venda (R$)</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-emerald-400 ml-2">DIÁRIA</label>
+                    <input type="number" value={salesGoalDaily} onChange={e => setSalesGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-emerald-900 dark:text-emerald-100" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-emerald-400 ml-2">MENSUAL</label>
+                    <input type="number" value={salesGoalMonthly} onChange={e => setSalesGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-emerald-900 dark:text-emerald-100" />
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => handleSubmit()}
+                disabled={isUpdating}
+                className="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black py-6 rounded-3xl hover:bg-[#5ecce3] dark:hover:bg-sky-400 transition-all active:scale-95 shadow-2xl flex items-center justify-center gap-4 uppercase text-xs tracking-[0.2em]"
+              >
+                {isUpdating ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                Confirmar Configurações
+              </button>
             </div>
           </div>
         )}
