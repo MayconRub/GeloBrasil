@@ -188,6 +188,7 @@ export interface AppSettings {
   footerText: string;
   expirationDate: string;
   hiddenViews: string[]; 
+  menuOrder: string[]; 
   dashboardNotice?: string;
   salesGoalDaily?: number;
   salesGoalMonthly?: number;

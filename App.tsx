@@ -5,7 +5,7 @@ import {
   Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, 
   MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles, 
   ShieldAlert, Calendar, QrCode, Copy, Check, Fingerprint, ShieldCheck,
-  UserPlus, MapPin, PackageCheck, Boxes, Moon, Sun
+  UserPlus, MapPin, PackageCheck, Boxes, Moon, Sun, LayoutGrid
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProduct, deleteProduct, syncStockMovement } from './store';
@@ -39,7 +39,7 @@ const App: React.FC = () => {
   
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [], products: [], stockMovements: [],
-    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], adminEmail: 'root@adm.app' }
+    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], menuOrder: [], adminEmail: 'root@adm.app' }
   });
 
   const PIX_CODE = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
@@ -147,8 +147,8 @@ const App: React.FC = () => {
     return today > expDate;
   }, [data.settings.expirationDate]);
 
-  const menuItems = [
-    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+  const ALL_MODULES = [
+    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutGrid },
     { id: 'inventory', label: 'ESTOQUE', icon: Boxes },
     { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
     { id: 'clients', label: 'CLIENTES', icon: UserPlus },
@@ -157,12 +157,23 @@ const App: React.FC = () => {
     { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
     { id: 'team', label: 'EQUIPE', icon: Users },
     { id: 'fleet', label: 'FROTA', icon: Truck },
-    { id: 'admin', label: 'ADMIN', icon: Shield },
-  ].filter(item => {
-    if (data.settings.hiddenViews.includes(item.id)) return false;
-    if (item.id === 'admin' && !isAdmin) return false;
-    return true;
-  });
+    { id: 'admin', label: 'ADMIN', icon: ShieldCheck },
+  ];
+
+  const menuItems = useMemo(() => {
+    const order = data.settings.menuOrder && data.settings.menuOrder.length > 0 
+      ? data.settings.menuOrder 
+      : ALL_MODULES.map(m => m.id);
+
+    return order
+      .map(id => ALL_MODULES.find(m => m.id === id))
+      .filter((item): item is typeof ALL_MODULES[0] => {
+        if (!item) return false;
+        if (data.settings.hiddenViews.includes(item.id)) return false;
+        if (item.id === 'admin' && !isAdmin) return false;
+        return true;
+      });
+  }, [data.settings.hiddenViews, data.settings.menuOrder, isAdmin]);
 
   const mobileFixedItems = menuItems.slice(0, 4);
   const mobileExtraItems = menuItems.slice(4);
@@ -220,7 +231,6 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) return (
     <div className="min-h-screen glacial-bg flex flex-col items-center justify-center p-4 sm:p-6 font-['Plus_Jakarta_Sans'] relative overflow-hidden">
-      {/* Botão de Tema no Login */}
       <button onClick={toggleDarkMode} className="absolute top-6 right-6 w-12 h-12 glass-panel rounded-2xl flex items-center justify-center text-slate-400 hover:text-sky-500 transition-all z-[100]">
         {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
       </button>
@@ -299,7 +309,6 @@ const App: React.FC = () => {
           <h1 className="text-sm font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate">{data.settings.companyName}</h1>
         </div>
 
-        {/* Toggle Theme em Desktop */}
         <div className="px-4 mb-8">
           <button onClick={toggleDarkMode} className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-sky-500 transition-all">
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -336,7 +345,7 @@ const App: React.FC = () => {
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
         {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={wrap(syncDelivery)} onDelete={wrap(deleteDelivery)} />}
-        {view === 'production' && <ProductionView settings={data.settings} production={data.production} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} onUpdateSettings={wrap(syncSettings)} />}
+        {view === 'production' && <ProductionView settings={data.settings} production={data.production} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} products={data.products} />}
         {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={wrap(syncExpense)} onDelete={wrap(deleteExpense)} onUpdateCategories={wrap(syncCategory)} onDeleteCategory={wrap(deleteCategory)} onReorderCategories={wrap(syncCategoriesOrder)} sales={data.sales} />}
         {view === 'team' && <TeamView employees={data.employees} onUpdate={wrap(syncEmployee)} onDelete={wrap(deleteEmployee)} onAddExpense={wrap(syncExpense)} companyName={data.settings.companyName} />}
         {view === 'fleet' && <FleetView vehicles={data.vehicles} employees={data.employees} fuelLogs={data.fuelLogs} maintenanceLogs={data.maintenanceLogs} fineLogs={data.fineLogs} onUpdateVehicle={wrap(syncVehicle)} onDeleteVehicle={wrap(deleteVehicle)} onUpdateFuel={wrap(syncFuel)} onDeleteFuel={wrap(deleteFuel)} onUpdateMaintenance={wrap(syncMaintenance)} onDeleteMaintenance={wrap(deleteMaintenance)} onUpdateFine={wrap(syncFine)} onDeleteFine={wrap(deleteFine)} />}
@@ -347,7 +356,7 @@ const App: React.FC = () => {
       <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[80] no-print">
         <nav className="glass-nav dark:bg-slate-900/90 flex items-center justify-around px-3 py-3 rounded-[2rem] shadow-2xl border border-white/50 dark:border-white/5">
           {mobileFixedItems.map(item => (
-            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${view === item.id && !isMobileMenuOpen ? 'text-sky-500 bg-sky-50/50 dark:bg-sky-950/30 scale-105' : 'text-slate-400 active:scale-90'}`}>
+            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${view === item.id && !isMobileMenuOpen ? 'text-sky-50 bg-sky-50/50 dark:bg-sky-950/30 scale-105' : 'text-slate-400 active:scale-90'}`}>
               <item.icon size={20} strokeWidth={view === item.id && !isMobileMenuOpen ? 3 : 2} />
               <span className="text-[8px] font-black uppercase tracking-[0.15em]">{item.label}</span>
             </button>
