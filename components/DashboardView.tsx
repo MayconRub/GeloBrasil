@@ -84,7 +84,7 @@ const DashboardView: React.FC<Props> = ({
             <Activity size={28} className={metrics.isHealthy ? 'text-emerald-400' : 'text-rose-400'} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase leading-none">Minha <span className="text-sky-500">Operação</span></h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase leading-none">Dash<span className="text-sky-500">board</span></h1>
             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
                {period === 'daily' ? 'Monitoramento do Dia' : 'Monitoramento Mensal'}
             </p>

@@ -148,7 +148,7 @@ const App: React.FC = () => {
   }, [data.settings.expirationDate]);
 
   const menuItems = [
-    { id: 'dashboard', label: 'MINHA OPERAÇÃO', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
     { id: 'inventory', label: 'ESTOQUE', icon: Boxes },
     { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
     { id: 'clients', label: 'CLIENTES', icon: UserPlus },

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
@@ -7,13 +6,13 @@ import {
   Pencil, 
   ChevronLeft, 
   ChevronRight, 
-  Printer, 
-  RotateCcw,
   Clock,
   X,
   Sparkles,
   Package,
-  Check
+  Check,
+  ShoppingBag,
+  Minus
 } from 'lucide-react';
 import { Production, AppSettings, Product } from '../types';
 
@@ -25,6 +24,11 @@ interface Props {
   products?: Product[]; 
 }
 
+interface ProductionItem {
+  type: '2KG' | '4KG' | '10KG' | '20KG' | 'BRITADO10' | 'BRITADO20' | 'BARRA10';
+  units: number;
+}
+
 const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, settings }) => {
   const getTodayString = () => {
     const now = new Date();
@@ -32,53 +36,81 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   };
 
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedProductType, setSelectedProductType] = useState<'2KG' | '4KG' | '10KG' | '20KG' | 'BRITADO10' | 'BRITADO20' | 'CUSTOM'>('4KG');
-  const [units, setUnits] = useState('');
-  const [customWeight, setCustomWeight] = useState('');
   const [date, setDate] = useState(getTodayString());
   const [observation, setObservation] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
   
+  // Novos estados para múltiplos itens
+  const [items, setItems] = useState<ProductionItem[]>([]);
+  const [currentType, setCurrentType] = useState<ProductionItem['type']>('4KG');
+  const [currentUnits, setCurrentUnits] = useState('');
+
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
   const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const calculatedTotalWeight = useMemo(() => {
-    const u = parseFloat(units) || 0;
-    switch(selectedProductType) {
-      case '2KG': return u * 2;
-      case '4KG': return u * 4;
-      case '10KG': return u * 10;
-      case '20KG': return u * 20;
-      case 'BRITADO10': return u * 10;
-      case 'BRITADO20': return u * 20;
-      default: return parseFloat(customWeight) || 0;
+  const typeWeights: Record<ProductionItem['type'], number> = {
+    '2KG': 2, '4KG': 4, '10KG': 10, '20KG': 20, 'BRITADO10': 10, 'BRITADO20': 20, 'BARRA10': 10
+  };
+
+  const typeLabels: Record<ProductionItem['type'], string> = {
+    '2KG': 'CUBO 2KG', '4KG': 'CUBO 4KG', '10KG': 'CUBO 10KG', '20KG': 'CUBO 20KG', 
+    'BRITADO10': 'BRITADO 10KG', 'BRITADO20': 'BRITADO 20KG', 'BARRA10': 'BARRA 10KG'
+  };
+
+  const totalBatchWeight = useMemo(() => {
+    return items.reduce((acc, item) => acc + (item.units * typeWeights[item.type]), 0);
+  }, [items]);
+
+  const handleAddItem = () => {
+    const u = parseInt(currentUnits);
+    if (isNaN(u) || u <= 0) return;
+
+    const existingIdx = items.findIndex(i => i.type === currentType);
+    if (existingIdx > -1) {
+      const newItems = [...items];
+      newItems[existingIdx].units += u;
+      setItems(newItems);
+    } else {
+      setItems([...items, { type: currentType, units: u }]);
     }
-  }, [selectedProductType, units, customWeight]);
+    setCurrentUnits('');
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
 
   const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  const handleResetMonth = () => setSelectedDate(new Date());
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (calculatedTotalWeight <= 0 || !date) return;
-    const labels: Record<string, string> = { '2KG': 'CUBO 2KG', '4KG': 'CUBO 4KG', '10KG': 'CUBO 10KG', '20KG': 'CUBO 20KG', 'BRITADO10': 'BRITADO 10KG', 'BRITADO20': 'BRITADO 20KG', 'CUSTOM': 'PESO PERSONALIZADO' };
-    const obsWithDetails = `${selectedProductType !== 'CUSTOM' ? `PROD: ${units} UN DE ${labels[selectedProductType]}` : ''} ${observation}`.trim();
-    onUpdate({ id: editingId || crypto.randomUUID(), quantityKg: calculatedTotalWeight, date, observation: obsWithDetails.toUpperCase() });
+    if (items.length === 0 || !date) return;
+
+    const detailedObs = items.map(i => `${i.units}un ${typeLabels[i.type]}`).join(' | ');
+    const finalObs = `${detailedObs}${observation ? ` - ${observation}` : ''}`.toUpperCase();
+
+    onUpdate({ 
+      id: editingId || crypto.randomUUID(), 
+      quantityKg: totalBatchWeight, 
+      date, 
+      observation: finalObs 
+    });
     resetForm();
   };
 
   const handleEdit = (p: Production) => {
     if (confirm(`DESEJA EDITAR O REGISTRO DE PRODUÇÃO DE ${p.quantityKg} KG?`)) {
-      setEditingId(p.id); setSelectedProductType('CUSTOM'); setCustomWeight(p.quantityKg.toString()); setDate(p.date); setObservation(p.observation || '');
+      setEditingId(p.id);
+      setDate(p.date);
+      setObservation(p.observation || '');
       if (window.innerWidth < 1024) setIsMobileFormOpen(true);
       else window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Fix: Added missing handleDelete function to invoke onDelete with confirmation
   const handleDelete = (p: Production) => {
     if (confirm(`DESEJA EXCLUIR ESTE REGISTRO DE PRODUÇÃO DE ${p.quantityKg} KG?`)) {
       onDelete(p.id);
@@ -86,7 +118,12 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   };
 
   const resetForm = () => {
-    setEditingId(null); setUnits(''); setCustomWeight(''); setSelectedProductType('4KG'); setDate(getTodayString()); setObservation(''); setIsMobileFormOpen(false);
+    setEditingId(null); 
+    setItems([]);
+    setCurrentUnits(''); 
+    setDate(getTodayString()); 
+    setObservation(''); 
+    setIsMobileFormOpen(false);
   };
 
   const filteredProduction = useMemo(() => {
@@ -99,49 +136,92 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   const totalProduced = useMemo(() => filteredProduction.reduce((sum, p) => sum + p.quantityKg, 0), [filteredProduction]);
 
   const renderForm = (isModal = false) => (
-    <form onSubmit={handleAdd} className={`${isModal ? '' : 'bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none sticky top-24 lg:top-8'}`}>
+    <div className={`${isModal ? '' : 'bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none sticky top-24 lg:top-8'}`}>
       <h3 className="font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3 uppercase text-[10px] tracking-[0.2em] border-b border-slate-100 dark:border-slate-800 pb-4 leading-none">
-        <Sparkles className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Lançar Produção'}
+        <Sparkles className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Montar Lote de Produção'}
       </h3>
       
-      <div className="space-y-5">
-        <div className="space-y-2">
-          <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Tipo de Pacote</label>
-          <div className="grid grid-cols-2 gap-2">
-            {['2KG', '4KG', '10KG', '20KG'].map(type => (
-              <button key={type} type="button" onClick={() => setSelectedProductType(type as any)} className={`py-3 rounded-xl text-[9px] font-black border transition-all ${selectedProductType === type ? 'bg-sky-500 border-sky-600 text-white shadow-lg dark:shadow-none' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-600'}`}>{type}</button>
-            ))}
-          </div>
+      <div className="space-y-6">
+        {/* Seção de Adicionar Item */}
+        <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-3xl border border-slate-100 dark:border-slate-800">
+           <div className="space-y-1.5">
+              <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Tipo de Produto</label>
+              <select 
+                value={currentType} 
+                onChange={e => setCurrentType(e.target.value as any)}
+                className="w-full h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white"
+              >
+                {Object.keys(typeLabels).map(type => (
+                  <option key={type} value={type}>{typeLabels[type as ProductionItem['type']]}</option>
+                ))}
+              </select>
+           </div>
+           <div className="flex gap-2">
+              <div className="flex-1 space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Quantas Unidades?</label>
+                <input 
+                  type="number" 
+                  value={currentUnits} 
+                  onChange={e => setCurrentUnits(e.target.value)}
+                  placeholder="Ex: 50"
+                  className="w-full h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-sm dark:text-white"
+                />
+              </div>
+              <button 
+                type="button" 
+                onClick={handleAddItem}
+                className="self-end h-11 px-4 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-sky-500/20 active:scale-90 transition-all"
+              >
+                <Plus size={20} />
+              </button>
+           </div>
         </div>
 
-        {selectedProductType !== 'CUSTOM' ? (
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Unidades</label>
-            <div className="relative">
-               <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" />
-               <input type="number" placeholder="Ex: 100" value={units} onChange={e => setUnits(e.target.value)} className="w-full h-14 pl-12 pr-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-xl dark:text-white outline-none" required />
+        {/* Lista de Itens no Lote */}
+        {items.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Itens neste lote:</label>
+            <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-lg flex items-center justify-center text-[10px] font-black">{item.units}</span>
+                    <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tight">{typeLabels[item.type]}</span>
+                  </div>
+                  {/* Fixed error on line 192 (reported): changed 'index' to 'idx' to match mapping parameter */}
+                  <button onClick={() => handleRemoveItem(idx)} className="text-slate-300 hover:text-rose-500 transition-colors"><Minus size={16}/></button>
+                </div>
+              ))}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Peso Total (KG)</label>
-            <input type="number" value={customWeight} onChange={e => setCustomWeight(e.target.value)} className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-xl dark:text-white outline-none" required />
           </div>
         )}
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Data</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" required />
+          <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Data da Produção</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" required />
         </div>
 
-        <div className="flex gap-3 pt-2">
-          <button type="submit" className="flex-1 h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl dark:shadow-none uppercase text-[10px] tracking-widest active:scale-95">{editingId ? 'Atualizar' : 'Salvar Lote'}</button>
-          {(editingId || isModal) && (
-            <button type="button" onClick={resetForm} className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><X size={24} /></button>
-          )}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-4 bg-sky-50 dark:bg-sky-900/20 px-6 py-4 rounded-2xl border border-sky-100 dark:border-sky-800/30">
+             <span className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest">Peso Total do Lote:</span>
+             <span className="text-xl font-black text-sky-700 dark:text-white">{totalBatchWeight.toLocaleString('pt-BR')} KG</span>
+          </div>
+          
+          <div className="flex gap-3">
+            <button 
+              onClick={handleAdd}
+              disabled={items.length === 0}
+              className="flex-1 h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl dark:shadow-none uppercase text-[10px] tracking-widest active:scale-95 disabled:opacity-30 disabled:grayscale"
+            >
+              {editingId ? 'Atualizar Registro' : 'Salvar Fabricação'}
+            </button>
+            {(editingId || isModal) && (
+              <button type="button" onClick={resetForm} className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><X size={24} /></button>
+            )}
+          </div>
         </div>
       </div>
-    </form>
+    </div>
   );
 
   return (
@@ -184,6 +264,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
                        <div>
                           <div className="text-xl font-black text-slate-800 dark:text-slate-100">{p.quantityKg.toLocaleString('pt-BR')} <span className="text-[11px] font-black text-sky-400 uppercase tracking-widest">KG</span></div>
                           <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mt-1"><Clock size={12} /> {new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+                          <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase">{p.observation || '-'}</p>
                        </div>
                        <div className="flex gap-2">
                          <button onClick={() => handleEdit(p)} className="p-3 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-700 rounded-xl border border-slate-100 dark:border-slate-800"><Pencil size={18} /></button>
@@ -208,7 +289,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
                     <tr key={p.id} className="hover:bg-sky-50/20 dark:hover:bg-slate-800/40 transition-all group">
                       <td className="px-8 py-5 text-xs font-black text-slate-500 dark:text-slate-400">{new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                       <td className="px-8 py-5"><div className="text-sm font-black text-slate-800 dark:text-slate-200">{p.quantityKg.toLocaleString('pt-BR')} <span className="text-[9px] font-black text-sky-400 ml-1">KG</span></div></td>
-                      <td className="px-8 py-5 text-[11px] font-bold text-slate-400 dark:text-slate-600 truncate max-w-[200px] uppercase">{p.observation || '-'}</td>
+                      <td className="px-8 py-5 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{p.observation || '-'}</td>
                       <td className="px-8 py-5 text-center no-print">
                         <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleEdit(p)} className="p-1.5 text-slate-400 dark:text-slate-700 hover:text-indigo-600"><Pencil size={14} /></button>

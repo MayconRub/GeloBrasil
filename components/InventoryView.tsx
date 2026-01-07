@@ -35,7 +35,8 @@ const InventoryView: React.FC<Props> = ({ products, movements, onUpdateProduct, 
     { name: 'GELO EM CUBO 10KG', unit: 'SACO' },
     { name: 'GELO EM CUBO 20KG', unit: 'SACO' },
     { name: 'GELO BRITADO 10KG', unit: 'SACO' },
-    { name: 'GELO BRITADO 20KG', unit: 'SACO' }
+    { name: 'GELO BRITADO 20KG', unit: 'SACO' },
+    { name: 'GELO EM BARRA 10KG', unit: 'BARRA' }
   ];
 
   const inventoryData = useMemo(() => {

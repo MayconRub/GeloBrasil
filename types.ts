@@ -64,12 +64,19 @@ export interface StockMovement {
   notes?: string;
 }
 
+export interface SaleItem {
+  productId: string;
+  quantity: number;
+  unitPrice?: number;
+}
+
 export interface Sale {
   id: string;
   value: number;
   date: string;
   description: string;
   clientId?: string;
+  items?: SaleItem[];
 }
 
 export interface Production {
