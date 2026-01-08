@@ -161,7 +161,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
                           <span className="inline-block px-3 py-1 bg-sky-50 dark:bg-sky-900/30 text-sky-600 rounded-lg text-[8px] font-black uppercase border border-sky-100 dark:border-sky-900/30 mt-1">{emp.role}</span>
                         </div>
                       </div>
-                      <div className="flex gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 transition-opacity">
                         <button onClick={() => openPaymentForEmployee(emp)} className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-all"><HandCoins size={16} /></button>
                         <button onClick={() => handleEdit(emp)} className="p-2 text-slate-400 dark:text-slate-600 hover:text-sky-500 transition-all"><Pencil size={16} /></button>
                         <button onClick={() => onDelete(emp.id)} className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16} /></button>

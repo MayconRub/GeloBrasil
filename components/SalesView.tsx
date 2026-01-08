@@ -365,7 +365,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                       <td className="px-6 py-4 font-black text-emerald-600 dark:text-emerald-500">R$ {sale.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                       <td className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-600">{new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                       <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-center gap-2 transition-all">
                           <button onClick={() => handleEdit(sale)} className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-sky-500"><Pencil size={14} /></button>
                           <button onClick={() => handleDelete(sale)} className="p-1.5 text-rose-300 dark:text-rose-900 hover:text-rose-500"><Trash2 size={14} /></button>
                         </div>

@@ -219,7 +219,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
                   <div className={`w-12 h-12 sm:w-16 sm:h-16 ${needsOilChange ? 'bg-rose-500 text-white shadow-xl dark:shadow-none animate-pulse' : 'bg-sky-50 dark:bg-sky-900/20 text-sky-500'} rounded-xl sm:rounded-2xl flex items-center justify-center transition-all`}>
                     {v.tipo === 'Caminhão' ? <Truck size={24} /> : v.tipo === 'Moto' ? <Bike size={24} /> : <Car size={24} />}
                   </div>
-                  <div className="flex gap-2 no-print opacity-20 group-hover:opacity-100">
+                  <div className="flex gap-2 no-print transition-opacity">
                      <button onClick={() => { setForm(v); setIsOpen(true); }} className="p-2 sm:p-3 bg-slate-50 dark:bg-slate-950 text-slate-300 dark:text-slate-700 hover:text-sky-500 rounded-lg sm:rounded-xl transition-all"><Pencil size={16} /></button>
                      <button onClick={() => onDelete(v.id)} className="p-2 sm:p-3 bg-slate-50 dark:bg-slate-950 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-lg sm:rounded-xl transition-all"><Trash2 size={16} /></button>
                   </div>

@@ -155,7 +155,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           </div>
           <div className="relative flex-1 lg:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input type="text" placeholder="BUSCAR CONTA..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-500/20 dark:text-white" />
+            <input type="text" placeholder="BUSCAR CONTA..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[9px] font-black uppercase outline-none dark:text-white">
             <option value="TODOS">STATUS</option>
@@ -247,9 +247,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                     <button onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})} className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase transition-all ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white dark:bg-slate-800 text-amber-600 border border-amber-100 dark:border-amber-900/30'}`}>{e.status}</button>
                   </td>
                   <td className="px-6 py-4 text-right no-print">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(e)} className="p-2.5 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-700 rounded-xl"><Pencil size={14} /></button>
-                      <button onClick={() => onDelete(e.id)} className="p-2.5 bg-rose-50 dark:bg-rose-950/30 text-rose-300 dark:text-rose-900 rounded-xl"><Trash2 size={14} /></button>
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleEdit(e)} className="p-2.5 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-700 rounded-xl hover:text-sky-500 transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => onDelete(e.id)} className="p-2.5 bg-rose-50 dark:bg-rose-950/30 text-rose-300 dark:text-rose-900 rounded-xl hover:text-rose-600 transition-colors"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>

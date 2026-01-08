@@ -332,7 +332,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
                       <td className="px-8 py-5"><div className="text-sm font-black text-slate-800 dark:text-slate-200">{p.quantityKg.toLocaleString('pt-BR')} <span className="text-[9px] font-black text-sky-400 ml-1">KG</span></div></td>
                       <td className="px-8 py-5 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{p.observation || '-'}</td>
                       <td className="px-8 py-5 text-center no-print">
-                        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-center gap-2 transition-all">
                           <button onClick={() => handleEdit(p)} className="p-1.5 text-slate-400 dark:text-slate-700 hover:text-indigo-600"><Pencil size={14} /></button>
                           <button onClick={() => handleDelete(p)} className="p-1.5 text-rose-300 dark:text-rose-900 hover:text-rose-500"><Trash2 size={14} /></button>
                         </div>
