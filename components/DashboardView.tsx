@@ -5,22 +5,31 @@ import {
   CircleDollarSign, Receipt, Box, 
   ArrowUpRight, ArrowDownRight,
   CalendarDays,
-  Clock
+  Clock,
+  Truck,
+  MapPin,
+  ChevronRight,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  CheckCircle2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus } from '../types';
+import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus, Delivery, Client, DeliveryStatus } from '../types';
 
 interface Props {
   sales: Sale[];
   expenses: Expense[];
   production: Production[];
+  deliveries: Delivery[];
+  clients: Client[];
   onSwitchView: (view: ViewType) => void;
   settings: AppSettings;
   onAddSale: (sale: Sale) => void;
 }
 
 const DashboardView: React.FC<Props> = ({ 
-  sales = [], expenses = [], production = [], onSwitchView
+  sales = [], expenses = [], production = [], deliveries = [], clients = [], onSwitchView
 }) => {
   const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
   const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
@@ -66,27 +75,38 @@ const DashboardView: React.FC<Props> = ({
       };
     });
 
+    const activeDeliveries = (deliveries || [])
+      .filter(d => d.status === DeliveryStatus.PENDENTE || d.status === DeliveryStatus.EM_ROTA)
+      .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate) || (a.scheduledTime || '').localeCompare(b.scheduledTime || ''))
+      .slice(0, 5);
+
+    // Filtro de despesas pendentes: Vencidas (atrasadas) primeiro, depois as de hoje, depois futuras
+    const pendingExpenses = (expenses || [])
+      .filter(e => e.status !== ExpenseStatus.PAGO)
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+      .slice(0, 6);
+
     return {
       totalSales: totalSales || 0,
       totalExps: totalExps || 0,
       totalProd: totalProd || 0,
       profit: profit || 0,
       chartData,
-      isHealthy: profit >= 0
+      isHealthy: profit >= 0,
+      activeDeliveries,
+      pendingExpenses
     };
-  }, [sales, expenses, production, period, todayStr]);
+  }, [sales, expenses, production, deliveries, period, todayStr]);
+
+  const getClientName = (id: string) => clients.find(c => c.id === id)?.name || 'CLIENTE';
 
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 max-w-[1600px] mx-auto pb-12 animate-in fade-in duration-500 transition-colors">
       
-      {/* Header com Cubo de Gelo Azul Cristalino */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-sky-100/20 dark:shadow-none transition-all">
         <div className="flex items-center gap-5">
           <div className="relative flex items-center justify-center w-14 h-14">
-            {/* Efeito de Brilho Glacial Pulsante */}
             <div className={`absolute inset-0 rounded-full blur-2xl opacity-40 animate-pulse ${metrics.isHealthy ? 'bg-[#5ecce3]' : 'bg-rose-400'}`}></div>
-            
-            {/* Cubo de Gelo sem fundo escuro */}
             <Box 
               size={42} 
               className={`relative z-10 transition-all duration-700 animate-pulse drop-shadow-[0_0_12px_rgba(94,204,227,0.9)] ${metrics.isHealthy ? 'text-[#5ecce3]' : 'text-rose-400'}`} 
@@ -123,16 +143,12 @@ const DashboardView: React.FC<Props> = ({
         <MetricCard label="Saldo Líquido" value={`R$ ${metrics.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Wallet} color={metrics.profit >= 0 ? 'emerald' : 'rose'} context="Dinheiro em Caixa" isHighlight />
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[3rem] border border-slate-50 dark:border-slate-800 shadow-sm dark:shadow-none relative overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[3rem] border border-slate-50 dark:border-slate-800 shadow-sm dark:shadow-none relative overflow-hidden">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3">
               <TrendingUp size={16} className="text-[#5ecce3]" /> Fluxo de Movimentação (7 dias)
             </h3>
-            <div className="hidden sm:flex items-center gap-4">
-               <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#5ecce3]"></div><span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Vendas</span></div>
-               <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-rose-500"></div><span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Saídas</span></div>
-            </div>
           </div>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -160,23 +176,156 @@ const DashboardView: React.FC<Props> = ({
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Card de Painel de Entregas Ativas */}
+        <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[3rem] border border-slate-50 dark:border-slate-800 shadow-sm flex flex-col h-full">
+           <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                  <Truck size={16} className="text-sky-500" /> Logística Ativa
+                </h3>
+                <p className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase mt-1">Status de Entrega</p>
+              </div>
+              <button onClick={() => onSwitchView('deliveries')} className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-300 hover:text-sky-500 transition-all">
+                <ChevronRight size={20} />
+              </button>
+           </div>
+
+           <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar pr-1">
+              {metrics.activeDeliveries.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10">
+                   <Box size={48} className="mb-4 text-slate-200" />
+                   <p className="text-[10px] font-black uppercase tracking-widest">Sem entregas pendentes</p>
+                </div>
+              ) : (
+                metrics.activeDeliveries.map((delivery) => {
+                  const isToday = delivery.scheduledDate === todayStr;
+                  return (
+                    <div key={delivery.id} className={`p-4 rounded-2xl border transition-all ${isToday ? 'bg-amber-50/30 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30' : 'bg-slate-50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800'}`}>
+                       <div className="flex justify-between items-start mb-2">
+                          <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase truncate pr-4">{getClientName(delivery.clientId)}</span>
+                          {isToday ? (
+                            <span className="flex items-center gap-1 text-[8px] font-black text-amber-600 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded animate-pulse">
+                              <AlertCircle size={10} /> HOJE
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-black text-slate-400">{new Date(delivery.scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                          )}
+                       </div>
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase">
+                             <Clock size={12} className="text-sky-500" /> {delivery.scheduledTime || '--:--'}
+                          </div>
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${delivery.status === DeliveryStatus.EM_ROTA ? 'bg-sky-500 text-white shadow-lg shadow-sky-100 dark:shadow-none' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+                            {delivery.status === DeliveryStatus.EM_ROTA ? 'EM ROTA' : 'AGENDADA'}
+                          </span>
+                       </div>
+                    </div>
+                  );
+                })
+              )}
+           </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 no-print">
-         <button onClick={() => onSwitchView('sales')} className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:bg-sky-50 dark:hover:bg-slate-800 transition-all shadow-sm dark:shadow-none group">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/30 text-[#5ecce3] rounded-xl flex items-center justify-center group-hover:bg-[#5ecce3] group-hover:text-white transition-all shadow-inner"><CircleDollarSign size={28} /></div>
-              <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Lançar Venda</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Registrar Faturamento</p></div>
-            </div>
-            <ArrowUpRight size={24} className="text-slate-200 dark:text-slate-700 group-hover:text-[#5ecce3] transition-all" />
-         </button>
-         <button onClick={() => onSwitchView('expenses')} className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:bg-rose-50 dark:hover:bg-slate-800 transition-all shadow-sm dark:shadow-none group">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all shadow-inner"><Receipt size={28} /></div>
-              <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Lançar Gasto</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Contas e Despesas</p></div>
-            </div>
-            <ArrowDownRight size={24} className="text-slate-200 dark:text-slate-700 group-hover:text-rose-500 transition-all" />
-         </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        {/* Painel de Despesas com Efeito Pulsante para Vencidas/Hoje */}
+        <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[3rem] border border-slate-50 dark:border-slate-800 shadow-sm flex flex-col h-full">
+           <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                  <Receipt size={16} className="text-rose-500" /> Painel de Despesas
+                </h3>
+                <p className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase mt-1">Contas Pendentes</p>
+              </div>
+              <button onClick={() => onSwitchView('expenses')} className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all">
+                <ChevronRight size={20} />
+              </button>
+           </div>
+
+           <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar pr-1">
+              {metrics.pendingExpenses.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10">
+                   <CheckCircle2 size={48} className="mb-4 text-slate-200" />
+                   <p className="text-[10px] font-black uppercase tracking-widest">Contas em Dia</p>
+                </div>
+              ) : (
+                metrics.pendingExpenses.map((expense) => {
+                  const isToday = expense.dueDate === todayStr;
+                  const isOverdue = expense.dueDate < todayStr;
+                  
+                  return (
+                    <div key={expense.id} className={`p-4 rounded-2xl border transition-all ${
+                      isOverdue 
+                        ? 'bg-rose-500/10 border-rose-500 dark:border-rose-900 ring-2 ring-rose-500 animate-pulse' 
+                        : isToday 
+                          ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-400 animate-pulse ring-1 ring-amber-400' 
+                          : 'bg-slate-50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800'
+                    }`}>
+                       <div className="flex justify-between items-start mb-2">
+                          <div className="flex flex-col">
+                             <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase truncate pr-4">{expense.description}</span>
+                             <span className="text-[7px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-tighter">{expense.category}</span>
+                          </div>
+                          {isOverdue ? (
+                            <span className="flex items-center gap-1 text-[8px] font-black text-white bg-rose-600 px-2 py-0.5 rounded shadow-lg">
+                              <AlertTriangle size={10} /> VENCIDA
+                            </span>
+                          ) : isToday ? (
+                            <span className="flex items-center gap-1 text-[8px] font-black text-amber-700 bg-amber-200 px-2 py-0.5 rounded">
+                              <Clock size={10} /> VENCE HOJE
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-black text-slate-400">{new Date(expense.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                          )}
+                       </div>
+                       <div className="flex items-center justify-between mt-3">
+                          <div className="text-[8px] font-bold text-slate-400 dark:text-slate-600">
+                             VENCIMENTO: {new Date(expense.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          </div>
+                          <div className={`text-sm font-black tracking-tight ${isOverdue ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
+                             R$ {expense.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </div>
+                       </div>
+                    </div>
+                  );
+                })
+              )}
+           </div>
+
+           <button onClick={() => onSwitchView('expenses')} className="mt-6 w-full py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-rose-600 transition-all flex items-center justify-center gap-2">
+             Ver Planilha Completa <ChevronRight size={14} />
+           </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 no-print">
+           <button onClick={() => onSwitchView('sales')} className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:bg-sky-50 dark:hover:bg-slate-800 transition-all shadow-sm dark:shadow-none group">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/30 text-[#5ecce3] rounded-xl flex items-center justify-center group-hover:bg-[#5ecce3] group-hover:text-white transition-all shadow-inner"><CircleDollarSign size={28} /></div>
+                <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Lançar Faturamento</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Registro de Vendas</p></div>
+              </div>
+              <ArrowUpRight size={24} className="text-slate-200 dark:text-slate-700 group-hover:text-[#5ecce3] transition-all" />
+           </button>
+           
+           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
+              <div className="flex flex-col gap-4">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-xl flex items-center justify-center shadow-inner"><Info size={24} /></div>
+                    <div><h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Resumo do Mês</h4><p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Consolidação Financeira</p></div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Vendas Mês</p>
+                       <p className="text-lg font-black text-emerald-600 tracking-tighter">R$ {sales.filter(s => s.date.startsWith(todayStr.substring(0, 7))).reduce((a, b) => a + b.value, 0).toLocaleString('pt-BR')}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Mês</p>
+                       <p className="text-lg font-black text-rose-500 tracking-tighter">R$ {expenses.filter(e => e.dueDate.startsWith(todayStr.substring(0, 7)) && e.status === ExpenseStatus.PAGO).reduce((a, b) => a + b.value, 0).toLocaleString('pt-BR')}</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
       </div>
     </div>
   );

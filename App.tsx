@@ -1,15 +1,15 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, 
   X, LogOut, MoreHorizontal, ChevronRight, Mail, Lock, LogIn, Phone, 
   ShieldCheck, UserPlus, PackageCheck, Boxes, Moon, Sun, LayoutGrid, ShieldAlert,
   QrCode, Copy, Check, MessageCircle, EyeOff, Eye, Activity, TrendingUp, ArrowDownRight,
-  ArrowUpRight, Target, AlertCircle
+  ArrowUpRight, Target, AlertCircle, Bell, AlertTriangle, Clock, RefreshCw
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProduct, deleteProduct, syncStockMovement } from './store';
-import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog, Client, Delivery, Product, StockMovement } from './types';
+import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog, Client, Delivery, Product, StockMovement, ExpenseStatus } from './types';
 import DashboardView from './components/DashboardView';
 import SalesView from './components/SalesView';
 import ProductionView from './components/ProductionView';
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +38,11 @@ const App: React.FC = () => {
     return typeof localStorage !== 'undefined' && localStorage.getItem('theme') === 'dark';
   });
   
+  // Pull to Refresh State
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const touchStartPos = useRef(0);
+
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [], products: [], stockMovements: [],
     settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], menuOrder: [], adminEmail: 'root@adm.app' }
@@ -56,7 +62,7 @@ const App: React.FC = () => {
 
   const loadAppData = async () => {
     try { 
-      setIsLoading(true); 
+      if (!isRefreshing) setIsLoading(true); 
       const remoteData = await fetchAllData(); 
       if (remoteData) setData(remoteData); 
     } 
@@ -64,6 +70,8 @@ const App: React.FC = () => {
       console.error("ERRO AO CARREGAR DADOS:", e); 
     } finally { 
       setIsLoading(false); 
+      setIsRefreshing(false);
+      setPullDistance(0);
     }
   };
 
@@ -81,7 +89,51 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
+  // Pull to Refresh Handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      touchStartPos.current = e.touches[0].pageY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (window.scrollY === 0 && touchStartPos.current > 0) {
+      const currentPos = e.touches[0].pageY;
+      const distance = currentPos - touchStartPos.current;
+      if (distance > 0) {
+        // Logarithmic scale for pull feeling
+        setPullDistance(Math.min(distance * 0.4, 120));
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance > 80 && !isRefreshing) {
+      setIsRefreshing(true);
+      loadAppData();
+    } else {
+      setPullDistance(0);
+    }
+    touchStartPos.current = 0;
+  };
+
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
+  // Lógica de despesas críticas para notificações mobile
+  const criticalExpenses = useMemo(() => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayStr = today.toISOString().split('T')[0];
+    
+    const limit = new Date(today);
+    limit.setDate(limit.getDate() + 2);
+    const limitStr = limit.toISOString().split('T')[0];
+
+    return data.expenses.filter(e => 
+      e.status !== ExpenseStatus.PAGO && 
+      e.dueDate <= limitStr
+    ).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  }, [data.expenses]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +238,7 @@ const App: React.FC = () => {
   const handleMobileNav = (viewId: string) => {
     setView(viewId as ViewType);
     setIsMobileMenuOpen(false);
+    setIsNotificationsOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -302,8 +355,26 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 uppercase transition-colors duration-500 pb-28 lg:pb-0`}>
+    <div 
+      className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 uppercase transition-colors duration-500 pb-28 lg:pb-0`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       
+      {/* Pull to Refresh Indicator */}
+      {(pullDistance > 0 || isRefreshing) && (
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ height: `${pullDistance}px`, opacity: pullDistance / 100 }}>
+          <div className="mt-4 w-12 h-12 rounded-full glass-panel dark:bg-slate-900 border border-white/20 dark:border-slate-800 shadow-2xl flex items-center justify-center text-sky-500">
+            <RefreshCw 
+              size={24} 
+              className={`${isRefreshing ? 'animate-spin' : ''}`} 
+              style={{ transform: !isRefreshing ? `rotate(${pullDistance * 2}deg)` : undefined }} 
+            />
+          </div>
+        </div>
+      )}
+
       {isSystemExpired && isAdmin && (
         <div className="fixed top-0 left-0 right-0 bg-rose-600 text-white p-3 z-[100] text-center flex items-center justify-center gap-4 shadow-xl no-print animate-in slide-in-from-top duration-500">
            <ShieldAlert size={18} className="animate-pulse" />
@@ -340,7 +411,22 @@ const App: React.FC = () => {
           <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-white shadow-lg shrink-0"><Snowflake size={18} /></div>
           <h1 className="text-[11px] font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate leading-none">{data.settings.companyName}</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Botão de Notificação Mobile */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
+              className={`p-2 rounded-xl transition-all ${isNotificationsOpen ? 'text-sky-500 bg-sky-50 dark:bg-sky-900/30' : 'text-slate-400 dark:text-slate-500 hover:text-sky-500'}`}
+            >
+              <Bell size={20} className={criticalExpenses.length > 0 ? 'animate-bounce' : ''} />
+              {criticalExpenses.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white dark:border-slate-900 shadow-sm animate-pulse">
+                  {criticalExpenses.length}
+                </span>
+              )}
+            </button>
+          </div>
+
           <button onClick={toggleDarkMode} className="p-2 text-slate-400 dark:text-slate-500">
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -348,8 +434,74 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* Painel de Notificações Mobile (Dropdown/Modal) */}
+      {isNotificationsOpen && (
+        <div className="lg:hidden fixed inset-0 z-[120] animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm" onClick={() => setIsNotificationsOpen(false)} />
+          <div className="absolute top-20 right-4 left-4 bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-500 max-h-[60vh] flex flex-col">
+             <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-50 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Bell size={16} className="text-sky-500" />
+                  <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[0.2em]">Centro de Alertas</span>
+                </div>
+                <button onClick={() => setIsNotificationsOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-full text-slate-300"><X size={16} /></button>
+             </div>
+             
+             <div className="overflow-y-auto space-y-3 no-scrollbar flex-1">
+                {criticalExpenses.length === 0 ? (
+                  <div className="py-12 text-center opacity-40">
+                     <Check size={40} className="mx-auto text-emerald-500 mb-2" />
+                     <p className="text-[10px] font-black uppercase tracking-widest">Nenhum alerta pendente</p>
+                  </div>
+                ) : (
+                  criticalExpenses.map((exp) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const isOverdue = exp.dueDate < today;
+                    return (
+                      <div 
+                        key={exp.id} 
+                        onClick={() => { setView('expenses'); setIsNotificationsOpen(false); }}
+                        className={`p-4 rounded-2xl border flex items-center justify-between transition-all active:scale-[0.98] ${isOverdue ? 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/40' : 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/40'}`}
+                      >
+                         <div className="flex items-start gap-3 min-w-0">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isOverdue ? 'bg-rose-500 text-white shadow-lg' : 'bg-amber-500 text-white'}`}>
+                               {isOverdue ? <AlertCircle size={20} /> : <Clock size={20} />}
+                            </div>
+                            <div className="min-w-0">
+                               <p className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase truncate leading-tight">{exp.description}</p>
+                               <div className="flex items-center gap-1.5 mt-1">
+                                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${isOverdue ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40' : 'bg-amber-100 text-amber-600 dark:bg-amber-900/40'}`}>
+                                    {isOverdue ? 'VENCIDA' : 'VENCE EM BREVE'}
+                                  </span>
+                                  <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">{new Date(exp.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                               </div>
+                            </div>
+                         </div>
+                         <div className="text-right ml-4">
+                            <p className={`text-xs font-black tracking-tight ${isOverdue ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                               R$ {exp.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                         </div>
+                      </div>
+                    );
+                  })
+                )}
+             </div>
+             
+             {criticalExpenses.length > 0 && (
+               <button 
+                onClick={() => handleMobileNav('expenses')}
+                className="mt-6 w-full py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl"
+               >
+                 Ver todas as despesas <ChevronRight size={14} />
+               </button>
+             )}
+          </div>
+        </div>
+      )}
+
       <main className={`flex-1 max-w-7xl mx-auto w-full relative pt-2 lg:pt-0 ${isSystemExpired && isAdmin && view !== 'admin' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-        {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
+        {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} deliveries={data.deliveries} clients={data.clients} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
         {view === 'inventory' && <InventoryView products={data.products} movements={data.stockMovements} onUpdateProduct={wrap(syncProduct)} onDeleteProduct={wrap(deleteProduct)} onAddMovement={wrap(syncStockMovement)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
