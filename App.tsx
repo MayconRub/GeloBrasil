@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  LayoutDashboard, CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, 
-  Shield, X, LogOut, MoreHorizontal, ChevronRight, User, Key, Eye, EyeOff, 
-  MessageCircle, AlertCircle, Mail, Lock, LogIn, Phone, Box, Sparkles, 
-  ShieldAlert, Calendar, QrCode, Copy, Check, Fingerprint, ShieldCheck,
-  UserPlus, MapPin, PackageCheck, Boxes, Moon, Sun, LayoutGrid
+  CircleDollarSign, Receipt, Users, Truck, Loader2, Snowflake, 
+  X, LogOut, MoreHorizontal, ChevronRight, Mail, Lock, LogIn, Phone, 
+  ShieldCheck, UserPlus, PackageCheck, Boxes, Moon, Sun, LayoutGrid, ShieldAlert,
+  QrCode, Copy, Check, MessageCircle, EyeOff, Eye, Activity, TrendingUp, ArrowDownRight,
+  ArrowUpRight, Target, AlertCircle
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProduct, deleteProduct, syncStockMovement } from './store';
@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [copiedPix, setCopiedPix] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
+    return typeof localStorage !== 'undefined' && localStorage.getItem('theme') === 'dark';
   });
   
   const [data, setData] = useState<AppData>({
@@ -54,30 +54,32 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  useEffect(() => { 
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsAuthenticated(true);
-        setCurrentUserEmail(session.user.email?.toLowerCase().trim() || null);
-      }
-      await loadAppData(); 
-    };
-    checkUser();
-  }, []);
-
   const loadAppData = async () => {
     try { 
       setIsLoading(true); 
       const remoteData = await fetchAllData(); 
-      setData(remoteData); 
+      if (remoteData) setData(remoteData); 
     } 
     catch (e) { 
-      console.error(e); 
+      console.error("ERRO AO CARREGAR DADOS:", e); 
     } finally { 
       setIsLoading(false); 
     }
   };
+
+  useEffect(() => { 
+    const initApp = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+        setCurrentUserEmail(session.user.email?.toLowerCase().trim() || null);
+        await loadAppData();
+      } else {
+        setIsLoading(false);
+      }
+    };
+    initApp();
+  }, []);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
@@ -99,6 +101,7 @@ const App: React.FC = () => {
       } else if (authData.user) {
         setIsAuthenticated(true);
         setCurrentUserEmail(authData.user.email?.toLowerCase().trim() || null);
+        await loadAppData();
       }
     } catch (err) {
       setLoginError('ERRO AO CONECTAR COM O SERVIDOR.');
@@ -134,18 +137,19 @@ const App: React.FC = () => {
   }, [currentUserEmail]);
 
   const isAdmin = useMemo(() => {
-    if (!currentUserEmail) return false;
-    const adminFromSettings = data.settings.adminEmail?.toLowerCase().trim();
-    return currentUserEmail === 'root@adm.app' || currentUserEmail === adminFromSettings;
+    if (!currentUserEmail || !data.settings) return false;
+    const adminFromSettings = (data.settings.adminEmail || 'root@adm.app').toLowerCase().trim();
+    const currentEmail = currentUserEmail.toLowerCase().trim();
+    return currentEmail === 'root@adm.app' || currentEmail === adminFromSettings;
   }, [currentUserEmail, data.settings.adminEmail]);
 
   const isSystemExpired = useMemo(() => {
-    if (!data.settings.expirationDate || data.settings.expirationDate === '2099-12-31') return false;
+    if (!data.settings?.expirationDate || data.settings.expirationDate === '2099-12-31') return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expDate = new Date(data.settings.expirationDate + 'T00:00:00');
     return today > expDate;
-  }, [data.settings.expirationDate]);
+  }, [data.settings?.expirationDate]);
 
   const ALL_MODULES = [
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutGrid },
@@ -161,7 +165,7 @@ const App: React.FC = () => {
   ];
 
   const menuItems = useMemo(() => {
-    const order = data.settings.menuOrder && data.settings.menuOrder.length > 0 
+    const order = data.settings?.menuOrder?.length > 0 
       ? data.settings.menuOrder 
       : ALL_MODULES.map(m => m.id);
 
@@ -169,11 +173,12 @@ const App: React.FC = () => {
       .map(id => ALL_MODULES.find(m => m.id === id))
       .filter((item): item is typeof ALL_MODULES[0] => {
         if (!item) return false;
-        if (data.settings.hiddenViews.includes(item.id)) return false;
+        const hidden = data.settings?.hiddenViews || [];
+        if (hidden.includes(item.id)) return false;
         if (item.id === 'admin' && !isAdmin) return false;
         return true;
       });
-  }, [data.settings.hiddenViews, data.settings.menuOrder, isAdmin]);
+  }, [data.settings?.hiddenViews, data.settings?.menuOrder, isAdmin]);
 
   const mobileFixedItems = menuItems.slice(0, 4);
   const mobileExtraItems = menuItems.slice(4);
@@ -184,10 +189,10 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (isLoading && !isAuthenticated) return (
+  if (isLoading) return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#5ecce3] mb-4" size={48} />
-      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">SINCRONIZANDO...</p>
+      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">SINCRONIZANDO DADOS...</p>
     </div>
   );
 
@@ -282,10 +287,14 @@ const App: React.FC = () => {
               {isLoggingIn ? <Loader2 className="animate-spin" size={22} /> : <><LogIn size={20} strokeWidth={2.5} />Entrar no Sistema</>}
             </button>
           </form>
-          <div className="mt-10 pt-6 border-t border-slate-100/50 dark:border-white/5 flex flex-col items-center">
+          <div className="mt-2 pt-4 border-t border-slate-100/50 dark:border-white/5 flex flex-col items-center">
              <a href={`https://wa.me/${data.settings.supportPhone?.replace(/\D/g, '') || '5538998289668'}`} target="_blank" className="flex items-center gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-[#5ecce3] transition-all group">
                <Phone size={16} className="group-hover:animate-bounce" /><span className="text-[10px] font-black uppercase tracking-widest">Suporte Técnico</span>
              </a>
+             <div className="mt-3 flex flex-col items-center">
+                <p className="text-[7px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em]">Desenvolvido por</p>
+                <p className="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest mt-0.5">Maycon Rubem</p>
+             </div>
           </div>
         </div>
       </div>
@@ -340,7 +349,7 @@ const App: React.FC = () => {
       </div>
 
       <main className={`flex-1 max-w-7xl mx-auto w-full relative pt-2 lg:pt-0 ${isSystemExpired && isAdmin && view !== 'admin' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-        {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} vehicles={data.vehicles} deliveries={data.deliveries} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
+        {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
         {view === 'inventory' && <InventoryView products={data.products} movements={data.stockMovements} onUpdateProduct={wrap(syncProduct)} onDeleteProduct={wrap(deleteProduct)} onAddMovement={wrap(syncStockMovement)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}

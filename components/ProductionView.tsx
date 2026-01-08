@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
@@ -41,7 +42,6 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
   
-  // Novos estados para múltiplos itens
   const [items, setItems] = useState<ProductionItem[]>([]);
   const [currentType, setCurrentType] = useState<ProductionItem['type']>('4KG');
   const [currentUnits, setCurrentUnits] = useState('');
@@ -78,8 +78,8 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
     setCurrentUnits('');
   };
 
-  const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+  const handleRemoveItem = (idx: number) => {
+    setItems(items.filter((_, i) => i !== idx));
   };
 
   const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -127,7 +127,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   };
 
   const filteredProduction = useMemo(() => {
-    return production.filter(p => {
+    return (production || []).filter(p => {
       const d = new Date(p.date + 'T00:00:00');
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
@@ -138,18 +138,17 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   const renderForm = (isModal = false) => (
     <div className={`${isModal ? '' : 'bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none sticky top-24 lg:top-8'}`}>
       <h3 className="font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3 uppercase text-[10px] tracking-[0.2em] border-b border-slate-100 dark:border-slate-800 pb-4 leading-none">
-        <Sparkles className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Montar Lote de Produção'}
+        <Sparkles className="text-sky-500" size={18} /> {editingId ? 'Editar Registro' : 'Novo Lote de Produção'}
       </h3>
       
       <div className="space-y-6">
-        {/* Seção de Adicionar Item */}
         <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-3xl border border-slate-100 dark:border-slate-800">
            <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Tipo de Produto</label>
+              <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Produto</label>
               <select 
                 value={currentType} 
                 onChange={e => setCurrentType(e.target.value as any)}
-                className="w-full h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white"
+                className="w-full h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white outline-none"
               >
                 {Object.keys(typeLabels).map(type => (
                   <option key={type} value={type}>{typeLabels[type as ProductionItem['type']]}</option>
@@ -158,37 +157,35 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
            </div>
            <div className="flex gap-2">
               <div className="flex-1 space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Quantas Unidades?</label>
+                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Unidades</label>
                 <input 
                   type="number" 
                   value={currentUnits} 
                   onChange={e => setCurrentUnits(e.target.value)}
-                  placeholder="Ex: 50"
-                  className="w-full h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-sm dark:text-white"
+                  placeholder="0"
+                  className="w-full h-11 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-sm dark:text-white outline-none"
                 />
               </div>
               <button 
                 type="button" 
                 onClick={handleAddItem}
-                className="self-end h-11 px-4 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-sky-500/20 active:scale-90 transition-all"
+                className="self-end h-11 px-4 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-90 transition-all"
               >
                 <Plus size={20} />
               </button>
            </div>
         </div>
 
-        {/* Lista de Itens no Lote */}
         {items.length > 0 && (
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Itens neste lote:</label>
+            <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Composição do Lote</label>
             <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
               {items.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none">
+                <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-lg flex items-center justify-center text-[10px] font-black">{item.units}</span>
-                    <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tight">{typeLabels[item.type]}</span>
+                    <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase">{typeLabels[item.type]}</span>
                   </div>
-                  {/* Fixed error on line 192 (reported): changed 'index' to 'idx' to match mapping parameter */}
                   <button onClick={() => handleRemoveItem(idx)} className="text-slate-300 hover:text-rose-500 transition-colors"><Minus size={16}/></button>
                 </div>
               ))}
@@ -197,13 +194,13 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
         )}
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Data da Produção</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" required />
+          <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Data</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white outline-none" required />
         </div>
 
         <div className="pt-2">
           <div className="flex items-center justify-between mb-4 bg-sky-50 dark:bg-sky-900/20 px-6 py-4 rounded-2xl border border-sky-100 dark:border-sky-800/30">
-             <span className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest">Peso Total do Lote:</span>
+             <span className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase">Carga Total:</span>
              <span className="text-xl font-black text-sky-700 dark:text-white">{totalBatchWeight.toLocaleString('pt-BR')} KG</span>
           </div>
           
@@ -211,12 +208,12 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
             <button 
               onClick={handleAdd}
               disabled={items.length === 0}
-              className="flex-1 h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl dark:shadow-none uppercase text-[10px] tracking-widest active:scale-95 disabled:opacity-30 disabled:grayscale"
+              className="flex-1 h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl uppercase text-[10px] tracking-widest active:scale-95 disabled:opacity-30"
             >
-              {editingId ? 'Atualizar Registro' : 'Salvar Fabricação'}
+              {editingId ? 'Atualizar Lote' : 'Registrar Produção'}
             </button>
             {(editingId || isModal) && (
-              <button type="button" onClick={resetForm} className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><X size={24} /></button>
+              <button type="button" onClick={resetForm} className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950 transition-all"><X size={24} /></button>
             )}
           </div>
         </div>
@@ -230,12 +227,12 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
         <div className="flex items-center justify-between w-full lg:w-auto">
           <div>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white tracking-tighter leading-none flex items-center gap-3"><Snowflake className="text-sky-500" size={32} /> Produção</h2>
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">Gestão de Fabricação</p>
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">Fabricação e Lotes</p>
           </div>
-          <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg dark:shadow-none active:scale-95"><Plus size={24} /></button>
+          <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"><Plus size={24} /></button>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 no-print">
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm dark:shadow-none overflow-hidden">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm overflow-hidden">
             <button onClick={handlePrevMonth} className="p-2.5 text-slate-500 dark:text-slate-600 active:scale-90"><ChevronLeft size={18} /></button>
             <div className="px-4 py-1 flex items-center justify-center min-w-[130px]"><span className="text-xs font-black text-slate-800 dark:text-slate-100 capitalize">{monthName}</span></div>
             <button onClick={handleNextMonth} className="p-2.5 text-slate-500 dark:text-slate-600 active:scale-90"><ChevronRight size={18} /></button>
@@ -243,11 +240,11 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
         </div>
       </header>
 
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none flex items-center justify-between no-print">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between no-print">
          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-2xl flex items-center justify-center shadow-inner dark:shadow-none"><Package size={32} /></div>
+            <div className="w-16 h-16 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-2xl flex items-center justify-center shadow-inner"><Package size={32} /></div>
             <div>
-               <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Total do Mês</p>
+               <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Total Fabricado</p>
                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{totalProduced.toLocaleString('pt-BR')} KG</h3>
             </div>
          </div>
@@ -256,7 +253,7 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="hidden lg:block lg:col-span-1 no-print">{renderForm()}</div>
         <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                {filteredProduction.map((p) => (
                  <div key={p.id} className="p-5 flex flex-col gap-4 active:bg-sky-50/20 dark:active:bg-slate-800 transition-all">

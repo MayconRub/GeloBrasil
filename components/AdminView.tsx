@@ -423,20 +423,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
                 </div>
               </div>
 
-              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/30 space-y-6">
-                <h5 className="text-[11px] font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-3"><DollarSign size={20} /> Metas Venda (R$)</h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-emerald-400 ml-2">DIÁRIA</label>
-                    <input type="number" value={salesGoalDaily} onChange={e => setSalesGoalDaily(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-emerald-900 dark:text-emerald-100" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-emerald-400 ml-2">MENSUAL</label>
-                    <input type="number" value={salesGoalMonthly} onChange={e => setSalesGoalMonthly(parseInt(e.target.value) || 0)} className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-emerald-900 dark:text-emerald-100" />
-                  </div>
-                </div>
-              </div>
-
               <button 
                 onClick={() => handleSubmit()}
                 disabled={isUpdating}

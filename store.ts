@@ -24,7 +24,6 @@ export interface AppData {
 export const fetchSettings = async (): Promise<AppSettings> => {
   const { data: settings } = await supabase.from('configuracoes').select('*').single();
   
-  // Lista padrão caso a coluna não exista ou venha vazia
   const defaultOrder = ['dashboard', 'inventory', 'sales', 'clients', 'deliveries', 'expenses', 'production', 'team', 'fleet', 'admin'];
 
   return {
@@ -40,8 +39,8 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     hiddenViews: settings?.paginas_ocultas || [],
     menuOrder: settings?.menu_order || defaultOrder,
     dashboardNotice: settings?.aviso_dashboard?.toUpperCase() || '',
-    salesGoalDaily: settings?.meta_vendas_diaria || 2000,
-    salesGoalMonthly: settings?.meta_vendas_mensal || 60000,
+    salesGoalDaily: Number(settings?.meta_vendas_diaria) || 2000,
+    salesGoalMonthly: Number(settings?.meta_vendas_mensal) || 60000,
     adminEmail: settings?.admin_email || 'root@adm.app',
     adminPassword: settings?.admin_password || '123456'
   };
@@ -69,26 +68,26 @@ export const fetchAllData = async (): Promise<AppData> => {
   const today = new Date().toISOString().split('T')[0];
   
   return {
-    sales: (sales.data || []).map(s => ({ id: s.id, value: s.valor, date: s.data, description: s.descricao?.toUpperCase() || '', clientId: s.cliente_id })),
-    production: (prod.data || []).map(p => ({ id: p.id, quantityKg: p.quantityKg, date: p.data, observation: p.observacao?.toUpperCase() })),
-    monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: g.valor })),
+    sales: (sales.data || []).map(s => ({ id: s.id, value: Number(s.valor), date: s.data, description: s.descricao?.toUpperCase() || '', clientId: s.cliente_id })),
+    production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: p.observacao?.toUpperCase() })),
+    monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: Number(g.valor) })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
       description: e.descricao?.toUpperCase(), 
-      value: e.valor, 
+      value: Number(e.valor), 
       dueDate: e.data_vencimento,
       status: e.status === 'Pago' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
       category: e.category?.toUpperCase() || 'GERAL', 
       vehicleId: e.veiculo_id, 
       employeeId: e.funcionario_id, 
-      kmReading: e.km_reading, 
+      kmReading: Number(e.km_reading), 
       observation: e.observacao?.toUpperCase()
     })),
-    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.nome.toUpperCase(), role: emp.cargo?.toUpperCase() || 'FUNCIONÁRIO', salary: emp.salario, joinedAt: emp.data_admissao })),
-    vehicles: (vehicles.data || []).map(v => ({...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase(), tipo_combustivel: v.tipo_combustivel || 'FLEX'})),
-    fuelLogs: (fuels.data || []).map(f => ({...f, tipo_combustivel: f.tipo_combustivel.toUpperCase()})),
-    maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase()})),
-    fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: f.tipo_infracao.toUpperCase()})),
+    employees: (employees.data || []).map(emp => ({ id: emp.id, name: emp.nome.toUpperCase(), role: emp.cargo?.toUpperCase() || 'FUNCIONÁRIO', salary: Number(emp.salario), joinedAt: emp.data_admissao })),
+    vehicles: (vehicles.data || []).map(v => ({...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase(), tipo_combustivel: v.tipo_combustivel || 'FLEX', km_atual: Number(v.km_atual) || 0, km_ultima_troca: Number(v.km_ultima_troca) || 0})),
+    fuelLogs: (fuels.data || []).map(f => ({...f, tipo_combustivel: f.tipo_combustivel.toUpperCase(), valor_total: Number(f.valor_total) || 0, litros: Number(f.litros) || 0})),
+    maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase(), custo: Number(m.custo) || 0})),
+    fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: f.tipo_infracao.toUpperCase(), valor: Number(f.valor) || 0})),
     categories: (cats.data || []).map(c => c.nome.toUpperCase()),
     clients: (clients.data || []).map(c => ({ 
       id: c.id, 
@@ -114,7 +113,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       deliveredAt: d.delivered_at, 
       notes: d.notes,
       items: d.items,
-      totalValue: d.total_value
+      totalValue: Number(d.total_value) || 0
     })),
     products: (products.data || []).map(p => ({
       id: p.id,
@@ -156,15 +155,12 @@ export const syncSettings = async (s: AppSettings) => {
     admin_password: s.adminPassword
   };
 
-  // Tenta salvar com menu_order
   const { error } = await supabase.from('configuracoes').upsert({
     ...payload,
     menu_order: s.menuOrder
   }, { onConflict: 'id' });
 
-  // Se o erro for especificamente a coluna faltando, tenta salvar sem ela
   if (error && (error.message.includes('menu_order') || error.code === '42703')) {
-    console.warn("Coluna 'menu_order' não encontrada no banco. Salve as outras configs e peça ao admin para rodar o SQL.");
     return supabase.from('configuracoes').upsert(payload, { onConflict: 'id' });
   }
 
@@ -276,7 +272,7 @@ export const syncDelivery = (d: Delivery) => supabase.from('entregas').upsert({
   delivered_at: d.deliveredAt,
   notes: d.notes?.toUpperCase(),
   items: d.items,
-  total_value: d.totalValue
+  total_value: Number(d.totalValue) || 0
 });
 
 export const deleteDelivery = (id: string) => supabase.from('entregas').delete().eq('id', id);
@@ -322,7 +318,6 @@ export const syncFuel = async (f: FuelLog) => {
   return { error };
 };
 
-// Fixed error in syncMaintenance: property km_reading does not exist on type MaintenanceLog, changed to use km_registro.
 export const syncMaintenance = async (m: MaintenanceLog) => {
   const maintPayload = {
     ...m,
@@ -360,14 +355,15 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
 export const syncFine = async (f: FineLog) => {
     const { error } = await supabase.from('frota_multas').upsert({
         ...f, 
-        tipo_infracao: f.tipo_infracao.toUpperCase()
+        tipo_infracao: f.tipo_infracao.toUpperCase(),
+        valor: Number(f.valor) || 0
     });
     
     if (!error && (f.situacao === 'Paga' || f.situacao === 'Em aberto')) {
         await supabase.from('despesas').insert({
             id: crypto.randomUUID(),
             descricao: `MULTA: ${f.tipo_infracao.toUpperCase()}`,
-            valor: f.valor,
+            valor: Number(f.valor),
             data_vencimento: f.data_vencimento,
             status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer',
             categoria: 'MULTAS',
