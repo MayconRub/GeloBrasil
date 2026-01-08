@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -27,7 +27,8 @@ import {
   ShoppingBag,
   Minus,
   Sparkles,
-  Package
+  Package,
+  ArrowRight
 } from 'lucide-react';
 import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product } from '../types';
 
@@ -47,12 +48,27 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   };
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const getFirstDayOfMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  };
+
+  const getLastDayOfMonth = () => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  };
+
+  // Estados de Filtro
+  const [startDate, setStartDate] = useState(getTodayString());
+  const [endDate, setEndDate] = useState(getTodayString());
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Estados de Formulário
   const [description, setDescription] = useState('Venda de Gelo');
   const [value, setValue] = useState('');
   const [date, setDate] = useState(getTodayString());
   const [clientId, setClientId] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
 
@@ -62,11 +78,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
   const [itemQuantity, setItemQuantity] = useState('1');
   const [showItemForm, setShowItemForm] = useState(false);
 
-  const currentMonth = selectedDate.getMonth();
-  const currentYear = selectedDate.getFullYear();
-  const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-  // Lista de produtos para o seletor (baseado no que temos no InventoryView)
   const OFFICIAL_PRODUCTS = [
     { id: '1', name: 'GELO EM CUBO 2KG' },
     { id: '2', name: 'GELO EM CUBO 4KG' },
@@ -95,31 +106,23 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
       setItems([...items, { productId: selectedProductId, quantity: qty }]);
     }
 
-    // Auto-update description based on items
     const prodNames = [...items, { productId: selectedProductId, quantity: qty }].map(item => {
       const p = OFFICIAL_PRODUCTS.find(op => op.id === item.productId);
-      return `${item.quantity}un ${p?.name.split(' ').pop()}`; // Pega só o final (ex: 4KG)
+      return `${item.quantity}un ${p?.name.split(' ').pop()}`;
     });
     if (description === 'Venda de Gelo' || description === '') {
       setDescription(`VENDA: ${prodNames.join(' | ')}`);
     }
-
     setSelectedProductId('');
     setItemQuantity('1');
   };
 
-  const handleRemoveItem = (idx: number) => {
-    setItems(items.filter((_, i) => i !== idx));
-  };
-
-  const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handleRemoveItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const numericValue = parseFloat(value);
     if (!description || isNaN(numericValue)) return;
-    
     onUpdate({ 
       id: editingId || crypto.randomUUID(), 
       description: description.toUpperCase(), 
@@ -162,10 +165,24 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
 
   const filteredSales = useMemo(() => {
     return sales.filter(s => {
-      const d = new Date(s.date + 'T00:00:00');
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && s.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDate = s.date >= startDate && s.date <= endDate;
+      const clientName = clients.find(c => c.id === s.clientId)?.name || 'AVULSO';
+      const matchesSearch = !searchTerm || 
+        s.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        clientName.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesDate && matchesSearch;
     });
-  }, [sales, currentMonth, currentYear, searchTerm]);
+  }, [sales, startDate, endDate, searchTerm, clients]);
+
+  const handleShortcutToday = () => {
+    setStartDate(getTodayString());
+    setEndDate(getTodayString());
+  };
+
+  const handleShortcutMonth = () => {
+    setStartDate(getFirstDayOfMonth());
+    setEndDate(getLastDayOfMonth());
+  };
 
   const getClientName = (id?: string) => clients.find(c => c.id === id)?.name || 'AVULSO';
   const getProductName = (id: string) => OFFICIAL_PRODUCTS.find(p => p.id === id)?.name || 'PRODUTO';
@@ -182,7 +199,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
            </button>
          )}
       </div>
-
       <div className="space-y-6">
         {showItemForm && (
           <div className="p-5 bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -190,7 +206,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                 <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2"><ShoppingBag size={12}/> Cesta de Itens</span>
                 <button type="button" onClick={() => { setShowItemForm(false); setItems([]); }} className="text-slate-300 hover:text-rose-500"><X size={16}/></button>
              </div>
-             
              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-4">
                 <div className="sm:col-span-7">
                   <select 
@@ -218,7 +233,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                   <Plus size={20} />
                 </button>
              </div>
-
              {items.length > 0 && (
                <div className="space-y-1 mt-4 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
                   {items.map((item, idx) => (
@@ -234,7 +248,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
              )}
           </div>
         )}
-
         <form onSubmit={handleAdd} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
              <div className="space-y-1.5">
@@ -249,12 +262,10 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" required />
              </div>
           </div>
-
           <div className="space-y-1.5">
              <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Descrição / Resumo</label>
              <input type="text" placeholder="Ex: Venda Balcão" value={description} onChange={e => setDescription(e.target.value)} className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-xs font-black uppercase dark:text-white" required />
           </div>
-
           <div className="space-y-1.5">
              <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2 tracking-widest">Valor Total Recebido</label>
              <div className="relative">
@@ -262,7 +273,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                 <input type="text" placeholder="0,00" value={value} onChange={e => handleValueChange(e.target.value)} className="w-full h-16 pl-14 pr-6 bg-emerald-50/20 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-[1.8rem] text-2xl font-black text-emerald-600 dark:text-emerald-400 focus:ring-4 focus:ring-emerald-50 dark:focus:ring-emerald-950 outline-none transition-all" required />
              </div>
           </div>
-
           <div className="flex gap-3 pt-4">
              <button type="submit" className="flex-1 h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black rounded-3xl hover:bg-sky-600 dark:hover:bg-sky-400 transition-all text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl dark:shadow-none active:scale-95">
                 {editingId ? <Save size={20} /> : <Check size={20} strokeWidth={3} />} {editingId ? 'ATUALIZAR VENDA' : 'FINALIZAR LANÇAMENTO'}
@@ -283,54 +293,69 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
           <div className="flex flex-col">
             <h2 className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white tracking-tighter leading-none flex items-center gap-3"><TrendingUp className="text-sky-500" size={32} /> Vendas</h2>
             <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
-              <LayoutList size={14} className="text-sky-500" /> Registro de Faturamento {monthName}
+              <LayoutList size={14} className="text-sky-500" /> Registro de Faturamento e Fluxo
             </p>
           </div>
           <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"><Plus size={24} /></button>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 no-print">
-          <div className="flex bg-white dark:bg-slate-900 p-1 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <button onClick={handlePrevMonth} className="p-2.5 text-slate-400 dark:text-slate-600"><ChevronLeft size={18} /></button>
-            <div className="px-4 py-1 flex items-center justify-center min-w-[130px]"><span className="text-[10px] font-black text-slate-800 dark:text-slate-100 capitalize">{monthName}</span></div>
-            <button onClick={handleNextMonth} className="p-2.5 text-slate-400 dark:text-slate-600"><ChevronRight size={18} /></button>
-          </div>
-        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="hidden lg:block lg:col-span-1 no-print">
-          {renderForm()}
+      {/* Unified Filter Bar */}
+      <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.8rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+          </div>
+          <ArrowRight size={14} className="text-slate-300 shrink-0" />
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+          </div>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button onClick={handleShortcutToday} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Hoje</button>
+            <button onClick={handleShortcutMonth} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Mês</button>
+          </div>
+          <div className="relative flex-1 lg:w-80">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+            <input type="text" placeholder="PESQUISAR CLIENTE OU VENDA..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-500/20 dark:text-white" />
+            {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500"><X size={14} /></button>}
+          </div>
+        </div>
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="hidden lg:block lg:col-span-1 no-print">{renderForm()}</div>
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-950/20">
-               <Search className="text-slate-300 dark:text-slate-700" size={20} />
-               <input type="text" placeholder="BUSCAR LANÇAMENTOS..." className="bg-transparent border-none outline-none text-[10px] font-black uppercase w-full placeholder:text-slate-300 dark:placeholder:text-slate-700 dark:text-white" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            </div>
-
             <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-               {filteredSales.map((sale) => (
-                 <div key={sale.id} className="p-5 space-y-3 group active:bg-sky-50/50 dark:active:bg-slate-800 transition-all">
-                    <div className="flex justify-between items-start">
-                       <div className="flex flex-col">
-                          <span className="text-[13px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-tight">{sale.description}</span>
-                          <span className="text-[8px] font-black text-sky-500 mt-1 uppercase flex items-center gap-1"><User size={10} /> {getClientName(sale.clientId)}</span>
-                       </div>
-                       <div className="flex gap-2">
-                          <button onClick={() => handleEdit(sale)} className="p-3 text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-950 rounded-xl"><Pencil size={18} /></button>
-                          <button onClick={() => handleDelete(sale)} className="p-3 text-rose-300 dark:text-rose-900 bg-rose-50 dark:bg-rose-950/30 rounded-xl"><Trash2 size={18} /></button>
-                       </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
-                       <span className="text-xl font-black text-emerald-600 dark:text-emerald-500">R$ {sale.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                       <div className="flex flex-col items-end">
-                         <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase">{new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
-                         {sale.items && <span className="text-[7px] font-black text-sky-400 uppercase mt-1">Itemizado ✓</span>}
-                       </div>
-                    </div>
-                 </div>
-               ))}
+               {filteredSales.length === 0 ? (
+                 <div className="p-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma venda encontrada</div>
+               ) : (
+                 filteredSales.map((sale) => (
+                   <div key={sale.id} className="p-5 space-y-3 group active:bg-sky-50/50 dark:active:bg-slate-800 transition-all">
+                      <div className="flex justify-between items-start">
+                         <div className="flex flex-col">
+                            <span className="text-[13px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-tight">{sale.description}</span>
+                            <span className="text-[8px] font-black text-sky-500 mt-1 uppercase flex items-center gap-1"><User size={10} /> {getClientName(sale.clientId)}</span>
+                         </div>
+                         <div className="flex gap-2">
+                            <button onClick={() => handleEdit(sale)} className="p-3 text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-950 rounded-xl"><Pencil size={18} /></button>
+                            <button onClick={() => handleDelete(sale)} className="p-3 text-rose-300 dark:text-rose-900 bg-rose-50 dark:bg-rose-950/30 rounded-xl"><Trash2 size={18} /></button>
+                         </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
+                         <span className="text-xl font-black text-emerald-600 dark:text-emerald-500">R$ {sale.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                         <div className="flex flex-col items-end">
+                           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase">{new Date(sale.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                           {sale.items && <span className="text-[7px] font-black text-sky-400 uppercase mt-1">Itemizado ✓</span>}
+                         </div>
+                      </div>
+                   </div>
+                 ))
+               )}
             </div>
 
             <div className="hidden md:block overflow-x-auto">
@@ -366,6 +391,9 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, month
                       </td>
                     </tr>
                   ))}
+                  {filteredSales.length === 0 && (
+                    <tr><td colSpan={5} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma venda registrada no período</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
