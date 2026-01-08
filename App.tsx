@@ -38,8 +38,9 @@ const App: React.FC = () => {
     return typeof localStorage !== 'undefined' && localStorage.getItem('theme') === 'dark';
   });
   
-  // Pull to Refresh State
+  // Pull to Refresh State (Top & Bottom)
   const [pullDistance, setPullDistance] = useState(0);
+  const [bottomPullDistance, setBottomPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const touchStartPos = useRef(0);
 
@@ -72,6 +73,7 @@ const App: React.FC = () => {
       setIsLoading(false); 
       setIsRefreshing(false);
       setPullDistance(0);
+      setBottomPullDistance(0);
     }
   };
 
@@ -89,30 +91,33 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  // Pull to Refresh Handlers
+  // Enhanced Pull to Refresh Handlers
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
-      touchStartPos.current = e.touches[0].pageY;
-    }
+    touchStartPos.current = e.touches[0].pageY;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (window.scrollY === 0 && touchStartPos.current > 0) {
-      const currentPos = e.touches[0].pageY;
-      const distance = currentPos - touchStartPos.current;
-      if (distance > 0) {
-        // Logarithmic scale for pull feeling
-        setPullDistance(Math.min(distance * 0.4, 120));
-      }
+    if (!touchStartPos.current || isRefreshing) return;
+    
+    const currentPos = e.touches[0].pageY;
+    const distance = currentPos - touchStartPos.current;
+    const isAtTop = window.scrollY <= 0;
+    const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 5;
+
+    if (isAtTop && distance > 0) {
+      setPullDistance(Math.min(distance * 0.4, 100));
+    } else if (isAtBottom && distance < 0) {
+      setBottomPullDistance(Math.min(Math.abs(distance) * 0.4, 100));
     }
   };
 
   const handleTouchEnd = () => {
-    if (pullDistance > 80 && !isRefreshing) {
+    if ((pullDistance > 70 || bottomPullDistance > 70) && !isRefreshing) {
       setIsRefreshing(true);
       loadAppData();
     } else {
       setPullDistance(0);
+      setBottomPullDistance(0);
     }
     touchStartPos.current = 0;
   };
@@ -203,20 +208,20 @@ const App: React.FC = () => {
     return today > expDate;
   }, [data.settings?.expirationDate]);
 
-  const ALL_MODULES = [
-    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutGrid },
-    { id: 'inventory', label: 'ESTOQUE', icon: Boxes },
-    { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
-    { id: 'clients', label: 'CLIENTES', icon: UserPlus },
-    { id: 'deliveries', label: 'ENTREGAS', icon: PackageCheck },
-    { id: 'expenses', label: 'DESPESAS', icon: Receipt },
-    { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
-    { id: 'team', label: 'EQUIPE', icon: Users },
-    { id: 'fleet', label: 'FROTA', icon: Truck },
-    { id: 'admin', label: 'ADMIN', icon: ShieldCheck },
-  ];
-
   const menuItems = useMemo(() => {
+    const ALL_MODULES = [
+      { id: 'dashboard', label: 'DASHBOARD', icon: LayoutGrid },
+      { id: 'inventory', label: 'ESTOQUE', icon: Boxes },
+      { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
+      { id: 'clients', label: 'CLIENTES', icon: UserPlus },
+      { id: 'deliveries', label: 'ENTREGAS', icon: PackageCheck },
+      { id: 'expenses', label: 'DESPESAS', icon: Receipt },
+      { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
+      { id: 'team', label: 'EQUIPE', icon: Users },
+      { id: 'fleet', label: 'FROTA', icon: Truck },
+      { id: 'admin', label: 'ADMIN', icon: ShieldCheck },
+    ];
+    
     const order = data.settings?.menuOrder?.length > 0 
       ? data.settings.menuOrder 
       : ALL_MODULES.map(m => m.id);
@@ -356,21 +361,25 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 uppercase transition-colors duration-500 pb-28 lg:pb-0`}
+      className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 uppercase transition-colors duration-500 pb-28 lg:pb-0 relative`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       
-      {/* Pull to Refresh Indicator */}
-      {(pullDistance > 0 || isRefreshing) && (
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ height: `${pullDistance}px`, opacity: pullDistance / 100 }}>
+      {/* Pull to Refresh Indicators (Top & Bottom) */}
+      {(pullDistance > 0 || (isRefreshing && pullDistance > 0)) && (
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ transform: `translateY(${pullDistance}px)`, opacity: Math.min(pullDistance / 60, 1) }}>
           <div className="mt-4 w-12 h-12 rounded-full glass-panel dark:bg-slate-900 border border-white/20 dark:border-slate-800 shadow-2xl flex items-center justify-center text-sky-500">
-            <RefreshCw 
-              size={24} 
-              className={`${isRefreshing ? 'animate-spin' : ''}`} 
-              style={{ transform: !isRefreshing ? `rotate(${pullDistance * 2}deg)` : undefined }} 
-            />
+            <RefreshCw size={24} className={`${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: !isRefreshing ? `rotate(${pullDistance * 4}deg)` : undefined }} />
+          </div>
+        </div>
+      )}
+
+      {(bottomPullDistance > 0 || (isRefreshing && bottomPullDistance > 0)) && (
+        <div className="lg:hidden fixed bottom-24 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ transform: `translateY(-${bottomPullDistance}px)`, opacity: Math.min(bottomPullDistance / 60, 1) }}>
+          <div className="w-12 h-12 rounded-full glass-panel dark:bg-slate-900 border border-white/20 dark:border-slate-800 shadow-2xl flex items-center justify-center text-sky-500">
+            <RefreshCw size={24} className={`${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: !isRefreshing ? `rotate(${bottomPullDistance * 4}deg)` : undefined }} />
           </div>
         </div>
       )}
