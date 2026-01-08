@@ -101,6 +101,8 @@ const App: React.FC = () => {
     
     const currentPos = e.touches[0].pageY;
     const distance = currentPos - touchStartPos.current;
+    
+    // Check boundaries
     const isAtTop = window.scrollY <= 0;
     const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 5;
 
@@ -112,8 +114,13 @@ const App: React.FC = () => {
   };
 
   const handleTouchEnd = () => {
-    if ((pullDistance > 70 || bottomPullDistance > 70) && !isRefreshing) {
+    if (pullDistance > 70 && !isRefreshing) {
       setIsRefreshing(true);
+      loadAppData();
+    } else if (bottomPullDistance > 70 && !isRefreshing) {
+      setIsRefreshing(true);
+      // Voltar para o topo instantaneamente ao puxar no final da página
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       loadAppData();
     } else {
       setPullDistance(0);
