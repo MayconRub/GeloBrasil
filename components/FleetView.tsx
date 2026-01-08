@@ -30,33 +30,62 @@ const FleetView: React.FC<Props> = ({
   onUpdateVehicle, onDeleteVehicle, onUpdateFuel, onDeleteFuel, 
   onUpdateMaintenance, onDeleteMaintenance, onUpdateFine, onDeleteFine 
 }) => {
+  const getTodayString = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+
+  const getFirstDayOfMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  };
+
+  const getLastDayOfMonth = () => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  };
+
   const [activeTab, setActiveTab] = useState<TabType>('vehicles');
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // Estados de Filtro por Intervalo
+  const [startDate, setStartDate] = useState(getFirstDayOfMonth());
+  const [endDate, setEndDate] = useState(getLastDayOfMonth());
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const currentMonth = selectedDate.getMonth();
-  const currentYear = selectedDate.getFullYear();
-  const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+  const handleShortcutToday = () => {
+    setStartDate(getTodayString());
+    setEndDate(getTodayString());
+  };
 
-  const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handleShortcutMonth = () => {
+    setStartDate(getFirstDayOfMonth());
+    setEndDate(getLastDayOfMonth());
+  };
 
+  // Lógica de Filtro baseada no Intervalo
   const filteredFuel = useMemo(() => (fuelLogs || []).filter(l => {
-    if (!l.data) return false;
-    const d = new Date(l.data + 'T00:00:00');
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  }), [fuelLogs, currentMonth, currentYear]);
+    const matchesDate = l.data >= startDate && l.data <= endDate;
+    const vehicle = vehicles.find(v => v.id === l.veiculo_id);
+    const matchesSearch = !searchTerm || vehicle?.placa.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesDate && matchesSearch;
+  }), [fuelLogs, startDate, endDate, searchTerm, vehicles]);
 
   const filteredMaint = useMemo(() => (maintenanceLogs || []).filter(l => {
-    if (!l.data) return false;
-    const d = new Date(l.data + 'T00:00:00');
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  }), [maintenanceLogs, currentMonth, currentYear]);
+    const matchesDate = l.data >= startDate && l.data <= endDate;
+    const vehicle = vehicles.find(v => v.id === l.veiculo_id);
+    const matchesSearch = !searchTerm || 
+      vehicle?.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.servico.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesDate && matchesSearch;
+  }), [maintenanceLogs, startDate, endDate, searchTerm, vehicles]);
 
   const filteredFines = useMemo(() => (fineLogs || []).filter(l => {
-    if (!l.data) return false;
-    const d = new Date(l.data + 'T00:00:00');
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  }), [fineLogs, currentMonth, currentYear]);
+    const matchesDate = l.data >= startDate && l.data <= endDate;
+    const vehicle = vehicles.find(v => v.id === l.veiculo_id);
+    const matchesSearch = !searchTerm || vehicle?.placa.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesDate && matchesSearch;
+  }), [fineLogs, startDate, endDate, searchTerm, vehicles]);
 
   const stats = useMemo(() => {
     const totalV = vehicles?.length || 0;
@@ -67,6 +96,8 @@ const FleetView: React.FC<Props> = ({
     return { totalV, totalFuel, totalMaint, totalFines, oilAlerts };
   }, [vehicles, filteredFuel, filteredMaint, filteredFines]);
 
+  const showFilterBar = ['fuel', 'maintenance', 'fines'].includes(activeTab);
+
   return (
     <div className="p-4 sm:p-8 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-20 uppercase transition-colors">
       <header className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none no-print">
@@ -75,14 +106,10 @@ const FleetView: React.FC<Props> = ({
             <Truck size={20} className="sm:size-8" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg sm:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none uppercase truncate">CONTROLE DE <span className="text-sky-500">FROTA</span></h2>
-            <div className="flex items-center gap-1 mt-1">
-               <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-0.5 rounded-lg h-7 no-print">
-                  <button onClick={handlePrevMonth} className="p-1 hover:bg-white dark:hover:bg-slate-800 rounded text-slate-400 dark:text-slate-600 transition-all"><ChevronLeft size={12} /></button>
-                  <div className="px-2 text-center min-w-[100px]"><p className="text-[8px] font-black text-slate-800 dark:text-slate-200">{monthName}</p></div>
-                  <button onClick={handleNextMonth} className="p-1 hover:bg-white dark:hover:bg-slate-800 rounded text-slate-400 dark:text-slate-600 transition-all"><ChevronRight size={12} /></button>
-               </div>
-            </div>
+            <h2 className="text-lg sm:text-3xl font-black text-slate-800 dark:text-white tracking-normal leading-none uppercase truncate">
+              CONTROLE <span className="mx-1">DE</span> <span className="text-[#5ecce3]">FROTA</span>
+            </h2>
+            <p className="text-[8px] font-black text-slate-400 mt-1 tracking-widest">LOGÍSTICA E MANUTENÇÃO</p>
           </div>
         </div>
         <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl sm:rounded-[1.8rem] w-full md:w-auto overflow-x-auto no-scrollbar border border-slate-200 dark:border-slate-800">
@@ -93,12 +120,40 @@ const FleetView: React.FC<Props> = ({
             { id: 'fines', label: 'MULTAS', icon: AlertOctagon },
             { id: 'reports', label: 'RESUMO', icon: BarChart3 },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as TabType)} className={`flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-[1.4rem] text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow-none' : 'text-slate-400 dark:text-slate-600 hover:text-slate-700'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as TabType)} className={`flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-[1.4rem] text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#5ecce3] text-white shadow-sm' : 'text-slate-400 dark:text-slate-600 hover:text-slate-700'}`}>
               <tab.icon size={12} className="sm:size-3.5" /> <span>{tab.label}</span>
             </button>
           ))}
         </div>
       </header>
+
+      {/* Modern Compact Range Filter Bar - Only for transaction tabs */}
+      {showFilterBar && (
+        <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 flex-1">
+            <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+              <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+            </div>
+            <ArrowRight size={14} className="text-slate-300 shrink-0" />
+            <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+              <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button onClick={handleShortcutToday} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Hoje</button>
+              <button onClick={handleShortcutMonth} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Mês</button>
+            </div>
+            <div className="relative flex-1 lg:w-64">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+              <input type="text" placeholder="FILTRAR PLACA..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
+              {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500"><X size={14} /></button>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'vehicles' && (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 no-print px-1 sm:px-0">
@@ -170,10 +225,10 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
                   </div>
                </div>
                <h4 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter truncate">{v.modelo.toUpperCase()}</h4>
-               <span className="inline-block font-mono text-[10px] font-black text-sky-500 bg-sky-50 dark:bg-sky-950/30 px-2 sm:px-3 py-1 rounded-lg border border-sky-100 dark:border-sky-900/30 uppercase mt-2">{v.placa.toUpperCase()}</span>
+               <span className="inline-block font-mono text-[10px] font-black text-[#5ecce3] bg-sky-50 dark:bg-sky-950/30 px-2 sm:px-3 py-1 rounded-lg border border-sky-100 dark:border-sky-900/30 uppercase mt-2">{v.placa.toUpperCase()}</span>
                <div className={`mt-6 sm:mt-8 p-4 rounded-2xl border transition-all ${needsOilChange ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800'}`}>
                   <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${needsOilChange ? 'text-rose-600' : 'text-slate-400 dark:text-slate-600'}`}>KM ÓLEO ({kmSinceOil} / 1000)</p>
-                  <button onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }} className={`mt-2 w-full py-2 border rounded-lg text-[7px] sm:text-[8px] font-black uppercase transition-all no-print ${needsOilChange ? 'bg-rose-600 text-white border-rose-700' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 hover:text-sky-500'}`}>REGISTRAR TROCA</button>
+                  <button onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }} className={`mt-2 w-full py-2 border rounded-lg text-[7px] sm:text-[8px] font-black uppercase transition-all no-print ${needsOilChange ? 'bg-rose-600 text-white border-rose-700' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 hover:text-[#5ecce3]'}`}>REGISTRAR TROCA</button>
                </div>
             </div>
           );
@@ -218,7 +273,9 @@ const FuelTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete 
       <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">NOVO ABASTECIMENTO</button></div>
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">VEÍCULO</th><th className="px-4 sm:px-6 py-4 sm:py-5">LITROS</th><th className="px-4 sm:px-6 py-4 sm:py-5">TOTAL</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
-        {logs.map((l: FuelLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase() || '---'}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{l.litros}L</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-emerald-600">R${(l.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
+        {logs.length === 0 ? (
+          <tr><td colSpan={5} className="py-20 text-center text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black text-[10px]">Nenhum registro no intervalo</td></tr>
+        ) : logs.map((l: FuelLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase() || '---'}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{l.litros}L</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-emerald-600">R${(l.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
         </tbody></table></div>
       </div>
       {isOpen && <Modal title="LANÇAR ABASTECIMENTO" onClose={() => setIsOpen(false)}><form onSubmit={handleSave} className="space-y-5">
@@ -243,7 +300,9 @@ const MaintenanceTab = ({ logs = [], vehicles = [], employees = [], onUpdate, on
       <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-indigo-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">NOVA MANUTENÇÃO</button></div>
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">SERVIÇO</th><th className="px-4 sm:px-6 py-4 sm:py-5 text-right">VALOR</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
-        {logs.map((l: MaintenanceLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 uppercase dark:text-slate-300">{l.servico}</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-rose-500 text-right">R${(l.custo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
+        {logs.length === 0 ? (
+          <tr><td colSpan={5} className="py-20 text-center text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black text-[10px]">Nenhum registro no intervalo</td></tr>
+        ) : logs.map((l: MaintenanceLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 uppercase dark:text-slate-300">{l.servico}</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-rose-500 text-right">R${(l.custo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
         </tbody></table></div>
       </div>
       {isOpen && <Modal title="LANÇAR MANUTENÇÃO" onClose={() => setIsOpen(false)}><form onSubmit={handleSave} className="space-y-5">
@@ -265,7 +324,9 @@ const FinesTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete
       <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-rose-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">REGISTRAR MULTA</button></div>
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">INFRAÇÃO</th><th className="px-4 sm:px-6 py-4 sm:py-5 text-right">VALOR</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
-        {logs.map((l: FineLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 uppercase dark:text-slate-300">{l.tipo_infracao}</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-rose-500 text-right">R${(l.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
+        {logs.length === 0 ? (
+          <tr><td colSpan={5} className="py-20 text-center text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black text-[10px]">Nenhum registro no intervalo</td></tr>
+        ) : logs.map((l: FineLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 uppercase dark:text-slate-300">{l.tipo_infracao}</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-rose-500 text-right">R${(l.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
         </tbody></table></div>
       </div>
       {isOpen && <Modal title="LANÇAR MULTA" onClose={() => setIsOpen(false)}><form onSubmit={handleSave} className="space-y-5">

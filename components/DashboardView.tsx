@@ -2,8 +2,10 @@
 import React, { useMemo, useState } from 'react';
 import { 
   TrendingUp, Snowflake, Wallet, 
-  CircleDollarSign, Receipt, Activity, 
-  ArrowUpRight, ArrowDownRight
+  CircleDollarSign, Receipt, Box, 
+  ArrowUpRight, ArrowDownRight,
+  CalendarDays,
+  Clock
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus } from '../types';
@@ -35,10 +37,7 @@ const DashboardView: React.FC<Props> = ({
           if (!d || typeof d !== 'string') return false;
           const now = new Date();
           const parts = d.split('-');
-          if (parts.length < 2) return false;
-          const y = parseInt(parts[0]);
-          const m = parseInt(parts[1]);
-          return y === now.getFullYear() && m === (now.getMonth() + 1);
+          return parseInt(parts[0]) === now.getFullYear() && parseInt(parts[1]) === (now.getMonth() + 1);
         };
 
     const safeSales = sales || [];
@@ -80,41 +79,58 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 max-w-[1600px] mx-auto pb-12 animate-in fade-in duration-500 transition-colors">
       
-      {/* Header Centralizado */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-sky-100/20 dark:shadow-none">
+      {/* Header com Cubo de Gelo Azul Cristalino */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-sky-100/20 dark:shadow-none transition-all">
         <div className="flex items-center gap-5">
-          <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl dark:shadow-none rotate-2 shrink-0">
-            <Activity size={28} className={metrics.isHealthy ? 'text-emerald-400' : 'text-rose-400'} />
+          <div className="relative flex items-center justify-center w-14 h-14">
+            {/* Efeito de Brilho Glacial Pulsante */}
+            <div className={`absolute inset-0 rounded-full blur-2xl opacity-40 animate-pulse ${metrics.isHealthy ? 'bg-[#5ecce3]' : 'bg-rose-400'}`}></div>
+            
+            {/* Cubo de Gelo sem fundo escuro */}
+            <Box 
+              size={42} 
+              className={`relative z-10 transition-all duration-700 animate-pulse drop-shadow-[0_0_12px_rgba(94,204,227,0.9)] ${metrics.isHealthy ? 'text-[#5ecce3]' : 'text-rose-400'}`} 
+              strokeWidth={2}
+            />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase leading-none">Dash<span className="text-sky-500">board</span></h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase leading-none">Dash<span className="text-[#5ecce3]">board</span></h1>
             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
-               {period === 'daily' ? 'Resumo Diário' : 'Resumo Mensal'}
+               <Clock size={12} className="text-[#5ecce3]" /> {period === 'daily' ? 'Monitoramento Hoje' : 'Performance Mensal'}
             </p>
           </div>
         </div>
 
-        <div className="flex p-1 bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
-          <button onClick={() => setPeriod('daily')} className={`px-8 py-2.5 rounded-xl text-[9px] font-black transition-all ${period === 'daily' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md dark:shadow-none' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'}`}>DIÁRIO</button>
-          <button onClick={() => setPeriod('monthly')} className={`px-8 py-2.5 rounded-xl text-[9px] font-black transition-all ${period === 'monthly' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md dark:shadow-none' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'}`}>MENSAL</button>
+        <div className="flex p-1 bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
+          <button 
+            onClick={() => setPeriod('daily')} 
+            className={`px-8 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${period === 'daily' ? 'bg-[#5ecce3] text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}
+          >
+            DIÁRIO
+          </button>
+          <button 
+            onClick={() => setPeriod('monthly')} 
+            className={`px-8 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${period === 'monthly' ? 'bg-[#5ecce3] text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}
+          >
+            MENSAL
+          </button>
         </div>
       </div>
 
-      {/* Grid de Métricas Limpa */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        <MetricCard label="Faturamento" value={`R$ ${metrics.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={CircleDollarSign} color="emerald" context={period === 'daily' ? 'Vendas de Hoje' : 'Vendas do Mês'} trend={<ArrowUpRight size={14} />} />
-        <MetricCard label="Produção" value={`${metrics.totalProd.toLocaleString('pt-BR')} KG`} icon={Snowflake} color="sky" context={period === 'daily' ? 'Fabricado Hoje' : 'Total do Mês'} />
-        <MetricCard label="Lucro Líquido" value={`R$ ${metrics.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Wallet} color={metrics.profit >= 0 ? 'emerald' : 'rose'} context="Diferença de Caixa" isHighlight />
+        <MetricCard label="Faturamento" value={`R$ ${metrics.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={CircleDollarSign} color="emerald" context={period === 'daily' ? 'Receita de Hoje' : 'Faturamento Mensal'} trend={<ArrowUpRight size={14} />} />
+        <MetricCard label="Produção" value={`${metrics.totalProd.toLocaleString('pt-BR')} KG`} icon={Snowflake} color="sky" context={period === 'daily' ? 'Lotes de Hoje' : 'Volume do Mês'} />
+        <MetricCard label="Saldo Líquido" value={`R$ ${metrics.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Wallet} color={metrics.profit >= 0 ? 'emerald' : 'rose'} context="Dinheiro em Caixa" isHighlight />
       </div>
 
       <div className="grid grid-cols-1 gap-8">
         <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[3rem] border border-slate-50 dark:border-slate-800 shadow-sm dark:shadow-none relative overflow-hidden">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3">
-              <TrendingUp size={16} className="text-sky-500" /> Movimentação dos Últimos 7 Dias
+              <TrendingUp size={16} className="text-[#5ecce3]" /> Fluxo de Movimentação (7 dias)
             </h3>
-            <div className="flex items-center gap-4">
-               <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-sky-500"></div><span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Vendas</span></div>
+            <div className="hidden sm:flex items-center gap-4">
+               <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#5ecce3]"></div><span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Vendas</span></div>
                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-rose-500"></div><span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Saídas</span></div>
             </div>
           </div>
@@ -122,7 +138,7 @@ const DashboardView: React.FC<Props> = ({
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={metrics.chartData}>
                 <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2}/><stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/></linearGradient>
+                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#5ecce3" stopOpacity={0.2}/><stop offset="95%" stopColor="#5ecce3" stopOpacity={0}/></linearGradient>
                   <linearGradient id="colorExps" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1}/><stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
@@ -138,7 +154,7 @@ const DashboardView: React.FC<Props> = ({
                     border: isDark ? '1px solid #1e293b' : 'none'
                   }} 
                 />
-                <Area type="monotone" dataKey="vendas" name="Vendas" stroke="#0ea5e9" strokeWidth={4} fill="url(#colorSales)" />
+                <Area type="monotone" dataKey="vendas" name="Vendas" stroke="#5ecce3" strokeWidth={4} fill="url(#colorSales)" />
                 <Area type="monotone" dataKey="despesas" name="Despesas" stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 5" fill="url(#colorExps)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -149,15 +165,15 @@ const DashboardView: React.FC<Props> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 no-print">
          <button onClick={() => onSwitchView('sales')} className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:bg-sky-50 dark:hover:bg-slate-800 transition-all shadow-sm dark:shadow-none group">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-xl flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-all"><CircleDollarSign size={28} /></div>
-              <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Novo Lançamento</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Vendas e Receitas</p></div>
+              <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/30 text-[#5ecce3] rounded-xl flex items-center justify-center group-hover:bg-[#5ecce3] group-hover:text-white transition-all shadow-inner"><CircleDollarSign size={28} /></div>
+              <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Lançar Venda</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Registrar Faturamento</p></div>
             </div>
-            <ArrowUpRight size={24} className="text-slate-200 dark:text-slate-700 group-hover:text-sky-500 transition-all" />
+            <ArrowUpRight size={24} className="text-slate-200 dark:text-slate-700 group-hover:text-[#5ecce3] transition-all" />
          </button>
          <button onClick={() => onSwitchView('expenses')} className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:bg-rose-50 dark:hover:bg-slate-800 transition-all shadow-sm dark:shadow-none group">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all"><Receipt size={28} /></div>
-              <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Contas a Pagar</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Despesas Operacionais</p></div>
+              <div className="w-14 h-14 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all shadow-inner"><Receipt size={28} /></div>
+              <div className="text-left"><p className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase leading-none">Lançar Gasto</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Contas e Despesas</p></div>
             </div>
             <ArrowDownRight size={24} className="text-slate-200 dark:text-slate-700 group-hover:text-rose-500 transition-all" />
          </button>
@@ -169,7 +185,7 @@ const DashboardView: React.FC<Props> = ({
 const MetricCard = ({ label, value, icon: Icon, color, context, isHighlight, trend }: any) => {
   const themes: any = {
     emerald: "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30",
-    sky: "text-sky-500 bg-sky-50 dark:bg-sky-900/20 border-sky-100 dark:border-sky-800/30",
+    sky: "text-[#5ecce3] bg-sky-50 dark:bg-sky-900/20 border-sky-100 dark:border-sky-800/30",
     rose: "text-rose-500 bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800/30"
   };
   return (

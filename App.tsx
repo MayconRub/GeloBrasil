@@ -362,17 +362,17 @@ const App: React.FC = () => {
         {view === 'admin' && !isAdmin && <div className="p-10 text-center font-black text-slate-400 uppercase tracking-widest">Acesso Restrito</div>}
       </main>
 
-      <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[80] no-print">
-        <nav className="glass-nav dark:bg-slate-900/90 flex items-center justify-around px-3 py-3 rounded-[2rem] shadow-2xl border border-white/50 dark:border-white/5">
+      <div className="lg:hidden fixed bottom-6 left-3 right-3 z-[80] no-print">
+        <nav className="glass-nav dark:bg-slate-900/95 flex items-center justify-between px-2 py-3 rounded-[2.2rem] shadow-2xl border border-white/40 dark:border-white/5">
           {mobileFixedItems.map(item => (
-            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${view === item.id && !isMobileMenuOpen ? 'text-sky-50 bg-sky-50/50 dark:bg-sky-950/30 scale-105' : 'text-slate-400 active:scale-90'}`}>
-              <item.icon size={20} strokeWidth={view === item.id && !isMobileMenuOpen ? 3 : 2} />
-              <span className="text-[8px] font-black uppercase tracking-[0.15em]">{item.label}</span>
+            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex-1 flex flex-col items-center gap-1 transition-all duration-300 min-w-0 ${view === item.id && !isMobileMenuOpen ? 'text-sky-500 scale-105' : 'text-slate-400 active:scale-90'}`}>
+              <item.icon size={18} strokeWidth={view === item.id && !isMobileMenuOpen ? 3 : 2} className="shrink-0" />
+              <span className="text-[7px] font-black uppercase tracking-tight truncate w-full text-center px-0.5">{item.label}</span>
             </button>
           ))}
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 ${isMobileMenuOpen ? 'text-sky-500 bg-sky-50/50 dark:bg-sky-950/30 scale-105' : 'text-slate-400 active:scale-90'}`}>
-            <div className={`transition-transform duration-500 ${isMobileMenuOpen ? 'rotate-90' : ''}`}>{isMobileMenuOpen ? <X size={20} strokeWidth={3} /> : <MoreHorizontal size={20} strokeWidth={2} />}</div>
-            <span className="text-[8px] font-black uppercase tracking-[0.15em]">{isMobileMenuOpen ? 'FECHAR' : 'MAIS'}</span>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`flex-1 flex flex-col items-center gap-1 transition-all duration-300 min-w-0 ${isMobileMenuOpen ? 'text-sky-500 scale-105' : 'text-slate-400 active:scale-90'}`}>
+            <div className={`transition-transform duration-500 shrink-0 ${isMobileMenuOpen ? 'rotate-90' : ''}`}>{isMobileMenuOpen ? <X size={18} strokeWidth={3} /> : <MoreHorizontal size={18} strokeWidth={2} />}</div>
+            <span className="text-[7px] font-black uppercase tracking-tight truncate w-full text-center px-0.5">{isMobileMenuOpen ? 'FECHAR' : 'MAIS'}</span>
           </button>
         </nav>
       </div>
@@ -380,7 +380,7 @@ const App: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[100] animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-950 mobile-bottom-sheet p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto">
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-950 mobile-bottom-sheet p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto rounded-t-[3rem]">
              <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-8"></div>
              <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50 dark:border-white/5">
                 <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Menu Expandido</span>

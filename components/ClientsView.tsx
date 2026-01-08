@@ -80,7 +80,7 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
     <div className="p-4 sm:p-8 space-y-8 pb-20 transition-colors">
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">CADASTRO DE <span className="text-sky-500">CLIENTES</span></h2>
+          <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-normal uppercase leading-none">CADASTRO DE <span className="text-sky-500">CLIENTES</span></h2>
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">Base de Dados e CRM</p>
         </div>
         <button 

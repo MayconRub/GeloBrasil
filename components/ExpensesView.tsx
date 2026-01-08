@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Plus, Trash2, Search, Pencil, ChevronLeft, ChevronRight, CheckCircle2,
-  Receipt, Clock, X, User, ArrowDown, Wallet, Calendar,
-  TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Printer, Download, ArrowRight
+  Plus, Trash2, Search, Pencil, CheckCircle2,
+  Receipt, Clock, X, Wallet, Calendar,
+  ArrowUpRight, ArrowDownRight, ArrowRight, TrendingUp
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
@@ -37,7 +37,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
   };
 
-  // Estados de Filtro
+  // Estados de Filtro por Intervalo
   const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getLastDayOfMonth());
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +52,8 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
 
-  const drelData = useMemo(() => {
+  // DRE Dinâmico baseado no Intervalo Selecionado
+  const dreData = useMemo(() => {
     const isInRange = (d: string) => d >= startDate && d <= endDate;
     const rangeSales = sales.filter(s => isInRange(s.date)).reduce((sum, s) => sum + s.value, 0);
     const rangeExpenses = expenses.filter(e => isInRange(e.dueDate));
@@ -74,6 +75,16 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       })
       .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
   }, [expenses, startDate, endDate, searchTerm, statusFilter]);
+
+  const handleShortcutToday = () => {
+    setStartDate(getTodayString());
+    setEndDate(getTodayString());
+  };
+
+  const handleShortcutMonth = () => {
+    setStartDate(getFirstDayOfMonth());
+    setEndDate(getLastDayOfMonth());
+  };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,40 +112,30 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
     if (window.innerWidth < 1024) setIsMobileFormOpen(true);
   };
 
-  const handleShortcutToday = () => {
-    setStartDate(getTodayString());
-    setEndDate(getTodayString());
-  };
-
-  const handleShortcutMonth = () => {
-    setStartDate(getFirstDayOfMonth());
-    setEndDate(getLastDayOfMonth());
-  };
-
   const resetForm = () => {
     setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setCategory('GERAL'); setEmployeeId(''); setIsMobileFormOpen(false);
   };
 
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto transition-colors">
-      <header className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none">
+      <header className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-5 w-full lg:w-auto">
-          <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl dark:shadow-none rotate-2 shrink-0">
-            <DollarSign size={28} />
+          <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl rotate-2 shrink-0">
+            <Receipt size={28} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">DRE <span className="text-rose-500">Express</span></h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">CUSTO <span className="text-rose-500">OPERACIONAL</span></h1>
             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
-              <Calendar size={12} /> Demonstrativo Financeiro em Tempo Real
+              <Calendar size={12} className="text-sky-500" /> Gestão Dinâmica de Gastos
             </p>
           </div>
         </div>
-        <button onClick={() => setIsMobileFormOpen(true)} className="w-full lg:w-auto h-12 px-8 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg dark:shadow-none active:scale-95 transition-all">
+        <button onClick={() => setIsMobileFormOpen(true)} className="w-full lg:w-auto h-12 px-8 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
            <Plus size={18} /> Novo Gasto
         </button>
       </header>
 
-      {/* Unified Filter Bar */}
+      {/* Unified Range Filter Bar */}
       <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.8rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
@@ -155,7 +156,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
           <div className="relative flex-1 lg:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
             <input type="text" placeholder="BUSCAR CONTA..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-500/20 dark:text-white" />
-            {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500"><X size={14} /></button>}
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[9px] font-black uppercase outline-none dark:text-white">
             <option value="TODOS">STATUS</option>
@@ -166,22 +166,65 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DRECard label="Faturamento Bruto" value={drelData.rangeSales} icon={ArrowUpRight} color="emerald" />
-        <DRECard label="Custos de Operação" value={drelData.totalExpenses} icon={ArrowDownRight} color="rose" />
-        <DRECard label="Saldo Líquido (Pago)" value={drelData.netProfit} icon={Wallet} color={drelData.netProfit >= 0 ? 'sky' : 'rose'} />
+        <DRECard label="Faturamento no Período" value={dreData.rangeSales} icon={ArrowUpRight} color="emerald" />
+        <DRECard label="Total de Gastos" value={dreData.totalExpenses} icon={ArrowDownRight} color="rose" />
+        <DRECard label="Saldo Líquido Real" value={dreData.netProfit} icon={Wallet} color={dreData.netProfit >= 0 ? 'sky' : 'rose'} />
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-50 dark:border-slate-800 shadow-sm dark:shadow-none flex flex-col justify-center">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ponto de Equilíbrio</span>
-            <span className="text-[10px] font-black text-slate-800 dark:text-slate-100">{drelData.breakEvenProgress.toFixed(1)}%</span>
+            <span className="text-[10px] font-black text-slate-800 dark:text-slate-100">{dreData.breakEvenProgress.toFixed(1)}%</span>
           </div>
           <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-50 dark:border-slate-700">
-            <div className={`h-full transition-all duration-1000 ${drelData.breakEvenProgress >= 100 ? 'bg-emerald-500' : 'bg-sky-500'}`} style={{ width: `${Math.min(100, drelData.breakEvenProgress)}%` }}></div>
+            <div className={`h-full transition-all duration-1000 ${dreData.breakEvenProgress >= 100 ? 'bg-emerald-500' : 'bg-sky-500'}`} style={{ width: `${Math.min(100, dreData.breakEvenProgress)}%` }}></div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden flex flex-col min-h-[500px]">
-        <div className="flex-1 overflow-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden min-h-[500px]">
+        {/* Mobile View: Cards */}
+        <div className="md:hidden divide-y divide-slate-50 dark:divide-slate-800">
+          {filteredExpenses.map((e) => (
+            <div key={e.id} className="p-5 flex flex-col gap-4 active:bg-sky-50/20 transition-all">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-1">
+                    <Calendar size={12} className="text-rose-400" /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  </div>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase leading-snug">{e.description}</h4>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => handleEdit(e)} className="p-3 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-90 transition-all"><Pencil size={16} /></button>
+                  <button onClick={() => onDelete(e.id)} className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-400 dark:text-rose-900 rounded-xl border border-rose-100 dark:border-rose-900/20 shadow-sm active:scale-90 transition-all"><Trash2 size={16} /></button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-auto">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800 uppercase">
+                      {e.category}
+                    </span>
+                    <button 
+                      onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})}
+                      className={`px-2 py-1 rounded-lg text-[7px] font-black uppercase transition-all ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-100 dark:border-amber-900/30'}`}
+                    >
+                      {e.status}
+                    </button>
+                  </div>
+                </div>
+                <div className="text-lg font-black text-rose-600 dark:text-rose-400 tracking-tighter">
+                  R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredExpenses.length === 0 && (
+            <div className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma despesa encontrada</div>
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
@@ -190,7 +233,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 <th className="px-6 py-4">Vencimento</th>
                 <th className="px-6 py-4 text-right">Valor</th>
                 <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-right no-print">Gerenciar</th>
+                <th className="px-6 py-4 text-right no-print">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -201,7 +244,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                   <td className="px-6 py-4"><span className={`text-[10px] font-bold ${e.status === ExpenseStatus.VENCIDO ? 'text-rose-500' : 'text-slate-500 dark:text-slate-500'}`}>{new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span></td>
                   <td className="px-6 py-4 text-right font-black text-slate-900 dark:text-white">R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})} className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase transition-all ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-800 text-amber-600 border border-amber-100 dark:border-amber-900/30'}`}>{e.status}</button>
+                    <button onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})} className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase transition-all ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white dark:bg-slate-800 text-amber-600 border border-amber-100 dark:border-amber-900/30'}`}>{e.status}</button>
                   </td>
                   <td className="px-6 py-4 text-right no-print">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -212,7 +255,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 </tr>
               ))}
               {filteredExpenses.length === 0 && (
-                <tr><td colSpan={6} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma despesa no período selecionado</td></tr>
+                <tr><td colSpan={6} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma despesa encontrada no intervalo</td></tr>
               )}
             </tbody>
           </table>
@@ -234,7 +277,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, categories, vehicles, employe
                 </div>
                 <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Descrição</label><input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="EX: CEMIG" className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" required /></div>
                 <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Valor R$</label><input type="text" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-black text-base dark:text-white outline-none" required /></div>
-                <button type="submit" className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-6 shadow-xl dark:shadow-none hover:bg-rose-600 dark:hover:bg-sky-400 transition-all active:scale-95">SALVAR CONTA</button>
+                <button type="submit" className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-6 shadow-xl hover:bg-rose-600 active:scale-95 transition-all">SALVAR CONTA</button>
              </form>
           </div>
         </div>

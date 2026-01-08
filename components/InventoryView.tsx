@@ -70,7 +70,7 @@ const InventoryView: React.FC<Props> = ({ products, movements, onUpdateProduct, 
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] flex items-center justify-center shadow-2xl rotate-3"><Boxes size={32} /></div>
           <div>
-            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">CONTROLE DE <span className="text-sky-500">ESTOQUE</span></h2>
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-normal uppercase leading-none">CONTROLE DE <span className="text-sky-500">ESTOQUE</span></h2>
             <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-2 flex items-center gap-2"><Package size={14} className="text-sky-500" /> Saldos e Inventário</p>
           </div>
         </div>

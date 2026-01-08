@@ -13,7 +13,9 @@ import {
   Package,
   Check,
   ShoppingBag,
-  Minus
+  Minus,
+  ArrowRight,
+  Calendar
 } from 'lucide-react';
 import { Production, AppSettings, Product } from '../types';
 
@@ -36,7 +38,22 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   };
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const getFirstDayOfMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  };
+
+  const getLastDayOfMonth = () => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  };
+
+  // Estados de Filtro por Intervalo
+  const [startDate, setStartDate] = useState(getFirstDayOfMonth());
+  const [endDate, setEndDate] = useState(getLastDayOfMonth());
+
+  // Estados de Formulário
   const [date, setDate] = useState(getTodayString());
   const [observation, setObservation] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,10 +63,6 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   const [currentType, setCurrentType] = useState<ProductionItem['type']>('4KG');
   const [currentUnits, setCurrentUnits] = useState('');
 
-  const currentMonth = selectedDate.getMonth();
-  const currentYear = selectedDate.getFullYear();
-  const monthName = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
   const typeWeights: Record<ProductionItem['type'], number> = {
     '2KG': 2, '4KG': 4, '10KG': 10, '20KG': 20, 'BRITADO10': 10, 'BRITADO20': 20, 'BARRA10': 10
   };
@@ -57,6 +70,16 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   const typeLabels: Record<ProductionItem['type'], string> = {
     '2KG': 'CUBO 2KG', '4KG': 'CUBO 4KG', '10KG': 'CUBO 10KG', '20KG': 'CUBO 20KG', 
     'BRITADO10': 'BRITADO 10KG', 'BRITADO20': 'BRITADO 20KG', 'BARRA10': 'BARRA 10KG'
+  };
+
+  const handleShortcutToday = () => {
+    setStartDate(getTodayString());
+    setEndDate(getTodayString());
+  };
+
+  const handleShortcutMonth = () => {
+    setStartDate(getFirstDayOfMonth());
+    setEndDate(getLastDayOfMonth());
   };
 
   const totalBatchWeight = useMemo(() => {
@@ -81,9 +104,6 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   const handleRemoveItem = (idx: number) => {
     setItems(items.filter((_, i) => i !== idx));
   };
-
-  const handlePrevMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const handleNextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,11 +147,10 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
   };
 
   const filteredProduction = useMemo(() => {
-    return (production || []).filter(p => {
-      const d = new Date(p.date + 'T00:00:00');
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
-  }, [production, currentMonth, currentYear]);
+    return (production || [])
+      .filter(p => p.date >= startDate && p.date <= endDate)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [production, startDate, endDate]);
 
   const totalProduced = useMemo(() => filteredProduction.reduce((sum, p) => sum + p.quantityKg, 0), [filteredProduction]);
 
@@ -231,29 +250,51 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
           </div>
           <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95"><Plus size={24} /></button>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 no-print">
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm overflow-hidden">
-            <button onClick={handlePrevMonth} className="p-2.5 text-slate-500 dark:text-slate-600 active:scale-90"><ChevronLeft size={18} /></button>
-            <div className="px-4 py-1 flex items-center justify-center min-w-[130px]"><span className="text-xs font-black text-slate-800 dark:text-slate-100 capitalize">{monthName}</span></div>
-            <button onClick={handleNextMonth} className="p-2.5 text-slate-500 dark:text-slate-600 active:scale-90"><ChevronRight size={18} /></button>
-          </div>
+        
+        <div className="bg-white dark:bg-slate-900 px-8 py-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-6 no-print w-full lg:w-auto">
+           <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-xl flex items-center justify-center shadow-inner shrink-0"><Package size={24} /></div>
+           <div>
+              <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Fabricado no Período</p>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">{totalProduced.toLocaleString('pt-BR')} KG</h3>
+           </div>
         </div>
       </header>
 
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between no-print">
-         <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-2xl flex items-center justify-center shadow-inner"><Package size={32} /></div>
-            <div>
-               <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Total Fabricado</p>
-               <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{totalProduced.toLocaleString('pt-BR')} KG</h3>
-            </div>
-         </div>
+      {/* Modern Compact Range Filter Bar */}
+      <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.8rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={e => setStartDate(e.target.value)} 
+              className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" 
+            />
+          </div>
+          <ArrowRight size={14} className="text-slate-300 shrink-0" />
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={e => setEndDate(e.target.value)} 
+              className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" 
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button onClick={handleShortcutToday} className="px-5 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Hoje</button>
+            <button onClick={handleShortcutMonth} className="px-5 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Mês</button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="hidden lg:block lg:col-span-1 no-print">{renderForm()}</div>
         <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
             <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                {filteredProduction.map((p) => (
                  <div key={p.id} className="p-5 flex flex-col gap-4 active:bg-sky-50/20 dark:active:bg-slate-800 transition-all">
@@ -270,6 +311,9 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
                     </div>
                  </div>
                ))}
+               {filteredProduction.length === 0 && (
+                 <div className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhuma produção no período</div>
+               )}
             </div>
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
@@ -295,6 +339,9 @@ const ProductionView: React.FC<Props> = ({ production, onUpdate, onDelete, setti
                       </td>
                     </tr>
                   ))}
+                  {filteredProduction.length === 0 && (
+                    <tr><td colSpan={4} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Nenhum registro de produção encontrado no intervalo</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
