@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   Truck, Car, Bike, Plus, Trash2, Fuel, Wrench, AlertOctagon, 
   BarChart3, X, CheckCircle2, AlertTriangle, Droplets, Pencil, Save, AlertCircle, User,
-  ChevronLeft, ChevronRight, Calendar, Gauge, ArrowRight, TrendingUp, Search, Info, Printer
+  ChevronLeft, ChevronRight, Calendar, Gauge, ArrowRight, TrendingUp, Search, Info, Printer,
+  DollarSign, Activity, History, PieChart, ArrowUpRight, Navigation
 } from 'lucide-react';
 import { Vehicle, Employee, FuelLog, MaintenanceLog, FineLog } from '../types';
 
@@ -93,10 +94,30 @@ const FleetView: React.FC<Props> = ({
     const totalMaint = filteredMaint.reduce((sum, l) => sum + (l.custo || 0), 0);
     const totalFines = filteredFines.reduce((sum, l) => sum + (l.valor || 0), 0);
     const oilAlerts = (vehicles || []).filter(v => ((v.km_atual || 0) - (v.km_ultima_troca || 0)) >= 1000).length;
-    return { totalV, totalFuel, totalMaint, totalFines, oilAlerts };
+
+    // Cálculo de KM total rodado pela frota no período
+    let totalKmPeriod = 0;
+    vehicles.forEach(v => {
+      const vFuelKms = filteredFuel.filter(l => l.veiculo_id === v.id).map(l => l.km_registro);
+      const vMaintKms = filteredMaint.filter(l => l.veiculo_id === v.id).map(l => l.km_registro);
+      const allKms = [...vFuelKms, ...vMaintKms].filter(km => km > 0);
+      if (allKms.length > 1) {
+        totalKmPeriod += (Math.max(...allKms) - Math.min(...allKms));
+      }
+    });
+
+    return { 
+      totalV, 
+      totalFuel, 
+      totalMaint, 
+      totalFines, 
+      oilAlerts, 
+      totalPeriod: totalFuel + totalMaint + totalFines,
+      totalKmPeriod
+    };
   }, [vehicles, filteredFuel, filteredMaint, filteredFines]);
 
-  const showFilterBar = ['fuel', 'maintenance', 'fines'].includes(activeTab);
+  const showFilterBar = ['fuel', 'maintenance', 'fines', 'reports'].includes(activeTab);
 
   return (
     <div className="p-4 sm:p-8 space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-20 uppercase transition-colors">
@@ -127,7 +148,7 @@ const FleetView: React.FC<Props> = ({
         </div>
       </header>
 
-      {/* Modern Compact Range Filter Bar - Only for transaction tabs */}
+      {/* Modern Compact Range Filter Bar */}
       {showFilterBar && (
         <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2 flex-1">
@@ -155,7 +176,7 @@ const FleetView: React.FC<Props> = ({
         </div>
       )}
 
-      {activeTab === 'vehicles' && (
+      {activeTab !== 'reports' && (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 no-print px-1 sm:px-0">
           <SummaryCard label="VEÍCULOS" value={stats.totalV} icon={Truck} color="sky" />
           <SummaryCard label="GASOLINA" value={`R$ ${stats.totalFuel.toLocaleString('pt-BR')}`} icon={Fuel} color="emerald" />
@@ -170,7 +191,15 @@ const FleetView: React.FC<Props> = ({
         {activeTab === 'fuel' && <FuelTab logs={filteredFuel} vehicles={vehicles} employees={employees} onUpdate={onUpdateFuel} onDelete={onDeleteFuel} />}
         {activeTab === 'maintenance' && <MaintenanceTab logs={filteredMaint} vehicles={vehicles} employees={employees} onUpdate={onUpdateMaintenance} onDelete={onDeleteMaintenance} />}
         {activeTab === 'fines' && <FinesTab logs={filteredFines} vehicles={vehicles} employees={employees} onUpdate={onUpdateFine} onDelete={onDeleteFine} />}
-        {activeTab === 'reports' && <div className="p-20 text-center font-black text-slate-300 uppercase tracking-widest">Módulo de Relatórios em Desenvolvimento</div>}
+        {activeTab === 'reports' && <ReportsTab 
+          vehicles={vehicles} 
+          fuelLogs={filteredFuel} 
+          maintenanceLogs={filteredMaint} 
+          fineLogs={filteredFines} 
+          stats={stats}
+          startDate={startDate}
+          endDate={endDate}
+        />}
       </div>
     </div>
   );
@@ -272,10 +301,10 @@ const FuelTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete 
     <div className="space-y-4 px-1">
       <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">NOVO ABASTECIMENTO</button></div>
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">VEÍCULO</th><th className="px-4 sm:px-6 py-4 sm:py-5">LITROS</th><th className="px-4 sm:px-6 py-4 sm:py-5">TOTAL</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
+        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">VEÍCULO</th><th className="px-4 sm:px-6 py-4 sm:py-5">KM</th><th className="px-4 sm:px-6 py-4 sm:py-5">LITROS</th><th className="px-4 sm:px-6 py-4 sm:py-5">TOTAL</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
         {logs.length === 0 ? (
-          <tr><td colSpan={5} className="py-20 text-center text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black text-[10px]">Nenhum registro no intervalo</td></tr>
-        ) : logs.map((l: FuelLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase() || '---'}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{l.litros}L</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-emerald-600">R${(l.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
+          <tr><td colSpan={6} className="py-20 text-center text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black text-[10px]">Nenhum registro no intervalo</td></tr>
+        ) : logs.map((l: FuelLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{vehicles.find((v:any) => v.id === l.veiculo_id)?.placa.toUpperCase() || '---'}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-400 text-[9px]">{l.km_registro} km</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{l.litros}L</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-emerald-600">R${(l.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
         </tbody></table></div>
       </div>
       {isOpen && <Modal title="LANÇAR ABASTECIMENTO" onClose={() => setIsOpen(false)}><form onSubmit={handleSave} className="space-y-5">
@@ -299,10 +328,10 @@ const MaintenanceTab = ({ logs = [], vehicles = [], employees = [], onUpdate, on
     <div className="space-y-4 px-1">
       <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-indigo-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">NOVA MANUTENÇÃO</button></div>
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">SERVIÇO</th><th className="px-4 sm:px-6 py-4 sm:py-5 text-right">VALOR</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
+        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">SERVIÇO</th><th className="px-4 sm:px-6 py-4 sm:py-5">KM</th><th className="px-4 sm:px-6 py-4 sm:py-5 text-right">VALOR</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
         {logs.length === 0 ? (
           <tr><td colSpan={5} className="py-20 text-center text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black text-[10px]">Nenhum registro no intervalo</td></tr>
-        ) : logs.map((l: MaintenanceLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 uppercase dark:text-slate-300">{l.servico}</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-rose-500 text-right">R${(l.custo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
+        ) : logs.map((l: MaintenanceLog) => (<tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-300">{new Date(l.data + 'T00:00:00').toLocaleDateString()}</td><td className="px-4 sm:px-6 py-3 sm:py-4 uppercase dark:text-slate-300">{l.servico}</td><td className="px-4 sm:px-6 py-3 sm:py-4 dark:text-slate-400 text-[9px]">{l.km_registro} km</td><td className="px-4 sm:px-6 py-3 sm:py-4 text-rose-500 text-right">R${(l.custo || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-4 sm:px-6 py-3 sm:py-4 no-print text-center"><button onClick={() => onDelete(l.id)} className="text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td></tr>))}
         </tbody></table></div>
       </div>
       {isOpen && <Modal title="LANÇAR MANUTENÇÃO" onClose={() => setIsOpen(false)}><form onSubmit={handleSave} className="space-y-5">
@@ -335,6 +364,151 @@ const FinesTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete
         <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Valor R$</label><input type="number" className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs dark:text-white outline-none" value={form.valor} onChange={e => setForm({...form, valor: parseFloat(e.target.value) || 0})} required /></div>
         <button className="w-full h-14 bg-rose-500 text-white rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-all">CONFIRMAR MULTA</button>
       </form></Modal>}
+    </div>
+  );
+};
+
+const ReportsTab = ({ vehicles, fuelLogs, maintenanceLogs, fineLogs, stats, startDate, endDate }: any) => {
+  const vehicleCosts = useMemo(() => {
+    return vehicles.map((v: Vehicle) => {
+      const fuel = fuelLogs.filter((l: FuelLog) => l.veiculo_id === v.id).reduce((sum: number, l: FuelLog) => sum + (l.valor_total || 0), 0);
+      const maint = maintenanceLogs.filter((l: MaintenanceLog) => l.veiculo_id === v.id).reduce((sum: number, l: MaintenanceLog) => sum + (l.custo || 0), 0);
+      const fines = fineLogs.filter((l: FineLog) => l.veiculo_id === v.id).reduce((sum: number, l: FineLog) => sum + (l.valor || 0), 0);
+      const total = fuel + maint + fines;
+
+      // Cálculo de KM rodado pelo veículo no período
+      const vFuelKms = fuelLogs.filter((l: FuelLog) => l.veiculo_id === v.id).map((l: FuelLog) => l.km_registro);
+      const vMaintKms = maintenanceLogs.filter((l: MaintenanceLog) => l.veiculo_id === v.id).map((l: MaintenanceLog) => l.km_registro);
+      const allKms = [...vFuelKms, ...vMaintKms].filter(km => km > 0);
+      const kmRodado = allKms.length > 1 ? (Math.max(...allKms) - Math.min(...allKms)) : 0;
+
+      return { ...v, fuel, maint, fines, total, kmRodado };
+    }).sort((a: any, b: any) => b.total - a.total);
+  }, [vehicles, fuelLogs, maintenanceLogs, fineLogs]);
+
+  const timelineEvents = useMemo(() => {
+    const events = [
+      ...fuelLogs.map((l: FuelLog) => ({ ...l, eventType: 'combustivel', icon: Fuel, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', label: 'Abastecimento', value: l.valor_total, km: l.km_registro })),
+      ...maintenanceLogs.map((l: MaintenanceLog) => ({ ...l, eventType: 'manutencao', icon: Wrench, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30', label: l.servico, value: l.custo, km: l.km_registro })),
+      ...fineLogs.map((l: FineLog) => ({ ...l, eventType: 'multa', icon: AlertOctagon, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-950/30', label: 'Infração', value: l.valor, km: null }))
+    ].sort((a: any, b: any) => b.data.localeCompare(a.data));
+    return events;
+  }, [fuelLogs, maintenanceLogs, fineLogs]);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Resumo Financeiro Superior */}
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-8 items-center">
+           <div className="w-full lg:w-1/3 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-100 dark:border-slate-800 text-center">
+              <div className="w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-sky-200/50 dark:shadow-none"><DollarSign size={28} /></div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Total da Frota</p>
+              <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">R$ {stats.totalPeriod.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+              <div className="mt-4 flex items-center gap-2 px-3 py-1 bg-sky-100 dark:bg-sky-900/30 rounded-full">
+                 <Navigation size={12} className="text-sky-600 dark:text-sky-400" />
+                 <span className="text-[9px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest">{stats.totalKmPeriod.toLocaleString('pt-BR')} KM RODADOS NO PERÍODO</span>
+              </div>
+              <p className="text-[8px] font-bold text-slate-300 dark:text-slate-600 mt-4 uppercase tracking-[0.2em]">{new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} — {new Date(endDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+           </div>
+           <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+              <CostIndicator label="Combustível" value={stats.totalFuel} total={stats.totalPeriod} color="bg-emerald-500" icon={Fuel} />
+              <CostIndicator label="Manutenção" value={stats.totalMaint} total={stats.totalPeriod} color="bg-indigo-500" icon={Wrench} />
+              <CostIndicator label="Infrações" value={stats.totalFines} total={stats.totalPeriod} color="bg-rose-500" icon={AlertOctagon} />
+           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Ranking por Veículo */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+           <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-center text-slate-400"><PieChart size={20} /></div>
+              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Ranking de Despesas</h4>
+           </div>
+           <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar max-h-[500px] pr-2">
+              {vehicleCosts.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-20"><Truck size={48} /><p className="text-[10px] font-black uppercase mt-2">Sem dados</p></div>
+              ) : vehicleCosts.map((v: any, idx: number) => {
+                const percentage = stats.totalPeriod > 0 ? (v.total / stats.totalPeriod) * 100 : 0;
+                return (
+                  <div key={v.id} className="group">
+                    <div className="flex justify-between items-end mb-2">
+                       <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-black text-slate-300">#{idx + 1}</span>
+                          <div>
+                            <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-none mb-1">{v.modelo}</p>
+                            <div className="flex items-center gap-2">
+                               <p className="text-[8px] font-black text-sky-500 bg-sky-50 dark:bg-sky-950 px-1.5 rounded uppercase tracking-widest">{v.placa}</p>
+                               {v.kmRodado > 0 && (
+                                 <span className="flex items-center gap-1 text-[7px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 rounded uppercase">
+                                   <Navigation size={8} /> {v.kmRodado} KM
+                                 </span>
+                               )}
+                            </div>
+                          </div>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-sm font-black text-slate-900 dark:text-white leading-none">R$ {v.total.toLocaleString('pt-BR')}</p>
+                          <p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-tighter">{percentage.toFixed(1)}% do total</p>
+                       </div>
+                    </div>
+                    <div className="h-2 bg-slate-50 dark:bg-slate-800 rounded-full overflow-hidden">
+                       <div className="h-full bg-[#5ecce3] rounded-full transition-all duration-1000 group-hover:bg-sky-400" style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+           </div>
+        </div>
+
+        {/* Histórico Consolidado */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+           <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-center text-slate-400"><History size={20} /></div>
+              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Últimas Atividades</h4>
+           </div>
+           <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar max-h-[500px] pr-2">
+              {timelineEvents.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-20"><Activity size={48} /><p className="text-[10px] font-black uppercase mt-2">Sem atividade no período</p></div>
+              ) : timelineEvents.map((e: any) => (
+                <div key={e.id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/50 hover:border-sky-100 dark:hover:border-sky-900/30 transition-all">
+                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${e.bg} ${e.color}`}><e.icon size={18} /></div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                         <h5 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase truncate pr-2">{e.label}</h5>
+                         <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-tighter whitespace-nowrap">{new Date(e.data + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                         <div className="flex items-center gap-2">
+                            <p className="text-[9px] font-bold text-slate-400 truncate">{vehicles.find(v => v.id === e.veiculo_id)?.placa || '---'}</p>
+                            {e.km && <span className="text-[7px] font-black text-slate-300 dark:text-slate-700">• {e.km} KM</span>}
+                         </div>
+                         <p className="text-[11px] font-black text-slate-700 dark:text-slate-300">R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CostIndicator = ({ label, value, total, color, icon: Icon }: any) => {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-lg ${color} text-white flex items-center justify-center shadow-lg dark:shadow-none`}><Icon size={14} /></div>
+        <div>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</p>
+          <p className="text-sm font-black text-slate-800 dark:text-slate-100 leading-none">R$ {value.toLocaleString('pt-BR')}</p>
+        </div>
+      </div>
+      <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+         <div className={`h-full ${color} rounded-full`} style={{ width: `${percentage}%` }}></div>
+      </div>
     </div>
   );
 };
