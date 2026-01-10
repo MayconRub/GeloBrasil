@@ -43,7 +43,8 @@ import {
   PackageCheck,
   Boxes,
   Database,
-  Terminal
+  Terminal,
+  QrCode
 } from 'lucide-react';
 import { AppSettings, UserProfile, ViewType } from '../types';
 
@@ -61,6 +62,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [cnpj, setCnpj] = useState(settings.cnpj || '');
   const [address, setAddress] = useState(settings.address || '');
+  const [pixKey, setPixKey] = useState(settings.pixKey || '');
   const [primaryColor, setPrimaryColor] = useState(settings.primaryColor);
   const [logoId, setLogoId] = useState(settings.logoId);
   const [supportPhone, setSupportPhone] = useState(settings.supportPhone);
@@ -80,6 +82,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
     setCompanyName(settings.companyName);
     setCnpj(settings.cnpj || '');
     setAddress(settings.address || '');
+    setPixKey(settings.pixKey || '');
     setPrimaryColor(settings.primaryColor);
     setLogoId(settings.logoId);
     setSupportPhone(settings.supportPhone);
@@ -131,6 +134,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
       companyName, 
       cnpj,
       address,
+      pixKey,
       primaryColor, 
       logoId, 
       supportPhone, 
@@ -154,7 +158,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
     await onUpdateSettings({ 
       ...settings, 
       expirationDate: pastDate,
-      companyName, cnpj, address, primaryColor, logoId, supportPhone, footerText, hiddenViews, menuOrder, dashboardNotice, salesGoalDaily, salesGoalMonthly
+      companyName, cnpj, address, pixKey, primaryColor, logoId, supportPhone, footerText, hiddenViews, menuOrder, dashboardNotice, salesGoalDaily, salesGoalMonthly
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -170,7 +174,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
     await onUpdateSettings({ 
       ...settings, 
       expirationDate: dateStr,
-      companyName, cnpj, address, primaryColor, logoId, supportPhone, footerText, hiddenViews, menuOrder, dashboardNotice, salesGoalDaily, salesGoalMonthly
+      companyName, cnpj, address, pixKey, primaryColor, logoId, supportPhone, footerText, hiddenViews, menuOrder, dashboardNotice, salesGoalDaily, salesGoalMonthly
     });
     setIsUpdating(false);
     setIsSaved(true);
@@ -400,7 +404,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
         {activeTab === 'company' && (
           <div className="animate-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4 flex items-center gap-2"><Building2 size={14} className="text-[#5ecce3]" /> Nome da Empresa (Institucional)</label>
                   <input 
@@ -421,6 +425,21 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users }) => {
                     className="w-full h-16 px-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all" 
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4 flex items-center gap-2"><QrCode size={14} className="text-[#5ecce3]" /> Chave PIX Recebimento (Cópia e Cola / EMV)</label>
+                <div className="relative">
+                   <QrCode size={20} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" />
+                   <input 
+                    type="text" 
+                    value={pixKey} 
+                    onChange={e => setPixKey(e.target.value)} 
+                    placeholder="Cole aqui o seu código PIX estático ou chave..." 
+                    className="w-full h-16 pl-14 pr-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-xs outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all" 
+                  />
+                </div>
+                <p className="text-[8px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-4">Esta chave será usada para gerar o QR Code nos comprovantes de entrega.</p>
               </div>
 
               <button 

@@ -21,7 +21,7 @@ import {
   Printer
 } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
-import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle } from '../types';
+import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings } from '../types';
 
 interface Props {
   deliveries: Delivery[];
@@ -31,9 +31,10 @@ interface Props {
   products: Product[];
   onUpdate: (delivery: Delivery) => void;
   onDelete: (id: string) => void;
+  settings: AppSettings;
 }
 
-const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicles, products, onUpdate, onDelete }) => {
+const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicles, products, onUpdate, onDelete, settings }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -81,8 +82,6 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
   const getVehicle = (id: string) => vehicles.find(v => v.id === id);
   const getProduct = (id: string) => products.find(p => p.id === id);
 
-  const PIX_CODE = "00020126330014BR.GOV.BCB.PIX0111135244986205204000053039865802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605227CwW7ojJI4sDjsS2W3UsgS630499A9";
-
   const handlePrintReceipt = (d: Delivery) => {
     const client = getClient(d.clientId);
     const driver = getDriver(d.driverId);
@@ -95,7 +94,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     // Layout ASCII otimizado para 80mm
     const receiptText = `
 ========================================
-             GELO BRASIL
+             ${settings.companyName || 'GELO BRASIL'}
 ========================================
          COMPROVANTE DE ENTREGA
 ----------------------------------------
@@ -127,10 +126,18 @@ ________________________________________
 
     const printWindow = window.open('', '_blank', 'width=400,height=800');
     if (printWindow) {
+      const pixContent = settings.pixKey ? `
+            <div class="qrcode-container">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey)}" />
+            </div>` : `
+            <div class="centered">
+              CHAVE PIX NAO CONFIGURADA
+            </div>`;
+
       printWindow.document.write(`
         <html>
           <head>
-            <title>GELO BRASIL - COMPROVANTE</title>
+            <title>COMPROVANTE - ${settings.companyName}</title>
             <style>
               @font-face {
                 font-family: 'ReceiptFont';
@@ -166,9 +173,7 @@ ________________________________________
           </head>
           <body>
             ${receiptText}
-            <div class="qrcode-container">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(PIX_CODE)}" />
-            </div>
+            ${pixContent}
             <div class="centered">
 ========================================
         OBRIGADO PELA PREFERENCIA
@@ -178,7 +183,6 @@ ________________________________________
       `);
       printWindow.document.close();
       
-      // Pequeno delay para garantir carregamento do QR Code no DOM
       setTimeout(() => {
         printWindow.focus();
         printWindow.print();
@@ -250,7 +254,7 @@ ________________________________________
           <div className="w-10 h-10 bg-slate-900 dark:bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-lg"><Truck size={20} /></div>
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">ENTREGAS</h2>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">GELO BRASIL • LOGÍSTICA</p>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">{settings.companyName} • LOGÍSTICA</p>
           </div>
         </div>
         <button onClick={() => setIsOpen(true)} className="px-5 h-10 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">

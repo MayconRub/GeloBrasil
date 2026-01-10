@@ -181,6 +181,7 @@ export interface AppSettings {
   companyName: string;
   cnpj?: string;
   address?: string;
+  pixKey?: string;
   primaryColor: string;
   logoId: string;
   loginHeader: string;
