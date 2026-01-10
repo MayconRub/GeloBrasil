@@ -196,20 +196,22 @@ const App: React.FC = () => {
     return result;
   };
 
-  // Handler customizado para entregas para lidar com a criação de vendas automáticas
+  // Handler customizado para entregas para lidar com a criação e remoção de vendas automáticas
   const handleUpdateDeliveryWithSync = async (delivery: Delivery) => {
-    // Se a entrega foi marcada como paga (ENTREGUE) e ainda não tem uma venda associada
-    if (delivery.status === DeliveryStatus.ENTREGUE && !delivery.saleId) {
+    // CLONE do objeto para evitar mutações de estado diretas inesperadas
+    const deliveryToSave = { ...delivery };
+
+    // REGRA 1: Se a entrega foi marcada como Paga (ENTREGUE) e ainda não tem uma venda associada
+    if (deliveryToSave.status === DeliveryStatus.ENTREGUE && !deliveryToSave.saleId) {
       const newSaleId = crypto.randomUUID();
       const newSale: Sale = {
         id: newSaleId,
-        value: delivery.totalValue || 0,
+        value: deliveryToSave.totalValue || 0,
         date: new Date().toISOString().split('T')[0], // Data do dia do pagamento
-        description: `ENTREGA CONCLUÍDA - PEDIDO #${delivery.sequenceNumber || ''}`.toUpperCase(),
-        clientId: delivery.clientId
+        description: `ENTREGA CONCLUÍDA - PEDIDO #${deliveryToSave.sequenceNumber || ''}`.toUpperCase(),
+        clientId: deliveryToSave.clientId
       };
       
-      // Salva a venda primeiro
       const saleResult = await syncSale(newSale);
       if (saleResult.error) {
         alert("ERRO AO GERAR VENDA DA ENTREGA: " + saleResult.error.message.toUpperCase());
@@ -217,11 +219,22 @@ const App: React.FC = () => {
       }
       
       // Vincula o ID da venda à entrega
-      delivery.saleId = newSaleId;
+      deliveryToSave.saleId = newSaleId;
     }
 
-    // Procede com a atualização da entrega
-    const result = await syncDelivery(delivery);
+    // REGRA 2: Se a entrega for CANCELADA e possuir uma venda vinculada, devemos remover a venda
+    if (deliveryToSave.status === DeliveryStatus.CANCELADO && deliveryToSave.saleId) {
+      const saleDeleteResult = await deleteSale(deliveryToSave.saleId);
+      if (saleDeleteResult.error) {
+        console.error("ERRO AO REMOVER VENDA VINCULADA:", saleDeleteResult.error);
+        // Mesmo com erro na venda, podemos tentar seguir ou alertar o usuário
+      }
+      // Limpa o vínculo do saleId na entrega
+      deliveryToSave.saleId = undefined;
+    }
+
+    // Procede com a atualização da entrega no banco
+    const result = await syncDelivery(deliveryToSave);
     if (result.error) {
       alert("ERRO AO ATUALIZAR ENTREGA: " + result.error.message.toUpperCase());
     } else {
