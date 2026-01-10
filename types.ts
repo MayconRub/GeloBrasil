@@ -32,6 +32,7 @@ export interface DeliveryItem {
 
 export interface Delivery {
   id: string;
+  sequenceNumber?: number;
   saleId?: string;
   clientId: string;
   driverId: string;

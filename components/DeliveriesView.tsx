@@ -18,7 +18,8 @@ import {
   Clock,
   ArrowRight,
   Pencil,
-  Printer
+  Printer,
+  Hash
 } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings } from '../types';
@@ -98,6 +99,8 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
 ========================================
          COMPROVANTE DE ENTREGA
 ----------------------------------------
+PEDIDO Nº: ${d.sequenceNumber || 'PROCESSANDO...'}
+----------------------------------------
 CLIENTE: ${client?.name || 'NAO INFORMADO'}
 ENDERECO: ${client?.street || ''}, ${client?.number || ''}
 BAIRRO: ${client?.neighborhood || ''}
@@ -137,7 +140,7 @@ ________________________________________
       printWindow.document.write(`
         <html>
           <head>
-            <title>COMPROVANTE - ${settings.companyName}</title>
+            <title>PEDIDO ${d.sequenceNumber || ''} - ${settings.companyName}</title>
             <style>
               @font-face {
                 font-family: 'ReceiptFont';
@@ -201,7 +204,7 @@ ________________________________________
       const matchesSearch = !searchTerm || 
         client?.name.toLowerCase().includes(searchLower) ||
         client?.street.toLowerCase().includes(searchLower) ||
-        client?.neighborhood.toLowerCase().includes(searchLower) ||
+        d.sequenceNumber?.toString().includes(searchTerm) ||
         d.notes?.toLowerCase().includes(searchLower);
       return matchesStatus && matchesDate && matchesSearch;
     });
@@ -281,7 +284,7 @@ ________________________________________
           </div>
           <div className="relative flex-1 md:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input type="text" placeholder="BUSCAR CLIENTE..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
+            <input type="text" placeholder="BUSCAR PEDIDO OU CLIENTE..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
           </div>
         </div>
       </div>
@@ -304,6 +307,7 @@ ________________________________________
                         <div className="flex items-center gap-2">
                           <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded ${d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-slate-50 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{d.status}</span>
                           {d.scheduledTime && <span className="text-[7px] font-black text-sky-500 uppercase tracking-tighter">{d.scheduledTime}</span>}
+                          {d.sequenceNumber && <span className="flex items-center gap-0.5 text-[7px] font-black text-slate-400 bg-slate-50 dark:bg-slate-800 px-1 py-0.5 rounded uppercase tracking-tighter"><Hash size={8}/> {d.sequenceNumber}</span>}
                         </div>
                     </div>
                   </div>

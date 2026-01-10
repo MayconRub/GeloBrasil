@@ -104,6 +104,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     })),
     deliveries: (deliveries.data || []).map(d => ({ 
       id: d.id, 
+      sequenceNumber: d.numero_sequencial,
       saleId: d.sale_id, 
       clientId: d.cliente_id, 
       driverId: d.funcionario_id, 
