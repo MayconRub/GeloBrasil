@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProduct, deleteProduct, syncStockMovement } from './store';
-import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog, Client, Delivery, Product, StockMovement, ExpenseStatus } from './types';
+import { ViewType, Sale, Expense, Employee, Vehicle, Production, MonthlyGoal, FuelLog, MaintenanceLog, FineLog, Client, Delivery, Product, StockMovement, ExpenseStatus, DeliveryStatus } from './types';
 import DashboardView from './components/DashboardView';
 import SalesView from './components/SalesView';
 import ProductionView from './components/ProductionView';
@@ -194,6 +194,39 @@ const App: React.FC = () => {
     if (result?.error) { alert("ERRO: " + result.error.message.toUpperCase()); return result; }
     loadAppData();
     return result;
+  };
+
+  // Handler customizado para entregas para lidar com a criação de vendas automáticas
+  const handleUpdateDeliveryWithSync = async (delivery: Delivery) => {
+    // Se a entrega foi marcada como paga (ENTREGUE) e ainda não tem uma venda associada
+    if (delivery.status === DeliveryStatus.ENTREGUE && !delivery.saleId) {
+      const newSaleId = crypto.randomUUID();
+      const newSale: Sale = {
+        id: newSaleId,
+        value: delivery.totalValue || 0,
+        date: new Date().toISOString().split('T')[0], // Data do dia do pagamento
+        description: `ENTREGA CONCLUÍDA - PEDIDO #${delivery.sequenceNumber || ''}`.toUpperCase(),
+        clientId: delivery.clientId
+      };
+      
+      // Salva a venda primeiro
+      const saleResult = await syncSale(newSale);
+      if (saleResult.error) {
+        alert("ERRO AO GERAR VENDA DA ENTREGA: " + saleResult.error.message.toUpperCase());
+        return;
+      }
+      
+      // Vincula o ID da venda à entrega
+      delivery.saleId = newSaleId;
+    }
+
+    // Procede com a atualização da entrega
+    const result = await syncDelivery(delivery);
+    if (result.error) {
+      alert("ERRO AO ATUALIZAR ENTREGA: " + result.error.message.toUpperCase());
+    } else {
+      loadAppData();
+    }
   };
 
   const userName = useMemo(() => {
@@ -522,7 +555,7 @@ const App: React.FC = () => {
         {view === 'inventory' && <InventoryView products={data.products} movements={data.stockMovements} onUpdateProduct={wrap(syncProduct)} onDeleteProduct={wrap(deleteProduct)} onAddMovement={wrap(syncStockMovement)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
-        {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={wrap(syncDelivery)} onDelete={wrap(deleteDelivery)} onAddClient={wrap(syncClient)} settings={data.settings} />}
+        {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={handleUpdateDeliveryWithSync} onDelete={wrap(deleteDelivery)} onAddClient={wrap(syncClient)} settings={data.settings} />}
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} products={data.products} />}
         {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={wrap(syncExpense)} onDelete={wrap(deleteExpense)} onUpdateCategories={wrap(syncCategory)} onDeleteCategory={wrap(deleteCategory)} onReorderCategories={wrap(syncCategoriesOrder)} sales={data.sales} />}
         {view === 'team' && <TeamView employees={data.employees} onUpdate={wrap(syncEmployee)} onDelete={wrap(deleteEmployee)} onAddExpense={wrap(syncExpense)} companyName={data.settings.companyName} />}
