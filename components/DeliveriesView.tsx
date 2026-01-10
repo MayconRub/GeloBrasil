@@ -30,7 +30,9 @@ import {
   UserCircle,
   BarChart3,
   PieChart,
-  FileText
+  FileText,
+  Building2,
+  FileEdit
 } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings } from '../types';
@@ -69,6 +71,18 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
+  // Utilitário para formatar telefone idêntico ao ClientsView
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    value = value.replace(/\D/g, "");
+    value = value.substring(0, 11);
+    if (value.length > 10) return value.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+    else if (value.length > 6) return value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+    else if (value.length > 2) return value.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2");
+    else if (value.length > 0) return value.replace(/^(\d{0,2}).*/, "($1");
+    return value;
+  };
+
   const [isOpen, setIsOpen] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<DeliveryStatus | 'TODOS'>('TODOS');
@@ -86,18 +100,28 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     scheduledDate: getTodayString(),
     scheduledTime: getNowTimeString(),
     items: [],
-    totalValue: 0
+    totalValue: 0,
+    notes: ''
   });
   
   // Estados para Modo Express (Cadastro Rápido)
   const [isExpressMode, setIsExpressMode] = useState(false);
-  const [expressClient, setExpressClient] = useState({
+  const [expressClient, setExpressClient] = useState<{
+    name: string;
+    phone: string;
+    street: string;
+    number: string;
+    neighborhood: string;
+    city: string;
+    type: 'PARTICULAR' | 'REVENDEDOR';
+  }>({
     name: '',
     phone: '',
     street: '',
     number: '',
     neighborhood: '',
-    city: 'MONTES CLAROS'
+    city: 'MONTES CLAROS',
+    type: 'PARTICULAR'
   });
 
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -145,6 +169,7 @@ ${itemsList}
 ----------------------------------------
 VALOR TOTAL: R$ ${(d.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 ----------------------------------------
+${d.notes ? `OBSERVACOES: \n${d.notes.toUpperCase()}\n----------------------------------------` : ''}
 
 ASSINATURA DO CLIENTE:
 
@@ -223,7 +248,8 @@ ________________________________________
   };
 
   const filtered = useMemo(() => {
-    return deliveries.filter(d => {
+    // Primeiro aplicamos os filtros de status, data e busca
+    const results = deliveries.filter(d => {
       const client = getClient(d.clientId);
       const matchesStatus = activeFilter === 'TODOS' || d.status === activeFilter;
       const deliveryDate = d.scheduledDate;
@@ -235,6 +261,37 @@ ________________________________________
         d.sequenceNumber?.toString().includes(searchTerm) ||
         d.notes?.toLowerCase().includes(searchLower);
       return matchesStatus && matchesDate && matchesSearch;
+    });
+
+    // Se o filtro ativo for 'TODOS', aplicamos a ordenação personalizada por prioridade
+    if (activeFilter === 'TODOS') {
+      const statusPriority: Record<DeliveryStatus, number> = {
+        [DeliveryStatus.PENDENTE]: 1,
+        [DeliveryStatus.EM_ROTA]: 2,
+        [DeliveryStatus.ENTREGUE_PENDENTE_PGTO]: 3,
+        [DeliveryStatus.ENTREGUE]: 4,
+        [DeliveryStatus.CANCELADO]: 5,
+      };
+
+      return results.sort((a, b) => {
+        const prioA = statusPriority[a.status] || 99;
+        const prioB = statusPriority[b.status] || 99;
+        
+        // Se as prioridades forem diferentes, ordena pela prioridade
+        if (prioA !== prioB) return prioA - prioB;
+        
+        // Se o status for o mesmo, ordena pela data agendada e depois hora
+        const dateA = a.scheduledDate + (a.scheduledTime || '00:00');
+        const dateB = b.scheduledDate + (b.scheduledTime || '00:00');
+        return dateA.localeCompare(dateB);
+      });
+    }
+
+    // Se houver um filtro específico (ex: Pendente), apenas ordenamos por data/hora
+    return results.sort((a, b) => {
+      const dateA = a.scheduledDate + (a.scheduledTime || '00:00');
+      const dateB = b.scheduledDate + (b.scheduledTime || '00:00');
+      return dateA.localeCompare(dateB);
     });
   }, [deliveries, activeFilter, startDate, endDate, searchTerm, clients]);
 
@@ -303,7 +360,6 @@ ________________________________________
         const newClient: Client = {
           ...expressClient,
           id: newClientId,
-          type: 'PARTICULAR',
           created_at: new Date().toISOString()
         };
         
@@ -322,7 +378,8 @@ ________________________________________
         ...form, 
         id: form.id || crypto.randomUUID(), 
         clientId: finalClientId,
-        totalValue: totalVal
+        totalValue: totalVal,
+        notes: form.notes?.toUpperCase()
       } as Delivery);
       
       handleCloseModal();
@@ -336,7 +393,7 @@ ________________________________________
 
   const handleCloseModal = () => {
     setIsOpen(false);
-    setForm({ status: DeliveryStatus.PENDENTE, scheduledDate: getTodayString(), scheduledTime: getNowTimeString(), items: [], totalValue: 0 });
+    setForm({ status: DeliveryStatus.PENDENTE, scheduledDate: getTodayString(), scheduledTime: getNowTimeString(), items: [], totalValue: 0, notes: '' });
     setClientSearch(''); 
     setLocalTotalValue(''); 
     setIsClientDropdownOpen(false);
@@ -348,7 +405,8 @@ ________________________________________
       street: '',
       number: '',
       neighborhood: '',
-      city: 'MONTES CLAROS'
+      city: 'MONTES CLAROS',
+      type: 'PARTICULAR'
     });
   };
 
@@ -485,7 +543,7 @@ ________________________________________
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button onClick={() => setShowSummaryModal(true)} className="flex-1 sm:flex-none px-5 h-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
-            <BarChart3 size={16} className="text-sky-500" /> <span className="hidden sm:inline">FECHAMENTO</span>
+            <BarChart3 size={16} className="text-sky-50" /> <span className="hidden sm:inline">FECHAMENTO</span>
           </button>
           <button onClick={() => setIsOpen(true)} className="flex-1 sm:flex-none px-5 h-10 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
             <Plus size={16} /> <span className="hidden sm:inline">NOVO AGENDAMENTO</span>
@@ -594,6 +652,13 @@ ________________________________________
                       )) : <p className="text-[8px] text-slate-300 uppercase italic">Carga Vazia</p>}
                     </div>
                   </div>
+                  
+                  {d.notes && (
+                    <div className="p-2.5 bg-sky-50/30 dark:bg-slate-950/30 border border-sky-100/30 dark:border-slate-800 rounded-xl">
+                       <p className="text-[7px] font-black text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-1 flex items-center gap-1"><FileEdit size={8}/> Observação:</p>
+                       <p className="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase leading-relaxed italic line-clamp-2">{d.notes}</p>
+                    </div>
+                  )}
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
@@ -768,11 +833,25 @@ ________________________________________
                       </div>
                     ) : (
                       <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                        <div className="space-y-1.5">
-                           <input type="text" placeholder="NOME DO CLIENTE" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.name} onChange={e => setExpressClient({...expressClient, name: e.target.value.toUpperCase()})} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                             <input type="text" placeholder="NOME DO CLIENTE" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.name} onChange={e => setExpressClient({...expressClient, name: e.target.value.toUpperCase()})} />
+                          </div>
+                          <div className="space-y-1.5">
+                             <select className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.type} onChange={e => setExpressClient({...expressClient, type: e.target.value as any})}>
+                               <option value="PARTICULAR">PARTICULAR</option>
+                               <option value="REVENDEDOR">REVENDEDOR</option>
+                             </select>
+                          </div>
                         </div>
                         <div className="space-y-1.5">
-                           <input type="text" placeholder="WHATSAPP / CELULAR" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none focus:border-emerald-300" value={expressClient.phone} onChange={e => setExpressClient({...expressClient, phone: e.target.value})} />
+                           <input 
+                            type="text" 
+                            placeholder="WHATSAPP / CELULAR" 
+                            className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none focus:border-emerald-300" 
+                            value={expressClient.phone} 
+                            onChange={e => setExpressClient({...expressClient, phone: formatPhone(e.target.value)})} 
+                           />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                            <input type="text" placeholder="RUA" className="col-span-2 h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.street} onChange={e => setExpressClient({...expressClient, street: e.target.value.toUpperCase()})} />
@@ -810,6 +889,15 @@ ________________________________________
                           <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Hora</label>
                           <input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required />
                         </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Observações da Entrega</label>
+                        <textarea 
+                          placeholder="EX: DEIXAR NA PORTARIA, CLIENTE PAGOU ANTECIPADO, ETC..." 
+                          className="w-full h-24 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all resize-none"
+                          value={form.notes || ''}
+                          onChange={e => setForm({...form, notes: e.target.value})}
+                        />
                       </div>
                     </div>
                  </div>
