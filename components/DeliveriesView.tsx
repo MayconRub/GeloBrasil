@@ -26,7 +26,11 @@ import {
   AlertTriangle,
   HandCoins,
   XCircle,
-  Ban
+  Ban,
+  UserCircle,
+  BarChart3,
+  PieChart,
+  FileText
 } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings } from '../types';
@@ -66,6 +70,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
   };
 
   const [isOpen, setIsOpen] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<DeliveryStatus | 'TODOS'>('TODOS');
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(getTodayString());
@@ -233,6 +238,36 @@ ________________________________________
     });
   }, [deliveries, activeFilter, startDate, endDate, searchTerm, clients]);
 
+  // Cálculo das estatísticas para o Fechamento
+  const closingStats = useMemo(() => {
+    const rangeDeliveries = deliveries.filter(d => d.scheduledDate >= startDate && d.scheduledDate <= endDate);
+    
+    const completed = rangeDeliveries.filter(d => d.status === DeliveryStatus.ENTREGUE);
+    const notPaid = rangeDeliveries.filter(d => d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO);
+    const cancelled = rangeDeliveries.filter(d => d.status === DeliveryStatus.CANCELADO);
+
+    const totalValueCompleted = completed.reduce((acc, d) => acc + (d.totalValue || 0), 0);
+    const totalValueNotPaid = notPaid.reduce((acc, d) => acc + (d.totalValue || 0), 0);
+
+    const driverStats = drivers.map(driver => {
+      const driverDeliveries = completed.filter(d => d.driverId === driver.id);
+      return {
+        name: driver.name,
+        count: driverDeliveries.length,
+        value: driverDeliveries.reduce((acc, d) => acc + (d.totalValue || 0), 0)
+      };
+    }).filter(s => s.count > 0);
+
+    return {
+      completedCount: completed.length,
+      completedValue: totalValueCompleted,
+      notPaidCount: notPaid.length,
+      notPaidValue: totalValueNotPaid,
+      cancelledCount: cancelled.length,
+      driverStats
+    };
+  }, [deliveries, startDate, endDate, drivers]);
+
   const handleShortcutToday = () => { setStartDate(getTodayString()); setEndDate(getTodayString()); };
   const handleShortcutMonth = () => { setStartDate(getFirstDayOfMonth()); setEndDate(getLastDayOfMonth()); };
 
@@ -361,19 +396,101 @@ ________________________________________
     await onUpdate({ ...delivery, status });
   };
 
+  const handlePrintSummary = () => {
+    const printWindow = window.open('', '_blank', 'width=800,height=1000');
+    if (printWindow) {
+      const driverContent = closingStats.driverStats.map(s => `
+        <div class="item">
+          <span>${s.name}</span>
+          <strong>${s.count} Entregas - R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+        </div>
+      `).join('');
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>FECHAMENTO DE ENTREGAS - ${settings.companyName}</title>
+            <style>
+              body { font-family: sans-serif; padding: 40px; color: #1e293b; }
+              .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+              .header h1 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+              .period { color: #64748b; font-size: 14px; margin-top: 5px; font-weight: bold; }
+              .section { margin-bottom: 30px; }
+              .section h2 { font-size: 14px; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 15px; }
+              .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+              .card { background: #f8fafc; padding: 20px; rounded: 15px; border: 1px solid #e2e8f0; }
+              .card p { margin: 0; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 800; }
+              .card h3 { margin: 5px 0 0 0; font-size: 24px; font-weight: 900; }
+              .item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+              .item:last-child { border: none; }
+              .item strong { color: #0f172a; }
+              .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #cbd5e1; text-transform: uppercase; }
+              @media print { .no-print { display: none; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>FECHAMENTO DE LOGÍSTICA</h1>
+              <div class="period">${new Date(startDate + 'T00:00:00').toLocaleDateString()} ATÉ ${new Date(endDate + 'T00:00:00').toLocaleDateString()}</div>
+              <div class="period">${settings.companyName}</div>
+            </div>
+            
+            <div class="section">
+              <h2>RESUMO GERAL</h2>
+              <div class="grid">
+                <div class="card">
+                  <p>Entregas Concluídas</p>
+                  <h3>${closingStats.completedCount}</h3>
+                </div>
+                <div class="card">
+                  <p>Total Recebido</p>
+                  <h3 style="color: #10b981">R$ ${closingStats.completedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+                </div>
+                <div class="card">
+                  <p>Pendentes de Pagamento</p>
+                  <h3>${closingStats.notPaidCount} (R$ ${closingStats.notPaidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</h3>
+                </div>
+                <div class="card">
+                  <p>Pedidos Cancelados</p>
+                  <h3>${closingStats.cancelledCount}</h3>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>DESEMPENHO POR MOTORISTA</h2>
+              ${driverContent}
+            </div>
+
+            <div class="footer">Relatório gerado em ${new Date().toLocaleString()}</div>
+            <div class="no-print" style="margin-top: 30px; text-align: center;">
+              <button onclick="window.print()" style="padding: 10px 30px; background: #0f172a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">IMPRIMIR AGORA</button>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 space-y-4 pb-24 max-w-[1600px] mx-auto overflow-x-hidden transition-colors">
-      <header className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="w-10 h-10 bg-slate-900 dark:bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-lg"><Truck size={20} /></div>
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">ENTREGAS</h2>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">{settings.companyName} • LOGÍSTICA</p>
           </div>
         </div>
-        <button onClick={() => setIsOpen(true)} className="px-5 h-10 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-          <Plus size={16} /> <span className="hidden sm:inline">NOVO AGENDAMENTO</span>
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button onClick={() => setShowSummaryModal(true)} className="flex-1 sm:flex-none px-5 h-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
+            <BarChart3 size={16} className="text-sky-500" /> <span className="hidden sm:inline">FECHAMENTO</span>
+          </button>
+          <button onClick={() => setIsOpen(true)} className="flex-1 sm:flex-none px-5 h-10 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+            <Plus size={16} /> <span className="hidden sm:inline">NOVO AGENDAMENTO</span>
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
@@ -415,8 +532,10 @@ ________________________________________
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(d => {
           const client = getClient(d.clientId);
+          const driver = getDriver(d.driverId);
           const isOverdue = d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO;
           const isCancelled = d.status === DeliveryStatus.CANCELADO;
+          const isInRoute = d.status === DeliveryStatus.EM_ROTA;
           
           return (
             <div key={d.id} className={`bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border flex flex-col h-full transition-all group ${isCancelled ? 'opacity-60 grayscale border-slate-200 dark:border-slate-800 bg-slate-50/30' : d.status === DeliveryStatus.ENTREGUE ? 'border-emerald-100 dark:border-emerald-900/30 shadow-sm' : isOverdue ? 'border-rose-200 dark:border-rose-900/50 shadow-sm' : 'border-slate-100 dark:border-slate-800 shadow-sm'}`}>
@@ -457,6 +576,12 @@ ________________________________________
                   <div className="min-w-0">
                       <h4 className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase truncate leading-tight">{client?.name || 'Cliente Removido'}</h4>
                       <div className="flex items-start gap-1.5 text-[8px] font-bold text-slate-400 mt-1 uppercase truncate"><MapPin size={10} className="shrink-0" /> <span>{client?.street}, {client?.number}</span></div>
+                      
+                      {/* Informação do Motorista */}
+                      <div className={`flex items-center gap-1.5 text-[8px] font-black mt-1.5 uppercase transition-all ${isInRoute ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-600'}`}>
+                        <UserCircle size={11} className={`${isInRoute ? 'text-sky-500' : 'text-slate-300'}`} />
+                        <span>ENTREGADOR: {driver?.name || 'NÃO ATRIBUÍDO'}</span>
+                      </div>
                   </div>
                   
                   <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -480,6 +605,85 @@ ________________________________________
           );
         })}
       </div>
+
+      {/* Modal de Fechamento de Entregas */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setShowSummaryModal(false)} />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-8 border-b border-slate-50 dark:border-slate-800 shrink-0">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg"><FileText size={28} /></div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Fechamento de Logística</h3>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Período: {new Date(startDate + 'T00:00:00').toLocaleDateString()} — {new Date(endDate + 'T00:00:00').toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowSummaryModal(false)} className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-colors"><X size={24}/></button>
+               </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-3xl">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200/50 dark:shadow-none"><CheckCircle2 size={20} /></div>
+                      <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Entregue & Pago</span>
+                    </div>
+                    <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 leading-none">R$ {closingStats.completedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[8px] font-black text-emerald-600/50 uppercase mt-2">{closingStats.completedCount} PEDIDOS CONCLUÍDOS</p>
+                 </div>
+                 <div className="p-6 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 rounded-3xl">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-rose-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-rose-200/50 dark:shadow-none"><HandCoins size={20} /></div>
+                      <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">Entregue / Pendente</span>
+                    </div>
+                    <p className="text-2xl font-black text-rose-700 dark:text-rose-300 leading-none">R$ {closingStats.notPaidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[8px] font-black text-rose-600/50 uppercase mt-2">{closingStats.notPaidCount} CLIENTES EM DÉBITO</p>
+                 </div>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-950/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                 <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"><PieChart size={14} className="text-sky-500" /> Desempenho por Motorista</h4>
+                 <div className="space-y-4">
+                    {closingStats.driverStats.length === 0 ? (
+                      <p className="text-[10px] font-black text-slate-300 uppercase text-center py-4">Sem entregas concluídas no período</p>
+                    ) : closingStats.driverStats.map((s, idx) => (
+                      <div key={idx} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center font-black text-slate-400 group-hover:text-sky-500 transition-colors">{s.name.charAt(0)}</div>
+                           <div>
+                              <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase leading-none mb-1">{s.name}</p>
+                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{s.count} Entregas Realizadas</p>
+                           </div>
+                        </div>
+                        <p className="text-sm font-black text-slate-900 dark:text-white">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="flex items-center justify-between p-6 bg-slate-100/50 dark:bg-slate-800/20 rounded-2xl">
+                 <div className="flex items-center gap-3">
+                    <Ban size={18} className="text-slate-300 dark:text-slate-600" />
+                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Pedidos Cancelados</span>
+                 </div>
+                 <span className="text-lg font-black text-slate-400">{closingStats.cancelledCount}</span>
+              </div>
+            </div>
+
+            <div className="p-8 border-t border-slate-50 dark:border-slate-800 shrink-0">
+               <button 
+                onClick={handlePrintSummary}
+                className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+               >
+                 <Printer size={20} /> Imprimir Fechamento
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Confirmação de Pagamento ao Entregar */}
       {showPaymentConfirm && deliveryToConfirm && (
