@@ -9,6 +9,7 @@ export enum DeliveryStatus {
   PENDENTE = 'Pendente',
   EM_ROTA = 'Em Rota',
   ENTREGUE = 'Entregue',
+  ENTREGUE_PENDENTE_PGTO = 'Não Pago',
   CANCELADO = 'Cancelado'
 }
 

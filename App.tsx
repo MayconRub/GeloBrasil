@@ -191,8 +191,9 @@ const App: React.FC = () => {
 
   const wrap = (fn: any) => async (payload: any) => {
     const result = await fn(payload);
-    if (result?.error) { alert("ERRO: " + result.error.message.toUpperCase()); return; }
+    if (result?.error) { alert("ERRO: " + result.error.message.toUpperCase()); return result; }
     loadAppData();
+    return result;
   };
 
   const userName = useMemo(() => {
@@ -521,7 +522,7 @@ const App: React.FC = () => {
         {view === 'inventory' && <InventoryView products={data.products} movements={data.stockMovements} onUpdateProduct={wrap(syncProduct)} onDeleteProduct={wrap(deleteProduct)} onAddMovement={wrap(syncStockMovement)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} />}
         {view === 'clients' && <ClientsView clients={data.clients} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
-        {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={wrap(syncDelivery)} onDelete={wrap(deleteDelivery)} settings={data.settings} />}
+        {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={wrap(syncDelivery)} onDelete={wrap(deleteDelivery)} onAddClient={wrap(syncClient)} settings={data.settings} />}
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} products={data.products} />}
         {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={wrap(syncExpense)} onDelete={wrap(deleteExpense)} onUpdateCategories={wrap(syncCategory)} onDeleteCategory={wrap(deleteCategory)} onReorderCategories={wrap(syncCategoriesOrder)} sales={data.sales} />}
         {view === 'team' && <TeamView employees={data.employees} onUpdate={wrap(syncEmployee)} onDelete={wrap(deleteEmployee)} onAddExpense={wrap(syncExpense)} companyName={data.settings.companyName} />}

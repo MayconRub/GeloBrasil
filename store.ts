@@ -127,7 +127,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     })),
     stockMovements: (movements.data || []).map(m => ({
       id: m.id,
-      productId: m.product_id,
+      product_id: m.product_id,
       quantity: Number(m.quantity) || 0,
       type: m.type,
       reason: m.reason,
@@ -263,20 +263,28 @@ export const syncClient = (c: Client) => supabase.from('clientes').upsert({
 
 export const deleteClient = (id: string) => supabase.from('clientes').delete().eq('id', id);
 
-export const syncDelivery = (d: Delivery) => supabase.from('entregas').upsert({
-  id: d.id,
-  sale_id: d.saleId,
-  cliente_id: d.clientId,
-  funcionario_id: d.driverId,
-  veiculo_id: d.vehicleId, // Corrigido de d.veiculo_id para d.vehicleId
-  status: d.status,
-  scheduled_date: d.scheduledDate,
-  scheduled_time: d.scheduledTime,
-  delivered_at: d.deliveredAt,
-  notes: d.notes?.toUpperCase(),
-  items: d.items,
-  total_value: Number(d.totalValue) || 0
-});
+export const syncDelivery = (d: Delivery) => {
+  const payload: any = {
+    id: d.id,
+    sale_id: d.saleId,
+    cliente_id: d.clientId,
+    funcionario_id: d.driverId,
+    veiculo_id: d.vehicleId,
+    status: d.status,
+    scheduled_date: d.scheduledDate,
+    scheduled_time: d.scheduledTime,
+    delivered_at: d.deliveredAt,
+    notes: d.notes?.toUpperCase(),
+    items: d.items,
+    total_value: Number(d.totalValue) || 0
+  };
+
+  if (d.sequenceNumber) {
+    payload.numero_sequencial = d.sequenceNumber;
+  }
+
+  return supabase.from('entregas').upsert(payload);
+};
 
 export const deleteDelivery = (id: string) => supabase.from('entregas').delete().eq('id', id);
 
