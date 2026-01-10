@@ -81,6 +81,8 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
   const getVehicle = (id: string) => vehicles.find(v => v.id === id);
   const getProduct = (id: string) => products.find(p => p.id === id);
 
+  const PIX_CODE = "00020126330014BR.GOV.BCB.PIX0111135244986205204000053039865802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605227CwW7ojJI4sDjsS2W3UsgS630499A9";
+
   const handlePrintReceipt = (d: Delivery) => {
     const client = getClient(d.clientId);
     const driver = getDriver(d.driverId);
@@ -90,6 +92,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
       return `${String(item.quantity).padStart(3, ' ')} UN - ${p?.name || 'PRODUTO'}`;
     }).join('\n');
 
+    // Layout ASCII otimizado para 80mm
     const receiptText = `
 ========================================
              GELO BRASIL
@@ -117,40 +120,70 @@ ASSINATURA DO CLIENTE:
 
 
 ________________________________________
-========================================
-        OBRIGADO PELA PREFERENCIA
-    `.trim();
 
-    const printWindow = window.open('', '_blank', 'width=400,height=600');
+           PAGAMENTO VIA PIX
+
+`.trim();
+
+    const printWindow = window.open('', '_blank', 'width=400,height=800');
     if (printWindow) {
       printWindow.document.write(`
         <html>
           <head>
             <title>GELO BRASIL - COMPROVANTE</title>
             <style>
+              @font-face {
+                font-family: 'ReceiptFont';
+                src: local('Courier New'), local('Courier');
+              }
               body { 
-                font-family: 'Courier New', Courier, monospace; 
-                font-size: 12px; 
+                font-family: 'ReceiptFont', monospace; 
+                font-size: 13px; 
                 width: 80mm; 
                 margin: 0; 
-                padding: 10px;
+                padding: 5px;
                 white-space: pre-wrap;
+                text-transform: uppercase;
+                color: black;
+                background: white;
+              }
+              .centered { text-align: center; display: block; width: 100%; }
+              .qrcode-container { 
+                width: 100%; 
+                text-align: center; 
+                margin: 15px 0;
+              }
+              .qrcode-container img {
+                width: 150px;
+                height: 150px;
+                image-rendering: pixelated;
               }
               @media print {
-                body { margin: 0; padding: 0; }
-                @page { margin: 0; }
+                body { margin: 0; padding: 0; width: 80mm; }
+                @page { margin: 0; size: 80mm auto; }
               }
             </style>
           </head>
-          <body>${receiptText}</body>
+          <body>
+            ${receiptText}
+            <div class="qrcode-container">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(PIX_CODE)}" />
+            </div>
+            <div class="centered">
+========================================
+        OBRIGADO PELA PREFERENCIA
+            </div>
+          </body>
         </html>
       `);
       printWindow.document.close();
-      printWindow.focus();
+      
+      // Pequeno delay para garantir carregamento do QR Code no DOM
       setTimeout(() => {
+        printWindow.focus();
         printWindow.print();
         printWindow.close();
-      }, 250);
+      }, 500);
     }
   };
 
