@@ -38,7 +38,7 @@ import {
   ListFilter
 } from 'lucide-react';
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings } from '../types';
+import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings, DeliveryItem } from '../types';
 
 interface Props {
   deliveries: Delivery[];
@@ -126,6 +126,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
 
   const [selectedProductId, setSelectedProductId] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
+  const [itemUnitPrice, setItemUnitPrice] = useState('');
   const [localTotalValue, setLocalTotalValue] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
@@ -135,6 +136,21 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
   const getDriver = (id: string) => drivers.find(d => d.id === id);
   const getVehicle = (id: string) => vehicles.find(v => v.id === id);
   const getProduct = (id: string) => products.find(p => p.id === id);
+
+  // Busca preço sugerido do cliente ao selecionar produto na entrega
+  useEffect(() => {
+    if (selectedProductId && form.clientId) {
+      const client = clients.find(c => c.id === form.clientId);
+      const customPrice = client?.product_prices?.[selectedProductId];
+      if (customPrice) {
+        setItemUnitPrice(customPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+      } else {
+        setItemUnitPrice('');
+      }
+    } else {
+      setItemUnitPrice('');
+    }
+  }, [selectedProductId, form.clientId, clients]);
 
   const handlePrintReceipt = async (d: Delivery) => {
     const client = getClient(d.clientId);
@@ -147,13 +163,12 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
 
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey || '')}`;
 
-    // Garantir que a imagem do QR Code está carregada antes de abrir a janela
     if (settings.pixKey) {
       await new Promise((resolve) => {
         const img = new Image();
         img.src = qrUrl;
         img.onload = resolve;
-        img.onerror = resolve; // Resolvemos de qualquer forma para não travar o app se o serviço de QR falhar
+        img.onerror = resolve; 
       });
     }
 
@@ -247,9 +262,7 @@ ________________________________________
         OBRIGADO PELA PREFERENCIA
             </div>
             <script>
-              // Aguarda todos os recursos (especialmente a imagem do QR Code) serem carregados
               window.onload = function() {
-                // Pequeno delay para garantir a renderização gráfica estável
                 setTimeout(function() {
                   window.focus();
                   window.print();
@@ -330,7 +343,6 @@ ________________________________________
 
   const parseCurrency = (val: string): number => {
     if (!val) return 0;
-    // Padrão brasileiro: Remove pontos de milhar e troca vírgula decimal por ponto
     const sanitized = val.toString().replace(/\./g, '').replace(',', '.');
     const parsed = parseFloat(sanitized);
     return isNaN(parsed) ? 0 : parsed;
@@ -399,6 +411,9 @@ ________________________________________
     setIsClientDropdownOpen(false);
     setIsExpressMode(false);
     setIsSubmitting(false);
+    setItemQuantity('1');
+    setItemUnitPrice('');
+    setSelectedProductId('');
     setExpressClient({
       name: '',
       phone: '',
@@ -422,6 +437,38 @@ ________________________________________
     setForm({ ...form, clientId: client.id });
     setClientSearch(client.name);
     setIsClientDropdownOpen(false);
+  };
+
+  const handleAddItem = () => {
+    const qty = parseInt(itemQuantity);
+    const uPrice = parseCurrency(itemUnitPrice);
+    
+    if (!selectedProductId || isNaN(qty) || qty <= 0) return;
+    
+    const newItems = [...(form.items || [])];
+    const existingIdx = newItems.findIndex(i => i.productId === selectedProductId);
+    
+    if (existingIdx > -1) {
+      newItems[existingIdx].quantity += qty;
+      if (uPrice > 0) newItems[existingIdx].unitPrice = uPrice;
+    } else {
+      newItems.push({ 
+        productId: selectedProductId, 
+        quantity: qty, 
+        unitPrice: uPrice > 0 ? uPrice : undefined 
+      });
+    }
+    
+    setForm({ ...form, items: newItems });
+    setSelectedProductId('');
+    setItemQuantity('1');
+    setItemUnitPrice('');
+
+    // Cálculo automático do total com base nos itens da cesta
+    const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
+    if (newTotal > 0) {
+      setLocalTotalValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+    }
   };
 
   const openStatusConfirmation = (delivery: Delivery) => {
@@ -673,7 +720,10 @@ ________________________________________
                     <div className="space-y-1">
                       {d.items && d.items.length > 0 ? d.items.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center text-[8px] font-black uppercase">
-                          <span className="text-slate-500 dark:text-slate-400 truncate mr-2">{getProduct(item.productId)?.nome || 'Produto'}</span>
+                          <div className="flex items-center gap-2 truncate flex-1">
+                            <span className="text-slate-500 dark:text-slate-400 truncate">{getProduct(item.productId)?.nome || 'Produto'}</span>
+                            {item.unitPrice && <span className="text-[7px] text-emerald-500 px-1 bg-emerald-50 dark:bg-emerald-900/20 rounded">R$ {item.unitPrice.toLocaleString('pt-BR')}</span>}
+                          </div>
                           <span className="text-slate-900 dark:text-white shrink-0">{item.quantity} un</span>
                         </div>
                       )) : <p className="text-[8px] text-slate-300 uppercase italic">Carga Vazia</p>}
@@ -698,7 +748,6 @@ ________________________________________
         })}
       </div>
 
-      {/* Modals e formulários mantidos com ajustes de validação e UX */}
       {showSummaryModal && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setShowSummaryModal(false)} />
@@ -774,7 +823,6 @@ ________________________________________
         </div>
       )}
 
-      {/* Confirmação de Pagamento - Card Ajustado e Mais Compacto */}
       {showPaymentConfirm && deliveryToConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-md animate-in fade-in duration-300" />
@@ -802,7 +850,6 @@ ________________________________________
         </div>
       )}
 
-      {/* Modal Principal (Novo/Editar) */}
       {isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4 md:p-6">
           <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={handleCloseModal} />
@@ -916,17 +963,34 @@ ________________________________________
                           <option value="">ESCOLHER PRODUTO...</option>
                           {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                         </select>
-                        <div className="flex items-center gap-3">
-                           <button type="button" onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Minus size={20} /></button>
-                           <input type="number" className="flex-1 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-lg dark:text-white" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/><button type="button" onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Plus size={20} /></button>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="flex items-center gap-3">
+                              <button type="button" onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Minus size={16} /></button>
+                              <input type="number" className="flex-1 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/><button type="button" onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Plus size={16} /></button>
+                           </div>
+                           <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500">R$</span>
+                              <input placeholder="PREÇO UN." value={itemUnitPrice} onChange={e => setItemUnitPrice(e.target.value.replace(/[^0-9,]/g, ''))} className="w-full h-10 pl-8 pr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[11px] text-emerald-600 outline-none" />
+                           </div>
                         </div>
-                        <button type="button" onClick={() => { const qty = parseInt(itemQuantity); if (!selectedProductId || isNaN(qty) || qty <= 0) return; const newItems = [...(form.items || [])]; const idx = newItems.findIndex(i => i.productId === selectedProductId); if (idx > -1) newItems[idx].quantity += qty; else newItems.push({ productId: selectedProductId, quantity: qty }); setForm({ ...form, items: newItems }); setSelectedProductId(''); setItemQuantity('1'); }} disabled={!selectedProductId} className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30">Adicionar Item</button>
+                        <button type="button" onClick={handleAddItem} disabled={!selectedProductId} className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30">Adicionar à Cesta</button>
                      </div>
                      <div className="mt-8 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-6">
                         {form.items?.map((item, idx) => (
                           <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                            <div className="min-w-0 flex-1"><p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p><p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un</p></div>
-                            <button type="button" onClick={() => setForm({ ...form, items: (form.items || []).filter(i => i.productId !== item.productId) })} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un</p>
+                                {item.unitPrice && <span className="text-[8px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 rounded">R$ {item.unitPrice.toLocaleString('pt-BR')}</span>}
+                              </div>
+                            </div>
+                            <button type="button" onClick={() => {
+                              const newItems = (form.items || []).filter(i => i.productId !== item.productId);
+                              setForm({ ...form, items: newItems });
+                              const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
+                              setLocalTotalValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+                            }} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button>
                           </div>
                         ))}
                      </div>

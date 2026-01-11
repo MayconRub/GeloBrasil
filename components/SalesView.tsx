@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck, UserCircle
+  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck, UserCircle, Calculator
 } from 'lucide-react';
 import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product, Delivery, Employee } from '../types';
 
@@ -50,6 +50,22 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
+  const [itemUnitPrice, setItemUnitPrice] = useState('');
+
+  // Ao selecionar um produto, busca o preço personalizado do cliente
+  useEffect(() => {
+    if (selectedProductId && clientId) {
+      const client = clients.find(c => c.id === clientId);
+      const customPrice = client?.product_prices?.[selectedProductId];
+      if (customPrice) {
+        setItemUnitPrice(customPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+      } else {
+        setItemUnitPrice('');
+      }
+    } else {
+      setItemUnitPrice('');
+    }
+  }, [selectedProductId, clientId, clients]);
 
   const handleShortcutToday = () => {
     setStartDate(getTodayString());
@@ -63,22 +79,39 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
 
   const handleAddItem = () => {
     const qty = parseInt(itemQuantity);
+    const uPrice = parseFloat(itemUnitPrice.replace(/\./g, '').replace(',', '.'));
+    
     if (!selectedProductId || isNaN(qty) || qty <= 0) return;
-    const existingIdx = items.findIndex(i => i.productId === selectedProductId);
+    
+    const newItems = [...items];
+    const existingIdx = newItems.findIndex(i => i.productId === selectedProductId);
+    
     if (existingIdx > -1) {
-      const newItems = [...items];
       newItems[existingIdx].quantity += qty;
-      setItems(newItems);
+      if (!isNaN(uPrice)) newItems[existingIdx].unitPrice = uPrice;
     } else {
-      setItems([...items, { productId: selectedProductId, quantity: qty }]);
+      newItems.push({ 
+        productId: selectedProductId, 
+        quantity: qty, 
+        unitPrice: isNaN(uPrice) ? undefined : uPrice 
+      });
     }
+    
+    setItems(newItems);
     setSelectedProductId('');
     setItemQuantity('1');
+    setItemUnitPrice('');
+
+    // Atualiza o valor total automaticamente se houver preços informados
+    const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
+    if (newTotal > 0) {
+      setValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+    }
   };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    const numericValue = parseFloat(value.replace(',', '.'));
+    const numericValue = parseFloat(value.replace(/\./g, '').replace(',', '.'));
     if (!description || isNaN(numericValue)) return;
     onUpdate({ id: editingId || crypto.randomUUID(), description: description.toUpperCase(), value: numericValue, date, clientId: clientId || undefined, items: items.length > 0 ? items : undefined });
     resetForm();
@@ -88,7 +121,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     if (sale.description.includes('ENTREGA CONCLUÍDA')) return;
     setEditingId(sale.id);
     setDescription(sale.description);
-    setValue(sale.value.toString());
+    setValue(sale.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     setDate(sale.date);
     setClientId(sale.clientId || '');
     setItems(sale.items || []);
@@ -141,11 +174,16 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
              <label className="text-[10px] font-black text-slate-400 uppercase ml-3 tracking-widest">Valor do Faturamento R$</label>
              <div className="relative">
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-2xl">R$</span>
-                <input placeholder="0,00" value={value} onChange={e => setValue(e.target.value)} className="w-full h-20 pl-16 pr-6 bg-emerald-50/20 dark:bg-slate-950 border-2 border-emerald-100 dark:border-emerald-900/30 rounded-[2rem] text-3xl font-black text-emerald-600 outline-none placeholder:text-emerald-100" required />
+                <input 
+                  placeholder="0,00" 
+                  value={value} 
+                  onChange={e => setValue(e.target.value.replace(/[^0-9,]/g, ''))} 
+                  className="w-full h-20 pl-16 pr-6 bg-emerald-50/20 dark:bg-slate-950 border-2 border-emerald-100 dark:border-emerald-900/30 rounded-[2rem] text-3xl font-black text-emerald-600 outline-none placeholder:text-emerald-100" 
+                  required 
+                />
              </div>
           </div>
 
-          {/* Botão Sugestivo para Catálogo */}
           <button 
             type="button"
             onClick={() => setShowCatalog(!showCatalog)}
@@ -153,7 +191,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
           >
             <Package size={18} />
             <span className="text-[10px] font-black uppercase tracking-widest">
-              {showCatalog ? 'Recolher Catálogo' : 'Detalhar Produtos (Opcional)'}
+              {showCatalog ? 'Recolher Catálogo' : 'Detalhar Produtos (Preço Automático)'}
             </span>
             {items.length > 0 && (
               <span className="bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded-full">
@@ -179,28 +217,39 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                     {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                   </select>
 
-                  <div className="flex items-center gap-3">
-                    <button 
-                      type="button" 
-                      onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} 
-                      className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
-                    >
-                      <Minus size={20} />
-                    </button>
-                    <input 
-                      type="number" 
-                      className="flex-1 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-lg dark:text-white outline-none" 
-                      value={itemQuantity} 
-                      onChange={e => setItemQuantity(e.target.value)} 
-                      min="1"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} 
-                      className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
-                    >
-                      <Plus size={20} />
-                    </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        type="button" 
+                        onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} 
+                        className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <input 
+                        type="number" 
+                        className="flex-1 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none" 
+                        value={itemQuantity} 
+                        onChange={e => setItemQuantity(e.target.value)} 
+                        min="1"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} 
+                        className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                    <div className="relative">
+                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-500">R$</span>
+                       <input 
+                         placeholder="PREÇO UN." 
+                         value={itemUnitPrice} 
+                         onChange={e => setItemUnitPrice(e.target.value.replace(/[^0-9,]/g, ''))}
+                         className="w-full h-10 pl-8 pr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none"
+                       />
+                    </div>
                   </div>
 
                   <button 
@@ -218,11 +267,19 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                     <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProductName(it.productId)}</p>
-                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{it.quantity} un</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{it.quantity} un</p>
+                          {it.unitPrice && <span className="text-[8px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 rounded">R$ {it.unitPrice.toLocaleString('pt-BR')}</span>}
+                        </div>
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => setItems(items.filter((_,i)=>i!==idx))} 
+                        onClick={() => {
+                          const newItems = items.filter((_,i)=>i!==idx);
+                          setItems(newItems);
+                          const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
+                          setValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+                        }} 
                         className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"
                       >
                         <Trash2 size={14}/>

@@ -3,19 +3,25 @@ import React, { useState, useMemo } from 'react';
 import { 
   UserPlus, Search, Phone, MapPin, 
   Trash2, Pencil, X, MessageCircle,
-  Building2, User
+  Building2, User, Tag, DollarSign, Save,
+  Package, ChevronRight, Calculator
 } from 'lucide-react';
-import { Client } from '../types';
+import { Client, Product } from '../types';
 
 interface Props {
   clients: Client[];
+  products: Product[];
   onUpdate: (client: Client) => void;
   onDelete: (id: string) => void;
 }
 
-const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
+const ClientsView: React.FC<Props> = ({ clients, products, onUpdate, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [priceForm, setPriceForm] = useState<Record<string, string>>({});
+  
   const [form, setForm] = useState<Partial<Client>>({ 
     type: 'PARTICULAR', 
     street: '', 
@@ -26,7 +32,6 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
 
   const filtered = useMemo(() => {
     return clients.filter(c => 
-      // Fixed: Potential TypeError if properties are undefined
       (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
       (c.street || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.neighborhood || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,6 +82,31 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
     });
   };
 
+  const openPriceModal = (client: Client) => {
+    setSelectedClient(client);
+    const initialPrices: Record<string, string> = {};
+    products.forEach(p => {
+      initialPrices[p.id] = client.product_prices?.[p.id]?.toString() || '';
+    });
+    setPriceForm(initialPrices);
+    setIsPriceModalOpen(true);
+  };
+
+  const handleSavePrices = () => {
+    if (!selectedClient) return;
+    const finalPrices: Record<string, number> = {};
+    Object.entries(priceForm).forEach(([id, val]) => {
+      if (val) finalPrices[id] = parseFloat(val.replace(',', '.'));
+    });
+    
+    onUpdate({
+      ...selectedClient,
+      product_prices: finalPrices
+    });
+    setIsPriceModalOpen(false);
+    setSelectedClient(null);
+  };
+
   return (
     <div className="p-4 sm:p-8 space-y-8 pb-20 transition-colors">
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6">
@@ -106,20 +136,26 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
           {filtered.map(c => (
-            <div key={c.id} className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 group hover:border-sky-200 dark:hover:border-sky-900 transition-all">
+            <div key={c.id} className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 group hover:border-sky-200 dark:hover:border-sky-900 transition-all relative overflow-hidden">
                <div className="flex justify-between items-start mb-4">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${c.type === 'REVENDEDOR' ? 'bg-indigo-500 text-white' : 'bg-sky-500 text-white shadow-lg dark:shadow-none'}`}>
                     {c.type === 'REVENDEDOR' ? <Building2 size={24} /> : <User size={24} />}
                   </div>
                   <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openPriceModal(c)} title="Tabela de Preços" className="p-2 text-slate-300 dark:text-slate-600 hover:text-emerald-500 transition-all"><Tag size={18} /></button>
                     <button onClick={() => handleEdit(c)} className="p-2 text-slate-300 dark:text-slate-600 hover:text-sky-500 transition-all"><Pencil size={18} /></button>
                     <button onClick={() => onDelete(c.id)} className="p-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-all"><Trash2 size={18} /></button>
                   </div>
                </div>
                <h4 className="font-black text-slate-800 dark:text-slate-100 text-sm uppercase leading-tight truncate">{c.name}</h4>
-               <span className={`inline-block px-2 py-0.5 rounded text-[7px] font-black mt-1 ${c.type === 'REVENDEDOR' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-500'}`}>
-                 {c.type}
-               </span>
+               <div className="flex items-center gap-2 mt-1">
+                 <span className={`inline-block px-2 py-0.5 rounded text-[7px] font-black ${c.type === 'REVENDEDOR' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-500'}`}>
+                   {c.type}
+                 </span>
+                 {c.product_prices && Object.keys(c.product_prices).length > 0 && (
+                   <span className="px-2 py-0.5 rounded text-[7px] font-black bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">PREÇO ESPECIAL</span>
+                 )}
+               </div>
 
                <div className="mt-6 space-y-3">
                   <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400">
@@ -134,19 +170,77 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
                       <Phone size={14} className="shrink-0 text-slate-300 dark:text-slate-700" />
                       <p className="text-[9px] font-bold uppercase">{c.phone}</p>
                     </div>
-                    <a 
-                      href={`https://wa.me/55${c.phone.replace(/\D/g, '')}`} 
-                      target="_blank"
-                      className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
-                    >
-                      <MessageCircle size={14} />
-                    </a>
+                    <div className="flex gap-2">
+                       <button onClick={() => openPriceModal(c)} className="p-2 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg hover:text-emerald-500 transition-all"><Calculator size={14}/></button>
+                       <a 
+                         // Fix: Explicitly treat phone as a string to ensure "replace" is available on the expression
+                         href={`https://wa.me/55${(String(c.phone || '')).replace(/\D/g, '')}`} 
+                         target="_blank"
+                         className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
+                       >
+                         <MessageCircle size={14} />
+                       </a>
+                    </div>
                   </div>
                </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Modal de Preços Personalizados */}
+      {isPriceModalOpen && selectedClient && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-md transition-all" onClick={() => setIsPriceModalOpen(false)} />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] p-8 shadow-2xl dark:shadow-none border border-transparent dark:border-slate-800 relative animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner"><DollarSign size={28} /></div>
+                <div>
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Tabela de Preços</h3>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Cliente: {selectedClient.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsPriceModalOpen(false)} className="p-3 text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-colors"><X size={24}/></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 mb-8">
+              {products.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 font-black text-[10px] uppercase">Nenhum produto cadastrado no catálogo base</div>
+              ) : products.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl group hover:border-emerald-200 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center border text-slate-300"><Package size={20} /></div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase truncate">{p.nome}</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{p.unidade}</p>
+                    </div>
+                  </div>
+                  <div className="relative w-32">
+                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-500">R$</span>
+                     <input 
+                       type="text" 
+                       placeholder="VALOR" 
+                       className="w-full h-12 pl-10 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                       value={priceForm[p.id] || ''}
+                       onChange={e => setPriceForm({...priceForm, [p.id]: e.target.value.replace(/[^0-9,]/g, '')})}
+                     />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-6 border-t border-slate-50 dark:border-slate-800">
+               <button 
+                 onClick={handleSavePrices}
+                 className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[1.8rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+               >
+                 <Save size={20} /> ATUALIZAR TABELA DO CLIENTE
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">

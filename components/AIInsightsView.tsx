@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Sparkles, BrainCircuit, Lightbulb, Loader2, AlertCircle } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import { Sale, Expense } from '../types';
 
 interface Props {
@@ -20,7 +20,7 @@ const AIInsightsView: React.FC<Props> = ({ data }) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Inicialização correta seguindo as diretrizes v3
+      // Create a new GoogleGenAI instance right before making an API call.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const salesTotal = data.sales.slice(0, 30).reduce((sum, s) => sum + s.value, 0);
@@ -28,13 +28,15 @@ const AIInsightsView: React.FC<Props> = ({ data }) => {
 
       const prompt = `Analise financeiramente os dados deste mês de uma fábrica de gelo: Vendas Totais R$ ${salesTotal}, Despesas Totais R$ ${expensesTotal}. Dê um diagnóstico curto e 3 dicas acionáveis para aumentar o lucro. Responda em Português (Brasil).`;
 
-      const response = await ai.models.generateContent({
+      // Use ai.models.generateContent to query GenAI.
+      const response: GenerateContentResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
       });
 
-      // Acesso direto à propriedade .text (propriedade, não método)
-      setInsight(response.text || "Não foi possível gerar análise no momento.");
+      // Directly access the .text property on GenerateContentResponse.
+      const text = response.text;
+      setInsight(text || "Não foi possível gerar análise no momento.");
     } catch (err: any) {
       console.error(err);
       setError("Erro na conexão AI. Verifique se a chave API está configurada.");

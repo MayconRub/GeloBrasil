@@ -108,7 +108,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     maintenanceLogs: (maints.data || []).map(m => ({...m, servico: (m.servico || '').toUpperCase(), custo: Number(m.custo) || 0})),
     fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: (f.tipo_infracao || '').toUpperCase(), valor: Number(f.valor) || 0})),
     categories: (cats.data || []).map(c => (c.nome || '').toUpperCase()),
-    clients: (clients.data || []).map(c => ({ id: c.id, name: c.name, phone: c.phone, street: c.street || '', number: c.address_number || '', neighborhood: c.neighborhood || '', city: c.city || '', type: c.type, cnpj_cpf: c.cnpj_cpf, created_at: c.created_at })),
+    clients: (clients.data || []).map(c => ({ id: c.id, name: c.name, phone: c.phone, street: c.street || '', number: c.address_number || '', neighborhood: c.neighborhood || '', city: c.city || '', type: c.type, cnpj_cpf: c.cnpj_cpf, created_at: c.created_at, product_prices: c.product_prices })),
     deliveries: (deliveries.data || []).map(d => ({ 
       id: d.id, 
       sequenceNumber: d.numero_sequencial, 
@@ -175,7 +175,7 @@ export const syncCategoriesOrder = async (orderedNames: string[]) => {
   return Promise.all(updates);
 };
 
-export const syncClient = (c: Client) => supabase.from('clientes').upsert({ id: c.id, name: (c.name || '').toUpperCase(), phone: c.phone, street: (c.street || '').toUpperCase(), address_number: c.number, neighborhood: (c.neighborhood || '').toUpperCase(), city: (c.city || '').toUpperCase(), type: c.type, cnpj_cpf: c.cnpj_cpf });
+export const syncClient = (c: Client) => supabase.from('clientes').upsert({ id: c.id, name: (c.name || '').toUpperCase(), phone: c.phone, street: (c.street || '').toUpperCase(), address_number: c.number, neighborhood: (c.neighborhood || '').toUpperCase(), city: (c.city || '').toUpperCase(), type: c.type, cnpj_cpf: c.cnpj_cpf, product_prices: c.product_prices });
 
 export const deleteClient = (id: string) => supabase.from('clientes').delete().eq('id', id);
 

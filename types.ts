@@ -30,11 +30,13 @@ export interface Client {
   type: 'REVENDEDOR' | 'PARTICULAR';
   cnpj_cpf?: string;
   created_at: string;
+  product_prices?: Record<string, number>;
 }
 
 export interface DeliveryItem {
   productId: string;
   quantity: number;
+  unitPrice?: number;
 }
 
 export interface Delivery {
