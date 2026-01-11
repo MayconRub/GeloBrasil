@@ -17,7 +17,22 @@ interface Props {
 }
 
 const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clients, products }) => {
-  const getTodayString = () => new Date().toISOString().split('T')[0];
+  const getTodayString = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+
+  const getFirstDayOfMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  };
+
+  const getLastDayOfMonth = () => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  };
+
   const [startDate, setStartDate] = useState(getTodayString());
   const [endDate, setEndDate] = useState(getTodayString());
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +47,16 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
+
+  const handleShortcutToday = () => {
+    setStartDate(getTodayString());
+    setEndDate(getTodayString());
+  };
+
+  const handleShortcutMonth = () => {
+    setStartDate(getFirstDayOfMonth());
+    setEndDate(getLastDayOfMonth());
+  };
 
   const handleAddItem = () => {
     const qty = parseInt(itemQuantity);
@@ -142,25 +167,46 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
       <header className="flex flex-col sm:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
            <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg"><TrendingUp size={28} /></div>
-           <h2 className="text-3xl font-black text-slate-800 dark:text-white leading-none">VENDAS <span className="text-sky-500">DIÁRIAS</span></h2>
+           <h2 className="text-3xl font-black text-slate-800 dark:text-white leading-none uppercase tracking-tighter">VENDAS <span className="text-sky-500">DIÁRIAS</span></h2>
         </div>
         <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
       </header>
+
+      {/* Modern Compact Range Filter Bar (Same as Deliveries) */}
+      <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+          </div>
+          <ArrowRight size={14} className="text-slate-300 shrink-0" />
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
+            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button onClick={handleShortcutToday} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Hoje</button>
+            <button onClick={handleShortcutMonth} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Mês</button>
+          </div>
+          <div className="relative flex-1 lg:w-64">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+            <input 
+              type="text" 
+              placeholder="BUSCAR CLIENTE OU DESCRIÇÃO..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" 
+            />
+          </div>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="hidden lg:block lg:col-span-1">{renderForm()}</div>
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[600px]">
-            <div className="p-8 bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-50 flex flex-col md:flex-row gap-4">
-               <div className="flex-1 relative">
-                  <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"/>
-                  <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="PESQUISAR VENDAS..." className="w-full h-14 pl-14 pr-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-full outline-none font-black text-[10px] uppercase dark:text-white" />
-               </div>
-               <div className="flex gap-2 items-center bg-white dark:bg-slate-900 px-4 rounded-full border border-slate-100">
-                  <span className="text-[8px] font-black text-slate-400">FILTRAR:</span>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-[9px] font-bold dark:text-white" />
-               </div>
-            </div>
             <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-50 dark:border-slate-800"><th className="px-8 py-6">DETALHES</th><th className="px-8 py-6 text-right">VALOR</th><th className="px-8 py-6 text-center">AÇÕES</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {filteredSales.map(s => (
                 <tr key={s.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/40 transition-colors group">
@@ -177,6 +223,16 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                   </td>
                 </tr>
               ))}
+              {filteredSales.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="py-24 text-center">
+                    <div className="flex flex-col items-center opacity-20">
+                      <DollarSign size={48} className="mb-4 text-slate-400" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhuma venda no intervalo</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody></table></div>
           </div>
         </div>

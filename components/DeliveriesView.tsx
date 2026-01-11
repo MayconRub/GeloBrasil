@@ -546,7 +546,7 @@ ________________________________________
             <BarChart3 size={16} className="text-sky-50" /> <span className="hidden sm:inline">FECHAMENTO</span>
           </button>
           <button onClick={() => setIsOpen(true)} className="flex-1 sm:flex-none px-5 h-10 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-            <Plus size={16} /> <span className="hidden sm:inline">NOVO AGENDAMENTO</span>
+            <Plus size={16} /> <span className="hidden sm:inline">LANÇAR ENTREGA</span>
           </button>
         </div>
       </header>
@@ -792,7 +792,7 @@ ________________________________________
           <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={handleCloseModal} />
           <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl dark:shadow-none relative animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-transparent dark:border-slate-800">
             <button onClick={handleCloseModal} className="absolute top-4 right-4 sm:top-8 sm:right-8 w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-700 hover:text-rose-500 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all z-[210] active:scale-90"><X size={20} strokeWidth={3} /></button>
-            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-6 sm:mb-10 flex items-center gap-3 shrink-0"><div className="w-10 h-10 sm:w-12 sm:h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner"><PackageCheck size={24} /></div>{form.id ? 'Editar' : 'Agendar'} <span className="text-sky-500">Entrega</span></h3>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-6 sm:mb-10 flex items-center gap-3 shrink-0"><div className="w-10 h-10 sm:w-12 sm:h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner"><PackageCheck size={24} /></div>{form.id ? 'Editar' : 'Lançar'} <span className="text-sky-500">Entrega</span></h3>
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-8 sm:space-y-10 pb-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                  <div className="space-y-6 sm:space-y-8">
@@ -867,7 +867,20 @@ ________________________________________
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Motorista</label>
-                          <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none px-4 dark:text-white" value={form.driverId || ''} onChange={e => setForm({...form, driverId: e.target.value})} required>
+                          <select 
+                            className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none px-4 dark:text-white" 
+                            value={form.driverId || ''} 
+                            onChange={e => {
+                              const selectedDriverId = e.target.value;
+                              const linkedVehicle = vehicles.find(v => v.motorista_id === selectedDriverId);
+                              setForm(prev => ({
+                                ...prev, 
+                                driverId: selectedDriverId,
+                                vehicleId: linkedVehicle ? linkedVehicle.id : prev.vehicleId
+                              }));
+                            }} 
+                            required
+                          >
                             <option value="">-- MOTORISTA --</option>
                             {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
