@@ -4,7 +4,8 @@ import {
   Plus, Trash2, Search, Pencil, CheckCircle2,
   Receipt, Clock, X, Wallet, Calendar,
   ArrowUpRight, ArrowDownRight, ArrowRight, TrendingUp,
-  Filter, ChevronDown, DollarSign
+  Filter, ChevronDown, DollarSign, Calculator, CalendarRange,
+  AlertCircle, Info, CheckCircle, BarChart3
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
@@ -51,6 +52,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
   const [category, setCategory] = useState('GERAL');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
+  const [isBiweeklyModalOpen, setIsBiweeklyModalOpen] = useState(false);
 
   const handleShortcutToday = () => {
     setStartDate(getTodayString());
@@ -82,6 +84,45 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
       })
       .sort((a, b) => b.dueDate.localeCompare(a.dueDate));
   }, [expenses, startDate, endDate, searchTerm, statusFilter]);
+
+  // Lógica do Cálculo Quinzenal
+  const biweeklyCalculation = useMemo(() => {
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    let qStart: string;
+    let qEnd: string;
+
+    if (currentDay <= 15) {
+      qStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+      qEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`;
+    } else {
+      const lastDay = new Date(currentYear, currentMonth, 0).getDate();
+      qStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}-16`;
+      qEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    }
+
+    const periodSales = sales
+      .filter(s => s.date >= qStart && s.date <= qEnd)
+      .reduce((sum, s) => sum + s.value, 0);
+
+    const openExpenses = expenses
+      .filter(e => e.dueDate >= qStart && e.dueDate <= qEnd && e.status !== ExpenseStatus.PAGO)
+      .reduce((sum, e) => sum + e.value, 0);
+
+    const diff = periodSales - openExpenses;
+
+    return {
+      qStart,
+      qEnd,
+      periodSales,
+      openExpenses,
+      diff,
+      status: diff < 0 ? 'shortfall' : diff > 0 ? 'surplus' : 'exact'
+    };
+  }, [sales, expenses, isBiweeklyModalOpen]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,9 +166,17 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1.5 uppercase tracking-widest">Controle de Fluxo e Vencimentos</p>
           </div>
         </div>
-        <button onClick={() => setIsMobileFormOpen(true)} className="w-full sm:w-auto px-10 h-14 bg-sky-500 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-sky-600 active:scale-95 transition-all flex items-center justify-center gap-3">
-           <Plus size={20} /> Novo Lançamento
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setIsBiweeklyModalOpen(true)}
+            className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center gap-3"
+          >
+             <Calculator size={20} className="text-sky-500" /> Fechamento Quinzenal
+          </button>
+          <button onClick={() => setIsMobileFormOpen(true)} className="px-10 h-14 bg-sky-500 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-sky-600 active:scale-95 transition-all flex items-center justify-center gap-3">
+             <Plus size={20} /> Novo Lançamento
+          </button>
+        </div>
       </header>
 
       {/* Modern Filter Bar (Same as Deliveries) */}
@@ -248,6 +297,77 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
           </table>
         </div>
       </div>
+
+      {/* Biweekly Calculation Modal */}
+      {isBiweeklyModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/80 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsBiweeklyModalOpen(false)} />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] p-8 sm:p-12 shadow-3xl relative border dark:border-slate-800 animate-in zoom-in-95 duration-300">
+             <button onClick={() => setIsBiweeklyModalOpen(false)} className="absolute top-8 right-8 p-3 text-slate-300 hover:text-rose-500 transition-colors"><X size={28}/></button>
+             
+             <div className="flex items-center gap-5 mb-10">
+                <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-2xl flex items-center justify-center shadow-inner">
+                   <CalendarRange size={32} />
+                </div>
+                <div>
+                   <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-none uppercase">Fechamento <span className="text-sky-500">Quinzenal</span></h3>
+                   <div className="flex items-center gap-2 mt-2">
+                      <Clock size={12} className="text-slate-400" />
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        Período: {new Date(biweeklyCalculation.qStart + 'T00:00:00').toLocaleDateString()} — {new Date(biweeklyCalculation.qEnd + 'T00:00:00').toLocaleDateString()}
+                      </p>
+                   </div>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="p-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[2rem]">
+                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Vendido no Ciclo</p>
+                   <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">R$ {biweeklyCalculation.periodSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div className="p-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[2rem]">
+                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Débitos Pendentes</p>
+                   <p className="text-lg font-black text-rose-500">R$ {biweeklyCalculation.openExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                </div>
+             </div>
+
+             <div className={`p-8 rounded-[2.5rem] border-2 mb-8 text-center transition-all ${
+               biweeklyCalculation.status === 'shortfall' 
+               ? 'bg-rose-50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/30 text-rose-600' 
+               : biweeklyCalculation.status === 'surplus'
+               ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-900/30 text-emerald-600'
+               : 'bg-sky-50 border-sky-100 dark:bg-sky-900/10 dark:border-sky-900/30 text-sky-600'
+             }`}>
+                <div className="flex items-center justify-center gap-3 mb-4">
+                   {biweeklyCalculation.status === 'shortfall' && <AlertCircle size={28} />}
+                   {biweeklyCalculation.status === 'surplus' && <CheckCircle size={28} />}
+                   {biweeklyCalculation.status === 'exact' && <BarChart3 size={28} />}
+                   <span className="text-xs font-black uppercase tracking-[0.3em]">Status do Período</span>
+                </div>
+                
+                <h4 className="text-xl sm:text-2xl font-black uppercase tracking-tight">
+                   {biweeklyCalculation.status === 'shortfall' && `Faltam R$ ${Math.abs(biweeklyCalculation.diff).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para quitar as despesas`}
+                   {biweeklyCalculation.status === 'surplus' && `Sobra R$ ${biweeklyCalculation.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} após quitar as despesas`}
+                   {biweeklyCalculation.status === 'exact' && `Meta alcançada – despesas quitadas`}
+                </h4>
+             </div>
+
+             <div className="flex items-start gap-4 p-5 bg-sky-50/50 dark:bg-sky-900/10 rounded-2xl border border-sky-100 dark:border-sky-900/30">
+                <Info size={18} className="text-sky-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-sky-700/70 dark:text-sky-400/60 leading-relaxed uppercase tracking-wider">
+                  Este cálculo considera apenas despesas em aberto. Despesas já pagas já estão refletidas no resultado líquido geral. Esta ferramenta foca em quanto você ainda precisa faturar para cobrir compromissos pendentes do ciclo.
+                </p>
+             </div>
+
+             <button 
+                onClick={() => setIsBiweeklyModalOpen(false)}
+                className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] mt-8 active:scale-95 shadow-2xl transition-all"
+             >
+                Entendido
+             </button>
+          </div>
+        </div>
+      )}
 
       {/* Fast Entry Modal */}
       {isMobileFormOpen && (
