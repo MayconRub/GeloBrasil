@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp
+  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck
 } from 'lucide-react';
 import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product } from '../types';
 
@@ -83,6 +83,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   };
 
   const handleEdit = (sale: Sale) => {
+    if (sale.description.includes('ENTREGA CONCLUÍDA')) return;
     setEditingId(sale.id);
     setDescription(sale.description);
     setValue(sale.value.toString());
@@ -235,21 +236,42 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[600px]">
             <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-50 dark:border-slate-800"><th className="px-8 py-6">DETALHES</th><th className="px-8 py-6 text-right">VALOR</th><th className="px-8 py-6 text-center">AÇÕES</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {filteredSales.map(s => (
-                <tr key={s.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/40 transition-colors group">
-                  <td className="px-8 py-5">
-                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 leading-none mb-1">{s.description}</p>
-                    <p className="text-[8px] text-slate-400 font-bold uppercase flex items-center gap-1"><User size={8}/> {getClientName(s.clientId)} <span className="text-slate-200 ml-2">|</span> {new Date(s.date + 'T00:00:00').toLocaleDateString()}</p>
-                  </td>
-                  <td className="px-8 py-5 text-right font-black text-sm text-emerald-600">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={() => handleEdit(s)} className="p-2 text-slate-300 hover:text-sky-500"><Pencil size={16}/></button>
-                       <button onClick={() => onDelete(s.id)} className="p-2 text-slate-200 hover:text-rose-500"><Trash2 size={16}/></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filteredSales.map(s => {
+                const isFromDelivery = s.description.includes('ENTREGA CONCLUÍDA');
+                return (
+                  <tr key={s.id} className={`hover:bg-slate-50/30 dark:hover:bg-slate-800/40 transition-colors group ${isFromDelivery ? 'bg-slate-50/10' : ''}`}>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-2">
+                        {isFromDelivery && <Truck size={12} className="text-sky-500 shrink-0" />}
+                        <p className={`text-[11px] font-black leading-none ${isFromDelivery ? 'text-sky-700 dark:text-sky-400' : 'text-slate-800 dark:text-slate-200'} mb-1`}>{s.description}</p>
+                      </div>
+                      <p className="text-[8px] text-slate-400 font-bold uppercase flex items-center gap-1"><User size={8}/> {getClientName(s.clientId)} <span className="text-slate-200 ml-2">|</span> {new Date(s.date + 'T00:00:00').toLocaleDateString()}</p>
+                    </td>
+                    <td className="px-8 py-5 text-right font-black text-sm text-emerald-600">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td className="px-8 py-5 text-center">
+                      <div className={`flex justify-center gap-2 ${isFromDelivery ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                         {!isFromDelivery ? (
+                           <>
+                             <button onClick={() => handleEdit(s)} className="p-2 text-slate-300 hover:text-sky-500" title="Editar"><Pencil size={16}/></button>
+                             <button onClick={() => onDelete(s.id)} className="p-2 text-slate-200 hover:text-rose-500" title="Excluir"><Trash2 size={16}/></button>
+                           </>
+                         ) : (
+                           <div className="group/lock relative">
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 rounded-lg text-sky-600 dark:text-sky-400 cursor-help">
+                                <Lock size={12} strokeWidth={3} />
+                                <span className="text-[8px] font-black uppercase tracking-tight">LOGÍSTICA</span>
+                              </div>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-900 text-white text-[7px] font-black uppercase tracking-widest rounded-xl shadow-2xl opacity-0 group-hover/lock:opacity-100 transition-all pointer-events-none z-50 text-center leading-relaxed">
+                                <Info size={12} className="mx-auto mb-1 text-sky-400" />
+                                ESTA VENDA FOI GERADA PELA ENTREGA. PARA EXCLUIR OU ALTERAR, CANCELE A ENTREGA NO PAINEL DE LOGÍSTICA.
+                              </div>
+                           </div>
+                         )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredSales.length === 0 && (
                 <tr>
                   <td colSpan={3} className="py-24 text-center">
