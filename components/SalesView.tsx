@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2
+  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product } from '../types';
 
@@ -43,6 +43,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const [clientId, setClientId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
 
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -88,11 +89,12 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     setDate(sale.date);
     setClientId(sale.clientId || '');
     setItems(sale.items || []);
+    setShowCatalog((sale.items?.length || 0) > 0);
     setIsMobileFormOpen(true);
   };
 
   const resetForm = () => {
-    setEditingId(null); setDescription('VENDA BALCÃO'); setValue(''); setDate(getTodayString()); setClientId(''); setItems([]); setIsMobileFormOpen(false);
+    setEditingId(null); setDescription('VENDA BALCÃO'); setValue(''); setDate(getTodayString()); setClientId(''); setItems([]); setIsMobileFormOpen(false); setShowCatalog(false);
   };
 
   const filteredSales = useMemo(() => {
@@ -115,26 +117,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Registro de Faturamento</p>
         </div>
       </div>
+      
       <div className="space-y-6">
-        <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Catálogo de Itens</p>
-           <div className="flex gap-2 mb-4">
-              <select className="flex-1 h-12 px-4 bg-white dark:bg-slate-900 border rounded-xl text-[10px] font-black uppercase outline-none dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
-                <option value="">PRODUTO...</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-              </select>
-              <input type="number" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} className="w-16 h-12 text-center bg-white dark:bg-slate-900 border rounded-xl font-black text-sm outline-none dark:text-white" />
-              <button type="button" onClick={handleAddItem} className="h-12 w-12 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-lg"><Plus size={20}/></button>
-           </div>
-           <div className="space-y-2 max-h-[120px] overflow-y-auto no-scrollbar">
-              {items.map((it, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[9px] font-black uppercase dark:text-white">
-                  <span>{it.quantity}x {getProductName(it.productId)}</span>
-                  <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-400"><Trash2 size={14}/></button>
-                </div>
-              ))}
-           </div>
-        </div>
         <form onSubmit={handleAdd} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
              <div className="space-y-1.5">
@@ -149,6 +133,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border-none rounded-2xl font-bold text-xs dark:text-white shadow-inner" required />
              </div>
           </div>
+
           <div className="space-y-1.5">
              <label className="text-[10px] font-black text-slate-400 uppercase ml-3 tracking-widest">Valor do Faturamento R$</label>
              <div className="relative">
@@ -156,6 +141,48 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                 <input placeholder="0,00" value={value} onChange={e => setValue(e.target.value)} className="w-full h-20 pl-16 pr-6 bg-emerald-50/20 dark:bg-slate-950 border-2 border-emerald-100 dark:border-emerald-900/30 rounded-[2rem] text-3xl font-black text-emerald-600 outline-none placeholder:text-emerald-100" required />
              </div>
           </div>
+
+          {/* Botão Sugestivo para Catálogo */}
+          <button 
+            type="button"
+            onClick={() => setShowCatalog(!showCatalog)}
+            className={`w-full py-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-3 transition-all ${showCatalog ? 'bg-sky-50 border-sky-200 text-sky-600 dark:bg-sky-900/20 dark:border-sky-800' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-sky-200 hover:text-sky-500 dark:bg-slate-950 dark:border-slate-800'}`}
+          >
+            <Package size={18} />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              {showCatalog ? 'Recolher Catálogo' : 'Detalhar Produtos (Opcional)'}
+            </span>
+            {items.length > 0 && (
+              <span className="bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded-full">
+                {items.length} ITENS
+              </span>
+            )}
+            {showCatalog ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showCatalog && (
+            <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2 duration-300">
+               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Selecione os Itens Vendidos</p>
+               <div className="flex gap-2 mb-4">
+                  <select className="flex-1 h-12 px-4 bg-white dark:bg-slate-900 border rounded-xl text-[10px] font-black uppercase outline-none dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
+                    <option value="">PRODUTO...</option>
+                    {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                  <input type="number" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} className="w-16 h-12 text-center bg-white dark:bg-slate-900 border rounded-xl font-black text-sm outline-none dark:text-white" />
+                  <button type="button" onClick={handleAddItem} className="h-12 w-12 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20}/></button>
+               </div>
+               <div className="space-y-2 max-h-[120px] overflow-y-auto no-scrollbar">
+                  {items.map((it, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[9px] font-black uppercase dark:text-white">
+                      <span>{it.quantity}x {getProductName(it.productId)}</span>
+                      <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-400 p-1 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+                  {items.length === 0 && <p className="text-[8px] text-slate-300 uppercase text-center py-4 italic">Nenhum item detalhado ainda</p>}
+               </div>
+            </div>
+          )}
+
           <button type="submit" className="w-full h-20 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[2.2rem] font-black uppercase text-xs tracking-[0.3em] shadow-2xl active:scale-95 transition-all">CONCLUIR LANÇAMENTO</button>
         </form>
       </div>
@@ -172,7 +199,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
         <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
       </header>
 
-      {/* Modern Compact Range Filter Bar (Same as Deliveries) */}
+      {/* Modern Compact Range Filter Bar */}
       <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">

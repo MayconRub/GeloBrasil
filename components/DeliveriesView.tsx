@@ -32,9 +32,12 @@ import {
   PieChart,
   FileText,
   Building2,
-  FileEdit
+  FileEdit,
+  AlignLeft,
+  Filter,
+  ListFilter
 } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Client, Delivery, DeliveryStatus, Employee, Product, Vehicle, AppSettings } from '../types';
 
 interface Props {
@@ -71,7 +74,6 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
-  // Utilitário para formatar telefone idêntico ao ClientsView
   const formatPhone = (value: string) => {
     if (!value) return "";
     value = value.replace(/\D/g, "");
@@ -91,7 +93,6 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
   const [endDate, setEndDate] = useState(getTodayString());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados para Modal de Confirmação de Pagamento
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
   const [deliveryToConfirm, setDeliveryToConfirm] = useState<Delivery | null>(null);
 
@@ -104,7 +105,6 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     notes: ''
   });
   
-  // Estados para Modo Express (Cadastro Rápido)
   const [isExpressMode, setIsExpressMode] = useState(false);
   const [expressClient, setExpressClient] = useState<{
     name: string;
@@ -248,12 +248,10 @@ ________________________________________
   };
 
   const filtered = useMemo(() => {
-    // Primeiro aplicamos os filtros de status, data e busca
     const results = deliveries.filter(d => {
       const client = getClient(d.clientId);
       const matchesStatus = activeFilter === 'TODOS' || d.status === activeFilter;
-      const deliveryDate = d.scheduledDate;
-      const matchesDate = deliveryDate >= startDate && deliveryDate <= endDate;
+      const matchesDate = d.scheduledDate >= startDate && d.scheduledDate <= endDate;
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
         client?.name.toLowerCase().includes(searchLower) ||
@@ -263,7 +261,6 @@ ________________________________________
       return matchesStatus && matchesDate && matchesSearch;
     });
 
-    // Se o filtro ativo for 'TODOS', aplicamos a ordenação personalizada por prioridade
     if (activeFilter === 'TODOS') {
       const statusPriority: Record<DeliveryStatus, number> = {
         [DeliveryStatus.PENDENTE]: 1,
@@ -276,52 +273,31 @@ ________________________________________
       return results.sort((a, b) => {
         const prioA = statusPriority[a.status] || 99;
         const prioB = statusPriority[b.status] || 99;
-        
-        // Se as prioridades forem diferentes, ordena pela prioridade
         if (prioA !== prioB) return prioA - prioB;
-        
-        // Se o status for o mesmo, ordena pela data agendada e depois hora
-        const dateA = a.scheduledDate + (a.scheduledTime || '00:00');
-        const dateB = b.scheduledDate + (b.scheduledTime || '00:00');
-        return dateA.localeCompare(dateB);
+        return (a.scheduledDate + (a.scheduledTime || '')).localeCompare(b.scheduledDate + (b.scheduledTime || ''));
       });
     }
 
-    // Se houver um filtro específico (ex: Pendente), apenas ordenamos por data/hora
-    return results.sort((a, b) => {
-      const dateA = a.scheduledDate + (a.scheduledTime || '00:00');
-      const dateB = b.scheduledDate + (b.scheduledTime || '00:00');
-      return dateA.localeCompare(dateB);
-    });
+    return results.sort((a, b) => (a.scheduledDate + (a.scheduledTime || '')).localeCompare(b.scheduledDate + (b.scheduledTime || '')));
   }, [deliveries, activeFilter, startDate, endDate, searchTerm, clients]);
 
-  // Cálculo das estatísticas para o Fechamento
   const closingStats = useMemo(() => {
     const rangeDeliveries = deliveries.filter(d => d.scheduledDate >= startDate && d.scheduledDate <= endDate);
-    
     const completed = rangeDeliveries.filter(d => d.status === DeliveryStatus.ENTREGUE);
     const notPaid = rangeDeliveries.filter(d => d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO);
     const cancelled = rangeDeliveries.filter(d => d.status === DeliveryStatus.CANCELADO);
 
-    const totalValueCompleted = completed.reduce((acc, d) => acc + (d.totalValue || 0), 0);
-    const totalValueNotPaid = notPaid.reduce((acc, d) => acc + (d.totalValue || 0), 0);
-
-    const driverStats = drivers.map(driver => {
-      const driverDeliveries = completed.filter(d => d.driverId === driver.id);
-      return {
-        name: driver.name,
-        count: driverDeliveries.length,
-        value: driverDeliveries.reduce((acc, d) => acc + (d.totalValue || 0), 0)
-      };
-    }).filter(s => s.count > 0);
-
     return {
       completedCount: completed.length,
-      completedValue: totalValueCompleted,
+      completedValue: completed.reduce((acc, d) => acc + (d.totalValue || 0), 0),
       notPaidCount: notPaid.length,
-      notPaidValue: totalValueNotPaid,
+      notPaidValue: notPaid.reduce((acc, d) => acc + (d.totalValue || 0), 0),
       cancelledCount: cancelled.length,
-      driverStats
+      driverStats: drivers.map(driver => ({
+        name: driver.name,
+        count: completed.filter(d => d.driverId === driver.id).length,
+        value: completed.filter(d => d.driverId === driver.id).reduce((acc, d) => acc + (d.totalValue || 0), 0)
+      })).filter(s => s.count > 0)
     };
   }, [deliveries, startDate, endDate, drivers]);
 
@@ -336,7 +312,8 @@ ________________________________________
 
   const parseCurrency = (val: string): number => {
     if (!val) return 0;
-    const sanitized = val.replace(/\./g, '').replace(',', '.');
+    // Padrão brasileiro: Remove pontos de milhar e troca vírgula decimal por ponto
+    const sanitized = val.toString().replace(/\./g, '').replace(',', '.');
     const parsed = parseFloat(sanitized);
     return isNaN(parsed) ? 0 : parsed;
   };
@@ -344,6 +321,12 @@ ________________________________________
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    const totalVal = parseCurrency(localTotalValue);
+    if (totalVal <= 0) {
+      alert("O VALOR TOTAL DA ENTREGA DEVE SER MAIOR QUE ZERO.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -368,11 +351,10 @@ ________________________________________
       }
 
       if (!finalClientId || !form.driverId || !form.vehicleId) {
+        alert("SELECIONE O CLIENTE, MOTORISTA E VEÍCULO.");
         setIsSubmitting(false);
         return;
       }
-
-      const totalVal = parseCurrency(localTotalValue);
 
       await onUpdate({ 
         ...form, 
@@ -431,15 +413,12 @@ ________________________________________
 
   const handleConfirmDeliveryWithPayment = async (paid: boolean) => {
     if (!deliveryToConfirm) return;
-    
     const newStatus = paid ? DeliveryStatus.ENTREGUE : DeliveryStatus.ENTREGUE_PENDENTE_PGTO;
-    
     await onUpdate({ 
       ...deliveryToConfirm, 
       status: newStatus, 
       deliveredAt: new Date().toISOString() 
     });
-    
     setShowPaymentConfirm(false);
     setDeliveryToConfirm(null);
   };
@@ -476,7 +455,7 @@ ________________________________________
               .section { margin-bottom: 30px; }
               .section h2 { font-size: 14px; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 15px; }
               .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-              .card { background: #f8fafc; padding: 20px; rounded: 15px; border: 1px solid #e2e8f0; }
+              .card { background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; }
               .card p { margin: 0; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 800; }
               .card h3 { margin: 5px 0 0 0; font-size: 24px; font-weight: 900; }
               .item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
@@ -531,6 +510,18 @@ ________________________________________
     }
   };
 
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'TODOS': return { color: 'indigo', icon: ListFilter, label: 'TODOS' };
+      case DeliveryStatus.PENDENTE: return { color: 'amber', icon: Clock, label: 'AGENDADOS' };
+      case DeliveryStatus.EM_ROTA: return { color: 'sky', icon: Truck, label: 'EM ROTA' };
+      case DeliveryStatus.ENTREGUE_PENDENTE_PGTO: return { color: 'rose', icon: AlertTriangle, label: 'NÃO PAGO' };
+      case DeliveryStatus.ENTREGUE: return { color: 'emerald', icon: CheckCircle2, label: 'CONCLUÍDO' };
+      case DeliveryStatus.CANCELADO: return { color: 'slate', icon: Ban, label: 'CANCELADOS' };
+      default: return { color: 'slate', icon: Filter, label: status };
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 space-y-4 pb-24 max-w-[1600px] mx-auto overflow-x-hidden transition-colors">
       <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -575,16 +566,34 @@ ________________________________________
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-        {['TODOS', ...Object.values(DeliveryStatus)].map(status => (
-          <button 
-            key={status} 
-            onClick={() => setActiveFilter(status as any)} 
-            className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeFilter === status ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 opacity-60'}`}
-          >
-            {status}
-          </button>
-        ))}
+      <div className="flex gap-3 overflow-x-auto no-scrollbar py-3 px-1">
+        {['TODOS', ...Object.values(DeliveryStatus)].map(status => {
+          const config = getStatusConfig(status);
+          const isActive = activeFilter === status;
+          
+          const colorStyles: Record<string, string> = {
+            indigo: isActive ? 'bg-indigo-600 text-white border-indigo-700 shadow-indigo-100' : 'bg-indigo-50/50 text-indigo-500 border-indigo-100/50',
+            amber: isActive ? 'bg-amber-500 text-white border-amber-600 shadow-amber-100' : 'bg-amber-50/50 text-amber-600 border-amber-100/50',
+            sky: isActive ? 'bg-sky-500 text-white border-sky-600 shadow-sky-100' : 'bg-sky-50/50 text-sky-600 border-sky-100/50',
+            rose: isActive ? 'bg-rose-500 text-white border-rose-600 shadow-rose-100' : 'bg-rose-50/50 text-rose-600 border-rose-100/50',
+            emerald: isActive ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-100' : 'bg-emerald-50/50 text-emerald-600 border-emerald-100/50',
+            slate: isActive ? 'bg-slate-700 text-white border-slate-800 shadow-slate-100' : 'bg-slate-50/50 text-slate-400 border-slate-100/50',
+          };
+
+          return (
+            <button 
+              key={status} 
+              onClick={() => setActiveFilter(status as any)} 
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.1em] transition-all whitespace-nowrap border-2 ${colorStyles[config.color]} ${isActive ? 'scale-105 shadow-lg -translate-y-0.5' : 'opacity-70 hover:opacity-100'}`}
+            >
+              <config.icon size={14} strokeWidth={3} className={isActive ? 'animate-pulse' : ''} />
+              {config.label}
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${isActive ? 'bg-white/20' : 'bg-slate-200/50 text-slate-500'}`}>
+                {status === 'TODOS' ? deliveries.length : deliveries.filter(d => d.status === status).length}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -594,12 +603,13 @@ ________________________________________
           const isOverdue = d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO;
           const isCancelled = d.status === DeliveryStatus.CANCELADO;
           const isInRoute = d.status === DeliveryStatus.EM_ROTA;
+          const isPending = d.status === DeliveryStatus.PENDENTE;
           
           return (
             <div key={d.id} className={`bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border flex flex-col h-full transition-all group ${isCancelled ? 'opacity-60 grayscale border-slate-200 dark:border-slate-800 bg-slate-50/30' : d.status === DeliveryStatus.ENTREGUE ? 'border-emerald-100 dark:border-emerald-900/30 shadow-sm' : isOverdue ? 'border-rose-200 dark:border-rose-900/50 shadow-sm' : 'border-slate-100 dark:border-slate-800 shadow-sm'}`}>
               <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCancelled ? 'bg-slate-200 text-slate-500' : d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-500 text-white' : isOverdue ? 'bg-rose-500 text-white' : d.status === DeliveryStatus.EM_ROTA ? 'bg-sky-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}><Truck size={18} /></div>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCancelled ? 'bg-slate-200 text-slate-500' : d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-500 text-white' : isOverdue ? 'bg-rose-500 text-white' : d.status === DeliveryStatus.EM_ROTA ? 'bg-sky-500 text-white' : isPending ? 'bg-amber-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}><Truck size={18} /></div>
                     <div>
                         <div className="flex items-center gap-2">
                           <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded ${isCancelled ? 'bg-slate-100 text-slate-500' : d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : isOverdue ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/40' : 'bg-slate-50 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{d.status}</span>
@@ -610,17 +620,12 @@ ________________________________________
                   </div>
                   <div className="flex gap-0.5 no-print">
                     {!isCancelled && <button onClick={() => handlePrintReceipt(d)} title="Imprimir Comprovante" className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"><Printer size={16} /></button>}
-                    
-                    {/* Função de Confirmar Entrega restrita apenas à aba EM ROTA */}
                     {activeFilter === DeliveryStatus.EM_ROTA && d.status === DeliveryStatus.EM_ROTA && (
                       <button onClick={() => openStatusConfirmation(d)} title="Confirmar Entrega" className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900 rounded-lg"><CheckCircle2 size={16} /></button>
                     )}
-                    
-                    {/* Função de Confirmar Recebimento restrita apenas à aba NÃO PAGO */}
                     {activeFilter === DeliveryStatus.ENTREGUE_PENDENTE_PGTO && d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO && (
                       <button onClick={() => openStatusConfirmation(d)} title="Confirmar Recebimento" className="p-1.5 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900 rounded-lg"><HandCoins size={16} /></button>
                     )}
-                    
                     {!isCancelled && (
                       <>
                         <button onClick={() => handleEdit(d)} className="p-1.5 text-slate-300 hover:text-sky-500 transition-colors"><Pencil size={16} /></button>
@@ -632,10 +637,11 @@ ________________________________________
 
               <div className="flex-1 space-y-3">
                   <div className="min-w-0">
-                      <h4 className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase truncate leading-tight">{client?.name || 'Cliente Removido'}</h4>
-                      <div className="flex items-start gap-1.5 text-[8px] font-bold text-slate-400 mt-1 uppercase truncate"><MapPin size={10} className="shrink-0" /> <span>{client?.street}, {client?.number}</span></div>
+                      <h4 className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase truncate leading-tight">
+                        {client?.name || 'Cliente em sincronização...'}
+                      </h4>
+                      <div className="flex items-start gap-1.5 text-[8px] font-bold text-slate-400 mt-1 uppercase truncate"><MapPin size={10} className="shrink-0" /> <span>{client?.street || 'Endereço Indefinido'}, {client?.number || 'S/N'}</span></div>
                       
-                      {/* Informação do Motorista */}
                       <div className={`flex items-center gap-1.5 text-[8px] font-black mt-1.5 uppercase transition-all ${isInRoute ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-600'}`}>
                         <UserCircle size={11} className={`${isInRoute ? 'text-sky-500' : 'text-slate-300'}`} />
                         <span>ENTREGADOR: {driver?.name || 'NÃO ATRIBUÍDO'}</span>
@@ -671,7 +677,7 @@ ________________________________________
         })}
       </div>
 
-      {/* Modal de Fechamento de Entregas */}
+      {/* Modals e formulários mantidos com ajustes de validação e UX */}
       {showSummaryModal && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setShowSummaryModal(false)} />
@@ -728,21 +734,10 @@ ________________________________________
                     ))}
                  </div>
               </div>
-
-              <div className="flex items-center justify-between p-6 bg-slate-100/50 dark:bg-slate-800/20 rounded-2xl">
-                 <div className="flex items-center gap-3">
-                    <Ban size={18} className="text-slate-300 dark:text-slate-600" />
-                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Pedidos Cancelados</span>
-                 </div>
-                 <span className="text-lg font-black text-slate-400">{closingStats.cancelledCount}</span>
-              </div>
             </div>
 
             <div className="p-8 border-t border-slate-50 dark:border-slate-800 shrink-0">
-               <button 
-                onClick={handlePrintSummary}
-                className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-               >
+               <button onClick={handlePrintSummary} className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
                  <Printer size={20} /> Imprimir Fechamento
                </button>
             </div>
@@ -750,7 +745,7 @@ ________________________________________
         </div>
       )}
 
-      {/* Modal de Confirmação de Pagamento ao Entregar */}
+      {/* Confirmação de Pagamento */}
       {showPaymentConfirm && deliveryToConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" />
@@ -764,22 +759,13 @@ ________________________________________
             </p>
             
             <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => handleConfirmDeliveryWithPayment(true)}
-                className="w-full h-16 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-3"
-              >
+              <button onClick={() => handleConfirmDeliveryWithPayment(true)} className="w-full h-16 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-3">
                 <CheckCircle2 size={20} /> SIM, RECEBI O VALOR
               </button>
-              <button 
-                onClick={() => handleConfirmDeliveryWithPayment(false)}
-                className="w-full h-16 bg-white dark:bg-slate-950 text-rose-500 border-2 border-rose-100 dark:border-rose-900/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3"
-              >
+              <button onClick={() => handleConfirmDeliveryWithPayment(false)} className="w-full h-16 bg-white dark:bg-slate-950 text-rose-500 border-2 border-rose-100 dark:border-rose-900/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3">
                 <AlertTriangle size={20} /> NÃO, DEIXAR PENDENTE
               </button>
-              <button 
-                onClick={() => { setShowPaymentConfirm(false); setDeliveryToConfirm(null); }}
-                className="w-full h-12 text-slate-300 dark:text-slate-600 font-black text-[8px] uppercase tracking-widest mt-2"
-              >
+              <button onClick={() => { setShowPaymentConfirm(false); setDeliveryToConfirm(null); }} className="w-full h-12 text-slate-300 dark:text-slate-600 font-black text-[8px] uppercase tracking-widest mt-2">
                 VOLTAR
               </button>
             </div>
@@ -787,10 +773,11 @@ ________________________________________
         </div>
       )}
 
+      {/* Modal Principal (Novo/Editar) */}
       {isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4 md:p-6">
           <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={handleCloseModal} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl dark:shadow-none relative animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-transparent dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-full sm:h-auto sm:max-h-[95vh] rounded-none sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl dark:shadow-none relative animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-transparent dark:border-slate-800">
             <button onClick={handleCloseModal} className="absolute top-4 right-4 sm:top-8 sm:right-8 w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-700 hover:text-rose-500 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all z-[210] active:scale-90"><X size={20} strokeWidth={3} /></button>
             <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-6 sm:mb-10 flex items-center gap-3 shrink-0"><div className="w-10 h-10 sm:w-12 sm:h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner"><PackageCheck size={24} /></div>{form.id ? 'Editar' : 'Lançar'} <span className="text-sky-500">Entrega</span></h3>
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-8 sm:space-y-10 pb-6">
@@ -801,11 +788,7 @@ ________________________________________
                          {isExpressMode ? <UserPlus size={14} className="text-emerald-500" /> : <Search size={14} className="text-sky-500" />}
                          {isExpressMode ? 'Cadastro Rápido' : 'Localizar Cliente'}
                        </label>
-                       <button 
-                        type="button" 
-                        onClick={() => { setIsExpressMode(!isExpressMode); if (!isExpressMode) setForm({...form, clientId: undefined}); }}
-                        className={`text-[8px] font-black px-3 py-1 rounded-full border transition-all ${isExpressMode ? 'bg-sky-50 border-sky-200 text-sky-500' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}
-                       >
+                       <button type="button" onClick={() => { setIsExpressMode(!isExpressMode); if (!isExpressMode) setForm({...form, clientId: undefined}); }} className={`text-[8px] font-black px-3 py-1 rounded-full border transition-all ${isExpressMode ? 'bg-sky-50 border-sky-200 text-sky-500' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
                          {isExpressMode ? 'BUSCAR CADASTRADO' : 'NOVO CLIENTE?'}
                        </button>
                     </div>
@@ -833,128 +816,106 @@ ________________________________________
                       </div>
                     ) : (
                       <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                             <input type="text" placeholder="NOME DO CLIENTE" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.name} onChange={e => setExpressClient({...expressClient, name: e.target.value.toUpperCase()})} />
-                          </div>
-                          <div className="space-y-1.5">
-                             <select className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.type} onChange={e => setExpressClient({...expressClient, type: e.target.value as any})}>
-                               <option value="PARTICULAR">PARTICULAR</option>
-                               <option value="REVENDEDOR">REVENDEDOR</option>
-                             </select>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                           <input 
-                            type="text" 
-                            placeholder="WHATSAPP / CELULAR" 
-                            className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none focus:border-emerald-300" 
-                            value={expressClient.phone} 
-                            onChange={e => setExpressClient({...expressClient, phone: formatPhone(e.target.value)})} 
-                           />
-                        </div>
+                        <input type="text" placeholder="NOME DO CLIENTE" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" value={expressClient.name} onChange={e => setExpressClient({...expressClient, name: e.target.value.toUpperCase()})} />
+                        <input type="text" placeholder="WHATSAPP / CELULAR" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none" value={expressClient.phone} onChange={e => setExpressClient({...expressClient, phone: formatPhone(e.target.value)})} />
                         <div className="grid grid-cols-3 gap-2">
-                           <input type="text" placeholder="RUA" className="col-span-2 h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.street} onChange={e => setExpressClient({...expressClient, street: e.target.value.toUpperCase()})} />
-                           <input type="text" placeholder="Nº" className="h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none focus:border-emerald-300" value={expressClient.number} onChange={e => setExpressClient({...expressClient, number: e.target.value})} />
+                           <input type="text" placeholder="RUA" className="col-span-2 h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" value={expressClient.street} onChange={e => setExpressClient({...expressClient, street: e.target.value.toUpperCase()})} />
+                           <input type="text" placeholder="Nº" className="h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none" value={expressClient.number} onChange={e => setExpressClient({...expressClient, number: e.target.value})} />
                         </div>
-                        <div className="space-y-1.5">
-                           <input type="text" placeholder="BAIRRO" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none focus:border-emerald-300" value={expressClient.neighborhood} onChange={e => setExpressClient({...expressClient, neighborhood: e.target.value.toUpperCase()})} />
-                        </div>
+                        <input type="text" placeholder="BAIRRO" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" value={expressClient.neighborhood} onChange={e => setExpressClient({...expressClient, neighborhood: e.target.value.toUpperCase()})} />
                       </div>
                     )}
 
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Motorista</label>
-                          <select 
-                            className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none px-4 dark:text-white" 
-                            value={form.driverId || ''} 
-                            onChange={e => {
-                              const selectedDriverId = e.target.value;
-                              const linkedVehicle = vehicles.find(v => v.motorista_id === selectedDriverId);
-                              setForm(prev => ({
-                                ...prev, 
-                                driverId: selectedDriverId,
-                                vehicleId: linkedVehicle ? linkedVehicle.id : prev.vehicleId
-                              }));
-                            }} 
-                            required
-                          >
-                            <option value="">-- MOTORISTA --</option>
-                            {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Veículo</label>
-                          <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none px-4 dark:text-white" value={form.vehicleId || ''} onChange={e => setForm({...form, vehicleId: e.target.value})} required>
-                            <option value="">-- VEÍCULO --</option>
-                            {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Data</label>
-                          <input type="date" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Hora</label>
-                          <input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required />
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Motorista</label>
+                        <select 
+                          className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase px-4 dark:text-white" 
+                          value={form.driverId || ''} 
+                          onChange={e => {
+                            const dId = e.target.value;
+                            const linkedV = vehicles.find(v => v.motorista_id === dId);
+                            setForm({
+                              ...form, 
+                              driverId: dId,
+                              vehicleId: linkedV ? linkedV.id : form.vehicleId
+                            });
+                          }} 
+                          required
+                        >
+                          <option value="">-- MOTORISTA --</option>
+                          {drivers.filter(d => d.status === 'ATIVO').map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Observações da Entrega</label>
-                        <textarea 
-                          placeholder="EX: DEIXAR NA PORTARIA, CLIENTE PAGOU ANTECIPADO, ETC..." 
-                          className="w-full h-24 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all resize-none"
-                          value={form.notes || ''}
-                          onChange={e => setForm({...form, notes: e.target.value})}
-                        />
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Veículo</label>
+                        <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase px-4 dark:text-white" value={form.vehicleId || ''} onChange={e => setForm({...form, vehicleId: e.target.value})} required>
+                          <option value="">-- VEÍCULO --</option>
+                          {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa}</option>)}
+                        </select>
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Data</label>
+                        <input type="date" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Hora</label>
+                        <input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><AlignLeft size={12} className="text-sky-500" /> Observação da Entrega</label>
+                       <div className="relative">
+                         <textarea 
+                           placeholder="EX: DEIXAR NA PORTARIA, CLIENTE PAGARÁ NO CARTÃO..." 
+                           className="w-full h-24 p-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-[10px] uppercase dark:text-white outline-none resize-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/10 transition-all shadow-inner"
+                           value={form.notes || ''}
+                           onChange={e => setForm({...form, notes: e.target.value.toUpperCase()})}
+                         />
+                       </div>
+                     </div>
                  </div>
 
                  <div className="space-y-8">
-                   <div className="bg-slate-50 dark:bg-slate-950/80 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-inner dark:shadow-none relative overflow-hidden">
-                     <h4 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10"><ShoppingBag size={18} className="text-sky-500" /> Itens da Carga</h4>
-                     <div className="space-y-4 relative z-10">
-                       <div className="space-y-1.5">
-                         <label className="text-[9px] font-black text-slate-400 dark:text-slate-700 uppercase ml-2">Produto</label>
-                         <select className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase outline-none dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
-                           <option value="">ESCOLHER...</option>
-                           {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                         </select>
-                       </div>
-                       <div className="space-y-1.5">
-                         <label className="text-[9px] font-black text-slate-400 dark:text-slate-700 uppercase ml-2">Quantidade</label>
-                         <div className="flex items-center gap-3">
-                           <button type="button" onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-700 transition-all active:scale-90"><Minus size={20} /></button>
-                           <input type="number" className="flex-1 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-lg outline-none dark:text-white" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/><button type="button" onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-700 transition-all active:scale-90"><Plus size={20} /></button>
-                         </div>
-                       </div>
-                       <button type="button" onClick={() => { const qty = parseInt(itemQuantity); if (!selectedProductId || isNaN(qty) || qty <= 0) return; const newItems = [...(form.items || [])]; const idx = newItems.findIndex(i => i.productId === selectedProductId); if (idx > -1) newItems[idx].quantity += qty; else newItems.push({ productId: selectedProductId, quantity: qty }); setForm({ ...form, items: newItems }); setSelectedProductId(''); setItemQuantity('1'); }} disabled={!selectedProductId} className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg dark:shadow-none active:scale-95 disabled:opacity-30">Adicionar Item</button>
+                   <div className="bg-slate-50 dark:bg-slate-950/80 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-inner">
+                     <h4 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2"><ShoppingBag size={18} className="text-sky-500" /> Itens da Carga</h4>
+                     <div className="space-y-4">
+                        <select className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
+                          <option value="">ESCOLHER PRODUTO...</option>
+                          {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                        </select>
+                        <div className="flex items-center gap-3">
+                           <button type="button" onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Minus size={20} /></button>
+                           <input type="number" className="flex-1 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-lg dark:text-white" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/><button type="button" onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Plus size={20} /></button>
+                        </div>
+                        <button type="button" onClick={() => { const qty = parseInt(itemQuantity); if (!selectedProductId || isNaN(qty) || qty <= 0) return; const newItems = [...(form.items || [])]; const idx = newItems.findIndex(i => i.productId === selectedProductId); if (idx > -1) newItems[idx].quantity += qty; else newItems.push({ productId: selectedProductId, quantity: qty }); setForm({ ...form, items: newItems }); setSelectedProductId(''); setItemQuantity('1'); }} disabled={!selectedProductId} className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30">Adicionar Item</button>
                      </div>
-                     <div className="mt-8 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-6 relative z-10">{form.items?.map((item, idx) => <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none"><div className="min-w-0 flex-1"><p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p><p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un</p></div><button type="button" onClick={() => setForm({ ...form, items: (form.items || []).filter(i => i.productId !== item.productId) })} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 dark:text-rose-900 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button></div>)}</div>
+                     <div className="mt-8 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-6">
+                        {form.items?.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <div className="min-w-0 flex-1"><p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p><p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un</p></div>
+                            <button type="button" onClick={() => setForm({ ...form, items: (form.items || []).filter(i => i.productId !== item.productId) })} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button>
+                          </div>
+                        ))}
+                     </div>
                    </div>
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-700 uppercase ml-2 flex items-center gap-2"><DollarSign size={12} className="text-emerald-500" /> Valor Total (R$)</label>
-                     <div className="relative">
-                       <DollarSign size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" />
-                       <input type="text" placeholder="0,00" className="w-full h-16 sm:h-20 pl-16 pr-8 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-[1.5rem] sm:rounded-[2rem] font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 outline-none focus:ring-4 focus:ring-emerald-50 dark:focus:ring-emerald-900/30 transition-all placeholder:text-emerald-200 dark:placeholder:text-emerald-950" value={localTotalValue} onChange={e => {
-                         const val = e.target.value.replace(/[^0-9,.]/g, '');
-                         setLocalTotalValue(val);
-                       }} />
+
+                   <div className="space-y-4">
+                     <div className="space-y-1.5">
+                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><DollarSign size={12} className="text-emerald-500" /> Valor Total (R$)</label>
+                       <div className="relative">
+                         <DollarSign size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" />
+                         <input type="text" placeholder="0,00" className="w-full h-16 sm:h-20 pl-16 pr-8 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-[1.5rem] sm:rounded-[2rem] font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 outline-none transition-all placeholder:text-emerald-200" value={localTotalValue} onChange={e => setLocalTotalValue(e.target.value.replace(/[^0-9,]/g, ''))} required />
+                       </div>
                      </div>
                    </div>
                  </div>
               </div>
               <div className="pt-8 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0} 
-                  className={`w-full h-16 sm:h-20 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95 flex items-center justify-center gap-4 ${(isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0) ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-700' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-emerald-600 dark:hover:bg-emerald-400 shadow-2xl dark:shadow-none'}`}
-                >
+                <button type="submit" disabled={isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0} className={`w-full h-16 sm:h-20 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95 flex items-center justify-center gap-4 ${(isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0) ? 'bg-slate-100 text-slate-300' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-emerald-600 shadow-2xl'}`}>
                   {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : <PackageCheck size={24} />}
                   {form.id ? 'ATUALIZAR' : 'CONFIRMAR'}
                 </button>
