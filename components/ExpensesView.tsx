@@ -5,7 +5,8 @@ import {
   Receipt, Clock, X, Wallet, Calendar,
   ArrowUpRight, ArrowDownRight, ArrowRight, TrendingUp,
   Filter, ChevronDown, DollarSign, Calculator, CalendarRange,
-  AlertCircle, Info, CheckCircle, BarChart3
+  AlertCircle, Info, CheckCircle, BarChart3, ChevronLeft,
+  Check
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
@@ -50,9 +51,15 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
   const [category, setCategory] = useState('GERAL');
+  const [formStatus, setFormStatus] = useState<ExpenseStatus>(ExpenseStatus.A_VENCER);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
   const [isBiweeklyModalOpen, setIsBiweeklyModalOpen] = useState(false);
+  
+  const [selectedCycle, setSelectedCycle] = useState<1 | 2>(() => {
+    const day = new Date().getDate();
+    return day <= 15 ? 1 : 2;
+  });
 
   const handleShortcutToday = () => {
     setStartDate(getTodayString());
@@ -85,17 +92,15 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
       .sort((a, b) => b.dueDate.localeCompare(a.dueDate));
   }, [expenses, startDate, endDate, searchTerm, statusFilter]);
 
-  // Lógica do Cálculo Quinzenal
   const biweeklyCalculation = useMemo(() => {
     const now = new Date();
-    const currentDay = now.getDate();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
     let qStart: string;
     let qEnd: string;
 
-    if (currentDay <= 15) {
+    if (selectedCycle === 1) {
       qStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
       qEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`;
     } else {
@@ -122,7 +127,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
       diff,
       status: diff < 0 ? 'shortfall' : diff > 0 ? 'surplus' : 'exact'
     };
-  }, [sales, expenses, isBiweeklyModalOpen]);
+  }, [sales, expenses, selectedCycle]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +138,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
       description: description.toUpperCase(), 
       value: numVal, 
       dueDate, 
-      status: editingId ? (expenses.find(x => x.id === editingId)?.status || ExpenseStatus.A_VENCER) : ExpenseStatus.A_VENCER, 
+      status: formStatus, 
       category: category.toUpperCase()
     });
     resetForm();
@@ -145,11 +150,17 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
     setValue(exp.value.toString()); 
     setDueDate(exp.dueDate); 
     setCategory(exp.category); 
+    setFormStatus(exp.status);
     setIsMobileFormOpen(true);
   };
 
   const resetForm = () => {
-    setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setCategory('GERAL'); setIsMobileFormOpen(false);
+    setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setCategory('GERAL'); setFormStatus(ExpenseStatus.A_VENCER); setIsMobileFormOpen(false);
+  };
+
+  const toggleExpenseStatus = (e: Expense) => {
+    const newStatus = e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO;
+    onUpdate({ ...e, status: newStatus });
   };
 
   return (
@@ -179,7 +190,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
         </div>
       </header>
 
-      {/* Modern Filter Bar (Same as Deliveries) */}
+      {/* Modern Filter Bar */}
       <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
@@ -214,7 +225,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
       <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
         <button 
           onClick={() => setStatusFilter('TODOS')} 
-          className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${statusFilter === 'TODOS' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 opacity-60'}`}
+          className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${statusFilter === 'TODOS' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-100 dark:border-slate-800 opacity-60'}`}
         >
           TODOS
         </button>
@@ -226,7 +237,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
           <button 
             key={status.label} 
             onClick={() => setStatusFilter(status.value)} 
-            className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${statusFilter === status.value ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 opacity-60'}`}
+            className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${statusFilter === status.value ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-100 dark:border-slate-800 opacity-60'}`}
           >
             {status.label}
           </button>
@@ -246,7 +257,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
           <table className="w-full text-left">
             <thead>
               <tr className="text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800">
-                <th className="px-8 py-6">DATA VENC.</th>
+                <th className="px-8 py-6">VENCIMENTO</th>
                 <th className="px-8 py-6">CATEGORIA</th>
                 <th className="px-8 py-6">DESCRIÇÃO</th>
                 <th className="px-8 py-6 text-right">VALOR</th>
@@ -269,10 +280,24 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                   </td>
                   <td className="px-8 py-5 text-center">
                     <button 
-                      onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})} 
-                      className={`px-5 py-2 rounded-full text-[8px] font-black uppercase transition-all shadow-sm ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white' : e.status === ExpenseStatus.VENCIDO ? 'bg-rose-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-amber-500 border border-amber-100 dark:border-amber-900/30'}`}
+                      onClick={() => toggleExpenseStatus(e)} 
+                      className={`group/btn px-6 py-2 rounded-full text-[8px] font-black uppercase transition-all shadow-sm flex items-center justify-center gap-2 mx-auto min-w-[120px] ${
+                        e.status === ExpenseStatus.PAGO 
+                        ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                        : e.status === ExpenseStatus.VENCIDO 
+                        ? 'bg-rose-500 text-white hover:bg-rose-600 animate-pulse' 
+                        : 'bg-slate-50 dark:bg-slate-800 text-amber-500 border border-amber-200 dark:border-amber-900/40 hover:border-emerald-500 hover:text-emerald-500'
+                      }`}
                     >
-                      {e.status === ExpenseStatus.VENCIDO ? 'ATRASADO' : e.status}
+                      {e.status === ExpenseStatus.PAGO ? (
+                        <Check size={12} strokeWidth={3} />
+                      ) : (
+                        <div className="w-3 h-3 group-hover/btn:hidden flex items-center justify-center">
+                          <div className={`w-1.5 h-1.5 rounded-full ${e.status === ExpenseStatus.VENCIDO ? 'bg-white' : 'bg-amber-500'}`} />
+                        </div>
+                      )}
+                      <span className="group-hover/btn:hidden">{e.status === ExpenseStatus.VENCIDO ? 'ATRASADO' : e.status}</span>
+                      <span className="hidden group-hover/btn:inline">{e.status === ExpenseStatus.PAGO ? 'ESTORNAR' : 'PAGAR CONTA'}</span>
                     </button>
                   </td>
                   <td className="px-8 py-5 text-right no-print">
@@ -302,10 +327,10 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
       {isBiweeklyModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsBiweeklyModalOpen(false)} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] p-8 sm:p-12 shadow-3xl relative border dark:border-slate-800 animate-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] p-8 sm:p-12 shadow-3xl relative border dark:border-slate-800 animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[95vh] custom-scrollbar">
              <button onClick={() => setIsBiweeklyModalOpen(false)} className="absolute top-8 right-8 p-3 text-slate-300 hover:text-rose-500 transition-colors"><X size={28}/></button>
              
-             <div className="flex items-center gap-5 mb-10">
+             <div className="flex items-center gap-5 mb-8">
                 <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-2xl flex items-center justify-center shadow-inner">
                    <CalendarRange size={32} />
                 </div>
@@ -314,10 +339,32 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                    <div className="flex items-center gap-2 mt-2">
                       <Clock size={12} className="text-slate-400" />
                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        Período: {new Date(biweeklyCalculation.qStart + 'T00:00:00').toLocaleDateString()} — {new Date(biweeklyCalculation.qEnd + 'T00:00:00').toLocaleDateString()}
+                        Análise de Ciclo Curto
                       </p>
                    </div>
                 </div>
+             </div>
+
+             <div className="flex p-1.5 bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 mb-8">
+               <button 
+                 onClick={() => setSelectedCycle(1)}
+                 className={`flex-1 py-3.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${selectedCycle === 1 ? 'bg-sky-500 text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}
+               >
+                 1º CICLO (01-15)
+               </button>
+               <button 
+                 onClick={() => setSelectedCycle(2)}
+                 className={`flex-1 py-3.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${selectedCycle === 2 ? 'bg-sky-500 text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}
+               >
+                 2º CICLO (16-FIM)
+               </button>
+             </div>
+
+             <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-8 flex items-center justify-center gap-3">
+               <Calendar size={14} className="text-sky-500" />
+               <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                 Período Analisado: {new Date(biweeklyCalculation.qStart + 'T00:00:00').toLocaleDateString()} — {new Date(biweeklyCalculation.qEnd + 'T00:00:00').toLocaleDateString()}
+               </span>
              </div>
 
              <div className="grid grid-cols-2 gap-4 mb-8">
@@ -352,13 +399,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                 </h4>
              </div>
 
-             <div className="flex items-start gap-4 p-5 bg-sky-50/50 dark:bg-sky-900/10 rounded-2xl border border-sky-100 dark:border-sky-900/30">
-                <Info size={18} className="text-sky-500 shrink-0 mt-0.5" />
-                <p className="text-[9px] font-bold text-sky-700/70 dark:text-sky-400/60 leading-relaxed uppercase tracking-wider">
-                  Este cálculo considera apenas despesas em aberto. Despesas já pagas já estão refletidas no resultado líquido geral. Esta ferramenta foca em quanto você ainda precisa faturar para cobrir compromissos pendentes do ciclo.
-                </p>
-             </div>
-
              <button 
                 onClick={() => setIsBiweeklyModalOpen(false)}
                 className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] mt-8 active:scale-95 shadow-2xl transition-all"
@@ -391,9 +431,18 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                       <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs dark:text-white outline-none" required />
                    </div>
                 </div>
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Descrição</label>
-                   <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="NOME DA CONTA" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase dark:text-white outline-none" required />
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Descrição</label>
+                      <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="NOME DA CONTA" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase dark:text-white outline-none" required />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Situação Atual</label>
+                      <select value={formStatus} onChange={e => setFormStatus(e.target.value as ExpenseStatus)} className={`w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none ${formStatus === ExpenseStatus.PAGO ? 'text-emerald-500' : 'text-amber-500'}`}>
+                         <option value={ExpenseStatus.A_VENCER}>A VENCER</option>
+                         <option value={ExpenseStatus.PAGO}>JÁ FOI PAGO</option>
+                      </select>
+                   </div>
                 </div>
                 <div className="space-y-1.5">
                    <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Valor Total R$</label>
@@ -433,7 +482,7 @@ const SummaryCard = ({ label, value, icon: Icon, color }: any) => {
       border: "border-emerald-50 dark:border-emerald-900/10"
     },
     rose: { 
-      bg: "bg-rose-50 dark:bg-rose-950/30", 
+      bg: "bg-rose-50 dark:bg-sky-950/30", 
       text: "text-rose-600 dark:text-rose-400", 
       iconBg: "bg-rose-100 dark:bg-rose-900/30",
       border: "border-rose-50 dark:border-rose-900/10"
