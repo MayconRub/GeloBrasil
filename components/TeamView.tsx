@@ -77,9 +77,19 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
     return { totalSalary, count: activeEmps.length, inactiveCount: employees.length - activeEmps.length };
   }, [employees]);
 
+  // Máscara de Moeda Brasileira
   const handleNumericChange = (val: string, setter: (v: string) => void) => {
-    const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
-    setter(sanitized);
+    const digits = val.replace(/\D/g, "");
+    if (!digits) {
+      setter("");
+      return;
+    }
+    const amount = parseFloat(digits) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(amount);
+    setter(formatted);
   };
 
   const resetForm = () => {
@@ -88,7 +98,9 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
 
   const handleEdit = (emp: Employee) => {
     if (confirm(`DESEJA EDITAR OS DADOS DE ${emp.name.toUpperCase()}?`)) {
-      setEditingId(emp.id); setName(emp.name); setRole(emp.role); setSalary(emp.salary?.toString() || ''); setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
+      setEditingId(emp.id); setName(emp.name); setRole(emp.role); 
+      setSalary(emp.salary?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || ''); 
+      setJoinedAt(new Date(emp.joinedAt).toISOString().split('T')[0]);
       setStatus(emp.status || 'ATIVO');
       if (window.innerWidth < 1024) setIsMobileFormOpen(true);
       else window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -97,7 +109,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
 
   const handleAddOrUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    const numericSalary = parseFloat(salary);
+    const numericSalary = parseFloat(salary.replace(/\./g, '').replace(',', '.'));
     if (!name || !role || isNaN(numericSalary)) return;
     onUpdate({ 
       id: editingId || crypto.randomUUID(), 
@@ -120,7 +132,7 @@ const TeamView: React.FC<Props> = ({ employees, onUpdate, onDelete, onAddExpense
 
   const handleLaunchPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    const val = parseFloat(paymentValue.replace(',', '.'));
+    const val = parseFloat(paymentValue.replace(/\./g, '').replace(',', '.'));
     const employee = employees.find(emp => emp.id === paymentEmployeeId);
     if (!employee || isNaN(val) || !onAddExpense) return;
     onAddExpense({ id: crypto.randomUUID(), description: `PAGAMENTO: ${employee.name} - ${paymentType}`.toUpperCase(), value: val, dueDate: paymentDate, status: ExpenseStatus.PAGO, category: 'FOLHA DE PAGAMENTO', employeeId: employee.id, observation: `LANÇAMENTO VIA MÓDULO DE EQUIPE` });

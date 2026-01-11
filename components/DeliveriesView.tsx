@@ -76,6 +76,17 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
+  // Máscara de Moeda Brasileira
+  const maskCurrency = (val: string) => {
+    const digits = val.replace(/\D/g, "");
+    if (!digits) return "";
+    const amount = parseFloat(digits) / 100;
+    return new Intl.NumberFormat('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(amount);
+  };
+
   const formatPhone = (value: string) => {
     if (!value) return "";
     value = value.replace(/\D/g, "");
@@ -128,7 +139,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
 
   const [selectedProductId, setSelectedProductId] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
-  const [itemUnitPrice, setItemUnitPrice] = useState(''); // Novo estado para o preço unitário
+  const [itemUnitPrice, setItemUnitPrice] = useState('');
   const [localTotalValue, setLocalTotalValue] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
@@ -907,20 +918,7 @@ ________________________________________
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Motorista</label>
-                        <select 
-                          className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase px-4 dark:text-white" 
-                          value={form.driverId || ''} 
-                          onChange={e => {
-                            const dId = e.target.value;
-                            const linkedV = vehicles.find(v => v.motorista_id === dId);
-                            setForm({
-                              ...form, 
-                              driverId: dId,
-                              vehicleId: linkedV ? linkedV.id : form.vehicleId
-                            });
-                          }} 
-                          required
-                        >
+                        <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase px-4 dark:text-white" value={form.driverId || ''} onChange={e => { const dId = e.target.value; const linkedV = vehicles.find(v => v.motorista_id === dId); setForm({ ...form, driverId: dId, vehicleId: linkedV ? linkedV.id : form.vehicleId }); }} required>
                           <option value="">-- MOTORISTA --</option>
                           {drivers.filter(d => d.status === 'ATIVO').map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
@@ -934,27 +932,10 @@ ________________________________________
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Data</label>
-                        <input type="date" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Hora</label>
-                        <input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required />
-                      </div>
+                      <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Data</label><input type="date" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required /></div>
+                      <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Hora</label><input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required /></div>
                     </div>
-
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><AlignLeft size={12} className="text-sky-500" /> Observação da Entrega</label>
-                       <div className="relative">
-                         <textarea 
-                           placeholder="EX: DEIXAR NA PORTARIA, CLIENTE PAGARÁ NO CARTÃO..." 
-                           className="w-full h-24 p-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-[10px] uppercase dark:text-white outline-none resize-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/10 transition-all shadow-inner"
-                           value={form.notes || ''}
-                           onChange={e => setForm({...form, notes: e.target.value.toUpperCase()})}
-                         />
-                       </div>
-                     </div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><AlignLeft size={12} className="text-sky-500" /> Observação da Entrega</label><div className="relative"><textarea placeholder="EX: DEIXAR NA PORTARIA, CLIENTE PAGARÁ NO CARTÃO..." className="w-full h-24 p-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-[10px] uppercase dark:text-white outline-none resize-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/10 transition-all shadow-inner" value={form.notes || ''} onChange={e => setForm({...form, notes: e.target.value.toUpperCase()})} /></div></div>
                  </div>
 
                  <div className="space-y-8">
@@ -966,44 +947,28 @@ ________________________________________
                           {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                         </select>
                         <div className="grid grid-cols-2 gap-3">
-                           <div className="flex items-center gap-2">
-                             <input type="number" placeholder="QTD" className="w-full h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none shadow-sm" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/>
-                           </div>
-                           <div className="relative">
-                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-[8px]">R$</span>
-                             <input type="text" placeholder="PREÇO UN." value={itemUnitPrice} onChange={e => setItemUnitPrice(e.target.value.replace(/[^0-9,]/g, ''))} className="w-full h-12 pl-8 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none shadow-sm" />
-                           </div>
+                           <div className="flex items-center gap-2"><input type="number" placeholder="QTD" className="w-full h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none shadow-sm" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/></div>
+                           <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-[8px]">R$</span><input type="text" placeholder="PREÇO UN." value={itemUnitPrice} onChange={e => setItemUnitPrice(maskCurrency(e.target.value))} className="w-full h-12 pl-8 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none shadow-sm" /></div>
                         </div>
                         <button type="button" onClick={handleAddItem} disabled={!selectedProductId} className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30 transition-all">Adicionar Item</button>
                      </div>
                      <div className="mt-8 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-6">
-                        {form.items?.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                            <div className="min-w-0 flex-1"><p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p><p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un x R$ {item.unitPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>
-                            <button type="button" onClick={() => setForm({ ...form, items: (form.items || []).filter(i => i.productId !== item.productId) })} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button>
-                          </div>
-                        ))}
+                        {form.items?.map((item, idx) => (<div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm"><div className="min-w-0 flex-1"><p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p><p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un x R$ {item.unitPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div><button type="button" onClick={() => setForm({ ...form, items: (form.items || []).filter(i => i.productId !== item.productId) })} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button></div>))}
                      </div>
                    </div>
-
                    <div className="space-y-4">
                      <div className="space-y-1.5">
                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><DollarSign size={12} className="text-emerald-500" /> Valor Total (R$)</label>
                        <div className="relative">
                          <DollarSign size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" />
-                         <input type="text" placeholder="0,00" className="w-full h-16 sm:h-20 pl-16 pr-8 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-[1.5rem] sm:rounded-[2rem] font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 outline-none transition-all placeholder:text-emerald-200" value={localTotalValue} onChange={e => setLocalTotalValue(e.target.value.replace(/[^0-9,]/g, ''))} required />
+                         <input type="text" placeholder="0,00" className="w-full h-16 sm:h-20 pl-16 pr-8 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-[1.5rem] sm:rounded-[2rem] font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 outline-none transition-all placeholder:text-emerald-200" value={localTotalValue} onChange={e => setLocalTotalValue(maskCurrency(e.target.value))} required />
                        </div>
                        <p className="text-[8px] font-black text-slate-400 uppercase mt-2 ml-4 italic">* O VALOR É CALCULADO AUTOMATICAMENTE BASEADO NOS ITENS.</p>
                      </div>
                    </div>
                  </div>
               </div>
-              <div className="pt-8 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <button type="submit" disabled={isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0} className={`w-full h-16 sm:h-20 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95 flex items-center justify-center gap-4 ${(isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0) ? 'bg-slate-100 text-slate-300' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-emerald-600 shadow-2xl'}`}>
-                  {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : <PackageCheck size={24} />}
-                  {form.id ? 'ATUALIZAR' : 'CONFIRMAR'}
-                </button>
-              </div>
+              <div className="pt-8 border-t border-slate-100 dark:border-slate-800 shrink-0"><button type="submit" disabled={isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0} className={`w-full h-16 sm:h-20 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95 flex items-center justify-center gap-4 ${(isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0) ? 'bg-slate-100 text-slate-300' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-emerald-600 shadow-2xl'}`}>{isSubmitting ? <Loader2 className="animate-spin" size={24} /> : <PackageCheck size={24} />}{form.id ? 'ATUALIZAR' : 'CONFIRMAR'}</button></div>
             </form>
           </div>
         </div>

@@ -55,6 +55,17 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const handleShortcutToday = () => { setStartDate(getTodayString()); setEndDate(getTodayString()); };
   const handleShortcutMonth = () => { setStartDate(getFirstDayOfMonth()); setEndDate(getLastDayOfMonth()); };
 
+  // Máscara de Moeda Brasileira
+  const maskCurrency = (val: string) => {
+    const digits = val.replace(/\D/g, "");
+    if (!digits) return "";
+    const amount = parseFloat(digits) / 100;
+    return new Intl.NumberFormat('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(amount);
+  };
+
   // Ao selecionar um produto, busca o preço personalizado do cliente
   useEffect(() => {
     if (selectedProductId && clientId) {
@@ -102,11 +113,24 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   };
 
   const filteredSales = useMemo(() => {
-    return sales.filter(s => {
-      const matchesDate = s.date >= startDate && s.date <= endDate;
-      const clientName = clients.find(c => c.id === s.clientId)?.name || 'AVULSO';
-      return matchesDate && (!searchTerm || (s.description || '').toLowerCase().includes(searchTerm.toLowerCase()) || (clientName || '').toLowerCase().includes(searchTerm.toLowerCase()));
-    });
+    return sales
+      .filter(s => {
+        const matchesDate = s.date >= startDate && s.date <= endDate;
+        const clientName = clients.find(c => c.id === s.clientId)?.name || 'AVULSO';
+        return matchesDate && (!searchTerm || (s.description || '').toLowerCase().includes(searchTerm.toLowerCase()) || (clientName || '').toLowerCase().includes(searchTerm.toLowerCase()));
+      })
+      .sort((a, b) => {
+        // Primeiro ordena pela data informada no lançamento (mais recente primeiro)
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        
+        // Se a data for a mesma, ordena pela data/hora de criação no sistema (created_at)
+        if (a.created_at && b.created_at) {
+          return b.created_at.localeCompare(a.created_at);
+        }
+        
+        // Fallback: usar o ID para manter uma ordem estável caso created_at não esteja disponível
+        return b.id.localeCompare(a.id);
+      });
   }, [sales, startDate, endDate, searchTerm, clients]);
 
   const getClientName = (id?: string) => clients.find(c => c.id === id)?.name || 'AVULSO';
@@ -187,8 +211,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
            <div className="relative">
               <input 
                 placeholder="R$ 0,00" 
-                value={value.startsWith('R$') ? value : value ? `R$ ${value}` : ''} 
-                onChange={e => setValue(e.target.value.replace(/[^0-9,]/g, ''))} 
+                value={value ? `R$ ${value}` : ''} 
+                onChange={e => setValue(maskCurrency(e.target.value))} 
                 className="w-full h-20 px-8 bg-emerald-50/20 dark:bg-slate-950 border-2 border-emerald-100 dark:border-emerald-900/30 rounded-[2rem] text-3xl font-black text-emerald-600 outline-none placeholder:text-emerald-100" 
                 required 
               />
@@ -229,12 +253,15 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                     min="1"
                   />
                 </div>
-                <input 
-                  placeholder="PREÇO UN." 
-                  value={itemUnitPrice} 
-                  onChange={e => setItemUnitPrice(e.target.value.replace(/\./g, '').replace(',', '.'))}
-                  className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-[8px]">R$</span>
+                  <input 
+                    placeholder="PREÇO UN." 
+                    value={itemUnitPrice} 
+                    onChange={e => setItemUnitPrice(maskCurrency(e.target.value))}
+                    className="w-full h-12 pl-8 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none"
+                  />
+                </div>
               </div>
 
               <button 
@@ -251,7 +278,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                   <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase truncate">{getProductName(it.productId)}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase">{it.quantity} un x R$ {it.unitPrice?.toLocaleString('pt-BR')}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">{it.quantity} un x R$ {it.unitPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                     <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-300 hover:text-rose-500"><Trash2 size={14}/></button>
                   </div>
@@ -340,14 +367,22 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                            <span className="text-sm font-black text-emerald-500">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </td>
                         <td className="px-10 py-6 text-center">
-                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <div className="flex justify-center gap-3 transition-all">
                               {!isFromDelivery && (
                                 <>
-                                  <button onClick={() => handleEdit(s)} className="p-2 text-slate-300 hover:text-sky-500"><Pencil size={16}/></button>
-                                  <button onClick={() => onDelete(s.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16}/></button>
+                                  <button onClick={() => handleEdit(s)} title="Editar Venda" className="p-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors shadow-lg active:scale-95"><Pencil size={18}/></button>
+                                  <button onClick={() => onDelete(s.id)} title="Excluir Venda" className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-lg active:scale-95"><Trash2 size={18}/></button>
                                 </>
                               )}
-                              {isFromDelivery && <span title="Gerado por Logística"><Lock size={14} className="text-slate-200" /></span>}
+                              {isFromDelivery && (
+                                <button 
+                                  onClick={() => alert('ESTA VENDA FOI GERADA AUTOMATICAMENTE PELO PAINEL DE ENTREGAS. PARA ALTERAR OU CANCELAR, UTILIZE O MÓDULO DE ENTREGAS.')} 
+                                  title="VENDA GERADA NO PAINEL DE ENTREGAS. PARA EDITAR OU CANCELAR, VÁ ATÉ O MÓDULO DE ENTREGAS." 
+                                  className="p-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 hover:text-sky-500 transition-colors cursor-help"
+                                >
+                                  <Lock size={18} />
+                                </button>
+                              )}
                            </div>
                         </td>
                       </tr>

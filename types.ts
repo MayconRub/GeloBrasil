@@ -68,6 +68,7 @@ export interface Sale {
   description: string;
   clientId?: string;
   items?: SaleItem[];
+  created_at?: string;
 }
 
 export interface Production {

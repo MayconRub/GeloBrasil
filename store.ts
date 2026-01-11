@@ -56,7 +56,7 @@ export const fetchSettings = async (): Promise<AppSettings> => {
 
 export const fetchAllData = async (): Promise<AppData> => {
   const [sales, expenses, employees, vehicles, fuels, maints, fines, prod, cats, goals, clients, deliveries, prods, settings] = await Promise.all([
-    supabase.from('vendas').select('*').order('data', { ascending: false }),
+    supabase.from('vendas').select('*').order('data', { ascending: false }).order('created_at', { ascending: false }),
     supabase.from('despesas').select('*').order('data_vencimento', { ascending: false }),
     supabase.from('funcionarios').select('*').order('nome'),
     supabase.from('veiculos').select('*').order('modelo'),
@@ -86,7 +86,14 @@ export const fetchAllData = async (): Promise<AppData> => {
     });
 
   return {
-    sales: (sales.data || []).map(s => ({ id: s.id, value: Number(s.valor), date: s.data, description: (s.descricao || '').toUpperCase(), clientId: s.cliente_id, items: s.items })),
+    sales: (sales.data || []).map(s => ({ 
+      id: s.id, 
+      value: Number(s.valor), 
+      date: s.data, 
+      description: (s.descricao || '').toUpperCase(), 
+      clientId: s.cliente_id,
+      created_at: s.created_at
+    })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: (p.observacao || '').toUpperCase() })),
     monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: Number(g.valor) })),
     expenses: (expenses.data || []).map(e => ({
@@ -142,7 +149,13 @@ export const syncSettings = async (s: AppSettings) => {
   return { error };
 };
 
-export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: Number(s.value), data: s.date, descricao: (s.description || '').toUpperCase(), cliente_id: s.clientId, items: s.items });
+export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ 
+  id: s.id, 
+  valor: Number(s.value), 
+  data: s.date, 
+  descricao: (s.description || '').toUpperCase(), 
+  cliente_id: s.clientId 
+});
 
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ 
   id: e.id, 
@@ -188,10 +201,12 @@ export const syncDelivery = (d: Delivery) => {
     veiculo_id: d.vehicleId, 
     status: d.status, 
     scheduled_date: d.scheduledDate, 
+    // Fix: access scheduledTime using camelCase to match the Delivery interface
     scheduled_time: d.scheduledTime, 
     delivered_at: d.deliveredAt, 
     notes: d.notes?.toUpperCase(), 
     items: d.items, 
+    // Fix: access totalValue using camelCase to match the Delivery interface
     total_value: Number(d.totalValue) || 0 
   };
   if (d.sequenceNumber) { payload.numero_sequencial = d.sequenceNumber; }

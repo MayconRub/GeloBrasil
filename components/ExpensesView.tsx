@@ -72,6 +72,17 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
     setEndDate(getLastDayOfMonth());
   };
 
+  // Máscara de Moeda Brasileira
+  const maskCurrency = (val: string) => {
+    const digits = val.replace(/\D/g, "");
+    if (!digits) return "";
+    const amount = parseFloat(digits) / 100;
+    return new Intl.NumberFormat('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(amount);
+  };
+
   const dreData = useMemo(() => {
     const isInRange = (d: string) => d >= startDate && d <= endDate;
     const rangeSales = sales.filter(s => isInRange(s.date)).reduce((sum, s) => sum + s.value, 0);
@@ -263,9 +274,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                     </button>
                   </td>
                   <td className="px-6 py-4 text-center no-print">
-                    <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={() => handleEdit(e)} className="p-1.5 text-slate-300 hover:text-sky-500"><Pencil size={16}/></button>
-                       <button onClick={() => { if(confirm('EXCLUIR ESTA DESPESA?')) onDelete(e.id); }} className="p-1.5 text-slate-200 hover:text-rose-500"><Trash2 size={16}/></button>
+                    <div className="flex justify-center gap-3 transition-all">
+                       <button onClick={() => handleEdit(e)} title="Editar Despesa" className="p-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors shadow-lg active:scale-95"><Pencil size={18}/></button>
+                       <button onClick={() => { if(confirm('EXCLUIR ESTA DESPESA?')) onDelete(e.id); }} title="Excluir Despesa" className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-lg active:scale-95"><Trash2 size={18}/></button>
                     </div>
                   </td>
                 </tr>
@@ -318,7 +329,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Valor da Conta (R$)</label>
                    <div className="relative">
                       <span className="absolute left-5 top-1/2 -translate-y-1/2 text-rose-500 font-black text-xs">R$</span>
-                      <input type="text" value={value} onChange={e => setValue(e.target.value.replace(/[^0-9,]/g, ''))} placeholder="0,00" className="w-full h-16 pl-12 pr-6 bg-rose-50/20 dark:bg-slate-950 border-2 border-rose-100 rounded-2xl text-2xl font-black text-rose-600 outline-none shadow-inner" required />
+                      <input type="text" value={value} onChange={e => setValue(maskCurrency(e.target.value))} placeholder="0,00" className="w-full h-16 pl-12 pr-6 bg-rose-50/20 dark:bg-slate-950 border-2 border-rose-100 rounded-2xl text-2xl font-black text-rose-600 outline-none shadow-inner" required />
                    </div>
                 </div>
                 <div className="pt-4 flex gap-3">
