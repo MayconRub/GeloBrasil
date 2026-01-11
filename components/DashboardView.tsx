@@ -11,7 +11,8 @@ import {
   ArrowDownCircle,
   Activity,
   Plus,
-  Info
+  Info,
+  Calendar
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Sale, Expense, ViewType, Production, AppSettings, ExpenseStatus, Delivery, Client, DeliveryStatus } from '../types';
@@ -93,7 +94,7 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 max-w-[1600px] mx-auto pb-24 lg:pb-12 animate-in fade-in duration-500 transition-colors uppercase">
       
-      {/* Header Panel Otimizado Mobile */}
+      {/* Header Panel */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-sky-100/10 dark:shadow-none transition-all">
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="relative flex items-center justify-center w-12 h-12 shrink-0">
@@ -103,42 +104,46 @@ const DashboardView: React.FC<Props> = ({
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter uppercase leading-none truncate">Painel <span className="text-[#5ecce3]">Gestão</span></h1>
             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-2">
-               <Activity size={10} className="text-[#5ecce3]" /> Atualizado Agora
+               <Activity size={10} className="text-[#5ecce3]" /> Monitorando em Tempo Real
             </p>
           </div>
         </div>
 
         <div className="flex p-1 bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner w-full sm:w-auto">
-          <button onClick={() => setPeriod('daily')} className={`flex-1 sm:px-8 py-2.5 rounded-xl text-[8px] sm:text-[9px] font-black tracking-widest transition-all ${period === 'daily' ? 'bg-[#5ecce3] text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}>HOJE</button>
-          <button onClick={() => setPeriod('monthly')} className={`flex-1 sm:px-8 py-2.5 rounded-xl text-[8px] sm:text-[9px] font-black tracking-widest transition-all ${period === 'monthly' ? 'bg-[#5ecce3] text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}>MENSAL</button>
+          <button onClick={() => setPeriod('daily')} className={`flex-1 sm:px-8 py-2.5 rounded-xl text-[8px] sm:text-[9px] font-black tracking-widest transition-all flex items-center justify-center gap-2 ${period === 'daily' ? 'bg-[#5ecce3] text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}>
+            <Clock size={14}/> HOJE
+          </button>
+          <button onClick={() => setPeriod('monthly')} className={`flex-1 sm:px-8 py-2.5 rounded-xl text-[8px] sm:text-[9px] font-black tracking-widest transition-all flex items-center justify-center gap-2 ${period === 'monthly' ? 'bg-[#5ecce3] text-white shadow-lg' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600'}`}>
+            <Calendar size={14}/> MENSAL
+          </button>
         </div>
       </div>
 
       {/* Main Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <MetricCard label="Vendas" value={`R$ ${metrics.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={CircleDollarSign} color="emerald" context={period === 'daily' ? 'Faturamento Hoje' : 'Faturamento Mês'} trend={<ArrowUpRight size={14} />} />
-        <MetricCard label="Custos" value={`R$ ${metrics.totalExps.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Receipt} color="rose" context={period === 'daily' ? 'Gasto Pago Hoje' : 'Total Pago no Mês'} trend={<ArrowDownCircle size={14} />} />
-        <MetricCard label="Volume" value={`${metrics.totalProd.toLocaleString('pt-BR')} KG`} icon={Snowflake} color="sky" context={period === 'daily' ? 'Produção Hoje' : 'Produção no Mês'} />
-        <MetricCard label="Líquido" value={`R$ ${metrics.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Wallet} color={metrics.profit >= 0 ? 'emerald' : 'rose'} context="Saldo Disponível" isHighlight />
+        <MetricCard label="Faturamento" value={`R$ ${metrics.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={CircleDollarSign} color="emerald" context={period === 'daily' ? 'Vendido Hoje' : 'Vendido no Mês'} trend={<ArrowUpRight size={14} />} />
+        <MetricCard label="Custos Pagos" value={`R$ ${metrics.totalExps.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Receipt} color="rose" context={period === 'daily' ? 'Gasto Pago Hoje' : 'Total Pago no Mês'} trend={<ArrowDownCircle size={14} />} />
+        <MetricCard label="Produção" value={`${metrics.totalProd.toLocaleString('pt-BR')} KG`} icon={Snowflake} color="sky" context={period === 'daily' ? 'Total Hoje' : 'Total no Mês'} />
+        <MetricCard label="Saldo Líquido" value={`R$ ${metrics.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={Wallet} color={metrics.profit >= 0 ? 'emerald' : 'rose'} context={period === 'daily' ? 'Saldo de Hoje' : 'Saldo Acumulado'} isHighlight />
       </div>
 
-      {/* Analytics Chart - Altura reduzida no Mobile */}
+      {/* Analytics Chart */}
       <div className="bg-white dark:bg-slate-900 p-5 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-50 dark:border-slate-800 shadow-sm dark:shadow-none relative overflow-hidden flex flex-col min-h-[350px] sm:min-h-[520px]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 sm:mb-10">
           <div>
             <h3 className="text-[10px] sm:text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3">
-              <TrendingUp size={16} className="text-[#5ecce3]" /> Fluxo Semanal
+              <TrendingUp size={16} className="text-[#5ecce3]" /> Fluxo Semanal (Últimos 7 dias)
             </h3>
             <p className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase mt-1">Comparativo de entradas e saídas</p>
           </div>
           
           <div className="flex items-center gap-3">
              <div className="flex-1 lg:flex-none flex flex-col items-start lg:items-end px-4 py-2 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl">
-                <span className="text-[7px] font-black text-emerald-600 dark:text-emerald-400 uppercase">Entradas</span>
+                <span className="text-[7px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Total Entradas</span>
                 <span className="text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-300">R$ {metrics.totalWeeklySales.toLocaleString('pt-BR')}</span>
              </div>
              <div className="flex-1 lg:flex-none flex flex-col items-start lg:items-end px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl">
-                <span className="text-[7px] font-black text-rose-600 dark:text-rose-400 uppercase">Saídas</span>
+                <span className="text-[7px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">Total Saídas</span>
                 <span className="text-xs sm:text-sm font-black text-rose-700 dark:text-rose-300">R$ {metrics.totalWeeklyExps.toLocaleString('pt-BR')}</span>
              </div>
           </div>
@@ -155,10 +160,11 @@ const DashboardView: React.FC<Props> = ({
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: isDark ? '#475569' : '#94a3b8', fontSize: 8, fontWeight: 800}} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: isDark ? '#475569' : '#94a3b8', fontSize: 8, fontWeight: 700}} tickFormatter={(v) => `R$${v >= 1000 ? (v/1000).toFixed(1)+'k' : v}`} />
               <Tooltip 
-                contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: '10px', backgroundColor: isDark ? '#0f172a' : '#ffffff' }}
+                contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: '10px', backgroundColor: isDark ? '#0f172a' : '#ffffff', textTransform: 'uppercase' }}
+                formatter={(value: any) => [`R$ ${value.toLocaleString('pt-BR')}`]}
               />
-              <Area type="monotone" dataKey="vendas" stroke="#5ecce3" strokeWidth={4} fill="url(#colorSales)" animationDuration={1000} />
-              <Area type="monotone" dataKey="despesas" stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 5" fill="url(#colorExps)" animationDuration={1000} />
+              <Area type="monotone" dataKey="vendas" name="VENDAS" stroke="#5ecce3" strokeWidth={4} fill="url(#colorSales)" animationDuration={1000} />
+              <Area type="monotone" dataKey="despesas" name="DESPESAS" stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 5" fill="url(#colorExps)" animationDuration={1000} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
