@@ -4,7 +4,7 @@ import {
   Truck, Car, Bike, Plus, Trash2, Fuel, Wrench, AlertOctagon, 
   BarChart3, X, CheckCircle2, AlertTriangle, Droplets, Pencil, Save, AlertCircle, User,
   ChevronLeft, ChevronRight, Calendar, Gauge, ArrowRight, TrendingUp, Search, Info, Printer,
-  DollarSign, Activity, History, PieChart, ArrowUpRight, Navigation
+  DollarSign, Activity, History, PieChart, ArrowUpRight, Navigation, UserCircle
 } from 'lucide-react';
 import { Vehicle, Employee, FuelLog, MaintenanceLog, FineLog } from '../types';
 
@@ -218,7 +218,7 @@ const SummaryCard = ({ label, value, icon: Icon, color, isFullOnMobile }: any) =
 const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintenance }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isOilModalOpen, setIsOilModalOpen] = useState(false);
-  const [form, setForm] = useState<Partial<Vehicle>>({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX' });
+  const [form, setForm] = useState<Partial<Vehicle>>({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX', motorista_id: '' });
   const [oilForm, setOilForm] = useState({ veiculo_id: '', custo: 0, pago: true, data: new Date().toISOString().split('T')[0], funcionario_id: '' });
 
   const sortedVehicles = useMemo(() => {
@@ -235,13 +235,17 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
     setIsOpen(false);
   };
 
+  const getDriverName = (id?: string) => employees.find((e: Employee) => e.id === id)?.name || 'NÃO ATRIBUÍDO';
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end no-print px-1"><button onClick={() => { setForm({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX' }); setIsOpen(true); }} className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl dark:shadow-none">NOVO VEÍCULO</button></div>
+      <div className="flex justify-end no-print px-1"><button onClick={() => { setForm({ tipo: 'Caminhão', km_atual: 0, km_ultima_troca: 0, tipo_combustivel: 'FLEX', motorista_id: '' }); setIsOpen(true); }} className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl dark:shadow-none">NOVO VEÍCULO</button></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-1 sm:px-0">
         {sortedVehicles.map((v: Vehicle) => {
           const kmSinceOil = (v.km_atual || 0) - (v.km_ultima_troca || 0);
           const needsOilChange = kmSinceOil >= 1000;
+          const assignedDriver = employees.find((e: Employee) => e.id === v.motorista_id);
+          
           return (
             <div key={v.id} className={`bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border ${needsOilChange ? 'border-rose-200 dark:border-rose-900' : 'border-slate-100 dark:border-slate-800'} relative overflow-hidden group transition-all`}>
                <div className="flex items-center justify-between mb-6 sm:mb-8">
@@ -254,7 +258,14 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
                   </div>
                </div>
                <h4 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter truncate">{v.modelo.toUpperCase()}</h4>
-               <span className="inline-block font-mono text-[10px] font-black text-[#5ecce3] bg-sky-50 dark:bg-sky-950/30 px-2 sm:px-3 py-1 rounded-lg border border-sky-100 dark:border-sky-900/30 uppercase mt-2">{v.placa.toUpperCase()}</span>
+               <div className="flex flex-wrap items-center gap-2 mt-2">
+                 <span className="inline-block font-mono text-[10px] font-black text-[#5ecce3] bg-sky-50 dark:bg-sky-950/30 px-2 sm:px-3 py-1 rounded-lg border border-sky-100 dark:border-sky-900/30 uppercase">{v.placa.toUpperCase()}</span>
+                 {assignedDriver && (
+                   <span className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-100 dark:border-slate-800 text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase">
+                     <UserCircle size={12} className="text-[#5ecce3]" /> {assignedDriver.name}
+                   </span>
+                 )}
+               </div>
                <div className={`mt-6 sm:mt-8 p-4 rounded-2xl border transition-all ${needsOilChange ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800'}`}>
                   <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${needsOilChange ? 'text-rose-600' : 'text-slate-400 dark:text-slate-600'}`}>KM ÓLEO ({kmSinceOil} / 1000)</p>
                   <button onClick={() => { setOilForm({...oilForm, veiculo_id: v.id}); setIsOilModalOpen(true); }} className={`mt-2 w-full py-2 border rounded-lg text-[7px] sm:text-[8px] font-black uppercase transition-all no-print ${needsOilChange ? 'bg-rose-600 text-white border-rose-700' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 hover:text-[#5ecce3]'}`}>REGISTRAR TROCA</button>
@@ -282,6 +293,7 @@ const VehiclesTab = ({ vehicles, employees, onUpdate, onDelete, onUpdateMaintena
              <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Ano</label><input placeholder="ANO" className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs dark:text-white outline-none" value={form.ano} onChange={e => setForm({...form, ano: e.target.value})} required /></div>
            </div>
            <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Modelo</label><input placeholder="MODELO" className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs uppercase dark:text-white outline-none" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value.toUpperCase()})} required /></div>
+           <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Motorista Padrão</label><select className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs uppercase dark:text-white outline-none" value={form.motorista_id || ''} onChange={e => setForm({...form, motorista_id: e.target.value})}><option value="">NÃO ATRIBUÍDO</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">KM Atual</label><input type="number" className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs dark:text-white outline-none" value={form.km_atual || 0} onChange={e => setForm({...form, km_atual: parseInt(e.target.value) || 0})} /></div>
               <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">KM Óleo</label><input type="number" className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs dark:text-white outline-none" value={form.km_ultima_troca || 0} onChange={e => setForm({...form, km_ultima_troca: parseInt(e.target.value) || 0})} /></div>
@@ -299,7 +311,7 @@ const FuelTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete 
   const handleSave = (e: React.FormEvent) => { e.preventDefault(); const l = parseFloat(String(form.litros || 0)); const v = parseFloat(String(form.valor_litro || 0)); onUpdate({ ...form, id: form.id || crypto.randomUUID(), valor_total: l * v, km_registro: Number(form.km_registro) || 0, tipo_combustivel: (form.tipo_combustivel || '').toUpperCase() } as FuelLog); setIsOpen(false); };
   return (
     <div className="space-y-4 px-1">
-      <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">NOVO ABASTECIMENTO</button></div>
+      <div className="flex justify-end no-print"><button onClick={() => setIsOpen(true)} className="bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase shadow-xl">NOVA ABASTECIMENTO</button></div>
       <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-slate-50 dark:bg-slate-950 text-[8px] sm:text-[9px] font-black uppercase text-slate-400 dark:text-slate-600"><tr><th className="px-4 sm:px-6 py-4 sm:py-5">DATA</th><th className="px-4 sm:px-6 py-4 sm:py-5">VEÍCULO</th><th className="px-4 sm:px-6 py-4 sm:py-5">KM</th><th className="px-4 sm:px-6 py-4 sm:py-5">LITROS</th><th className="px-4 sm:px-6 py-4 sm:py-5">TOTAL</th><th className="px-4 sm:px-6 py-4 sm:py-5 no-print text-center">AÇÃO</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-[10px] sm:text-xs font-black">
         {logs.length === 0 ? (
@@ -322,6 +334,7 @@ const FuelTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete 
 
 const MaintenanceTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
+  // Fixed toISOString() on array error
   const [form, setForm] = useState<Partial<MaintenanceLog>>({ tipo: 'Preventiva', data: new Date().toISOString().split('T')[0], pago: true, funcionario_id: '' });
   const handleSave = (e: React.FormEvent) => { e.preventDefault(); onUpdate({ ...form, id: form.id || crypto.randomUUID(), custo: Number(form.custo) || 0, km_registro: vehicles.find((v:any)=>v.id===form.veiculo_id)?.km_atual || 0, servico: (form.servico || '').toUpperCase() } as MaintenanceLog); setIsOpen(false); };
   return (
@@ -346,6 +359,7 @@ const MaintenanceTab = ({ logs = [], vehicles = [], employees = [], onUpdate, on
 
 const FinesTab = ({ logs = [], vehicles = [], employees = [], onUpdate, onDelete }: any) => {
   const [isOpen, setIsOpen] = useState(false);
+  // Fixed toISOString() on array error
   const [form, setForm] = useState<Partial<FineLog>>({ situacao: 'Em aberto', data: new Date().toISOString().split('T')[0], data_vencimento: new Date().toISOString().split('T')[0], funcionario_id: '' });
   const handleSave = (e: React.FormEvent) => { e.preventDefault(); onUpdate({ ...form, id: form.id || crypto.randomUUID(), tipo_infracao: (form.tipo_infracao || '').toUpperCase() } as FineLog); setIsOpen(false); };
   return (

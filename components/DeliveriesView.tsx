@@ -531,6 +531,18 @@ ________________________________________
     }
   };
 
+  const handleDriverChange = (driverId: string) => {
+    // Tenta encontrar um veículo padrão para este motorista
+    const defaultVehicle = vehicles.find(v => v.motorista_id === driverId);
+    
+    setForm({
+      ...form,
+      driverId,
+      // Se encontrou veículo padrão, atualiza o vehicleId do formulário automaticamente
+      vehicleId: defaultVehicle ? defaultVehicle.id : form.vehicleId
+    });
+  };
+
   return (
     <div className="p-4 sm:p-8 space-y-4 pb-24 max-w-[1600px] mx-auto overflow-x-hidden transition-colors">
       <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -867,7 +879,7 @@ ________________________________________
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Motorista</label>
-                          <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none px-4 dark:text-white" value={form.driverId || ''} onChange={e => setForm({...form, driverId: e.target.value})} required>
+                          <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase outline-none px-4 dark:text-white" value={form.driverId || ''} onChange={e => handleDriverChange(e.target.value)} required>
                             <option value="">-- MOTORISTA --</option>
                             {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
