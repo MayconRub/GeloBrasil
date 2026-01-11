@@ -74,7 +74,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     return sales.filter(s => {
       const matchesDate = s.date >= startDate && s.date <= endDate;
       const clientName = clients.find(c => c.id === s.clientId)?.name || 'AVULSO';
-      return matchesDate && (!searchTerm || s.description.toLowerCase().includes(searchTerm.toLowerCase()) || clientName.toLowerCase().includes(searchTerm.toLowerCase()));
+      // Fixed: s.description or clientName might potentially be undefined if data is malformed
+      return matchesDate && (!searchTerm || (s.description || '').toLowerCase().includes(searchTerm.toLowerCase()) || (clientName || '').toLowerCase().includes(searchTerm.toLowerCase()));
     });
   }, [sales, startDate, endDate, searchTerm, clients]);
 

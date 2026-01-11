@@ -96,7 +96,7 @@ export const fetchAllData = async (): Promise<AppData> => {
     monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: Number(g.valor) })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
-      description: e.descricao?.toUpperCase(), 
+      description: e.description?.toUpperCase(), 
       value: Number(e.valor), 
       dueDate: e.data_vencimento,
       status: e.status === 'Pago' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
@@ -115,7 +115,8 @@ export const fetchAllData = async (): Promise<AppData> => {
     fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: f.tipo_infracao.toUpperCase(), valor: Number(f.valor) || 0})),
     categories: (cats.data || []).map(c => c.nome.toUpperCase()),
     clients: (clients.data || []).map(c => ({ id: c.id, name: c.name, phone: c.phone, street: c.street || '', number: c.address_number || '', neighborhood: c.neighborhood || '', city: c.city || '', type: c.type, cnpj_cpf: c.cnpj_cpf, created_at: c.created_at })),
-    deliveries: (deliveries.data || []).map(d => ({ id: d.id, sequenceNumber: d.numero_sequencial, saleId: d.sale_id, clientId: d.cliente_id, driverId: d.funcionario_id, vehicleId: d.veiculo_id, status: d.status as DeliveryStatus, scheduledDate: d.scheduled_date, scheduled_time: d.scheduled_time, deliveredAt: d.delivered_at, notes: d.notes, items: d.items, totalValue: Number(d.total_value) || 0 })),
+    // Fix: Ensure database mapping uses correct camelCase properties for Delivery interface (scheduledTime)
+    deliveries: (deliveries.data || []).map(d => ({ id: d.id, sequenceNumber: d.numero_sequencial, saleId: d.sale_id, clientId: d.cliente_id, driverId: d.funcionario_id, vehicleId: d.veiculo_id, status: d.status as DeliveryStatus, scheduledDate: d.scheduled_date, scheduledTime: d.scheduled_time, deliveredAt: d.delivered_at, notes: d.notes, items: d.items, totalValue: Number(d.total_value) || 0 })),
     products: sortedProducts,
     settings,
     users: [] 
@@ -162,7 +163,8 @@ export const syncClient = (c: Client) => supabase.from('clientes').upsert({ id: 
 export const deleteClient = (id: string) => supabase.from('clientes').delete().eq('id', id);
 
 export const syncDelivery = (d: Delivery) => {
-  const payload: any = { id: d.id, sale_id: d.saleId, cliente_id: d.clientId, funcionario_id: d.driverId, veiculo_id: d.vehicleId, status: d.status, scheduled_date: d.scheduled_date, scheduled_time: d.scheduled_time, delivered_at: d.delivered_at, notes: d.notes?.toUpperCase(), items: d.items, total_value: Number(d.total_value) || 0 };
+  // Fix: Access properties from 'd' (type Delivery) using correct camelCase names (scheduledDate, scheduledTime, deliveredAt, totalValue)
+  const payload: any = { id: d.id, sale_id: d.saleId, cliente_id: d.clientId, funcionario_id: d.driverId, veiculo_id: d.vehicleId, status: d.status, scheduled_date: d.scheduledDate, scheduled_time: d.scheduledTime, delivered_at: d.deliveredAt, notes: d.notes?.toUpperCase(), items: d.items, total_value: Number(d.totalValue) || 0 };
   if (d.sequenceNumber) { payload.numero_sequencial = d.sequenceNumber; }
   return supabase.from('entregas').upsert(payload);
 };

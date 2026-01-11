@@ -26,10 +26,11 @@ const ClientsView: React.FC<Props> = ({ clients, onUpdate, onDelete }) => {
 
   const filtered = useMemo(() => {
     return clients.filter(c => 
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      c.street.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.neighborhood.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.city.toLowerCase().includes(searchTerm.toLowerCase())
+      // Fixed: Potential TypeError if properties are undefined
+      (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (c.street || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.neighborhood || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.city || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [clients, searchTerm]);
 

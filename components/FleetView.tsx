@@ -68,7 +68,7 @@ const FleetView: React.FC<Props> = ({
   const filteredFuel = useMemo(() => (fuelLogs || []).filter(l => {
     const matchesDate = l.data >= startDate && l.data <= endDate;
     const vehicle = vehicles.find(v => v.id === l.veiculo_id);
-    const matchesSearch = !searchTerm || vehicle?.placa.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !searchTerm || (vehicle?.placa || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesDate && matchesSearch;
   }), [fuelLogs, startDate, endDate, searchTerm, vehicles]);
 
@@ -76,15 +76,15 @@ const FleetView: React.FC<Props> = ({
     const matchesDate = l.data >= startDate && l.data <= endDate;
     const vehicle = vehicles.find(v => v.id === l.veiculo_id);
     const matchesSearch = !searchTerm || 
-      vehicle?.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.servico.toLowerCase().includes(searchTerm.toLowerCase());
+      (vehicle?.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l.servico || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesDate && matchesSearch;
   }), [maintenanceLogs, startDate, endDate, searchTerm, vehicles]);
 
   const filteredFines = useMemo(() => (fineLogs || []).filter(l => {
     const matchesDate = l.data >= startDate && l.data <= endDate;
     const vehicle = vehicles.find(v => v.id === l.veiculo_id);
-    const matchesSearch = !searchTerm || vehicle?.placa.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !searchTerm || (vehicle?.placa || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesDate && matchesSearch;
   }), [fineLogs, startDate, endDate, searchTerm, vehicles]);
 

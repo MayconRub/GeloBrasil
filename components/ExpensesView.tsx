@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   Plus, Trash2, Search, Pencil, CheckCircle2,
   Receipt, Clock, X, Wallet, Calendar,
-  ArrowUpRight, ArrowDownRight, ArrowRight, TrendingUp
+  ArrowUpRight, ArrowDownRight, ArrowRight, TrendingUp,
+  Filter, ChevronDown, DollarSign
 } from 'lucide-react';
 import { Expense, ExpenseStatus, Vehicle, Employee, Sale } from '../types';
 
@@ -21,19 +22,13 @@ interface Props {
 }
 
 const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, onUpdate, onDelete }) => {
-  // Categorias Fixas solicitadas pelo usuário
-  const FIXED_CATEGORIES = ['LUZ', 'CEMIG', 'INTERNET', 'IMPOSTO', 'DESPESAS', 'OUTROS'];
+  const FIXED_CATEGORIES = ['GERAL', 'LUZ', 'CEMIG', 'INTERNET', 'IMPOSTO', 'DESPESAS', 'OUTROS'];
 
-  const getTodayString = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  };
-
+  const getTodayString = () => new Date().toISOString().split('T')[0];
   const getFirstDayOfMonth = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   };
-
   const getLastDayOfMonth = () => {
     const now = new Date();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -48,7 +43,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [dueDate, setDueDate] = useState(getTodayString());
-  const [category, setCategory] = useState('DESPESAS');
+  const [category, setCategory] = useState('GERAL');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
 
@@ -58,7 +53,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
     const rangeExpenses = expenses.filter(e => isInRange(e.dueDate));
     const totalExpenses = rangeExpenses.reduce((sum, e) => sum + e.value, 0);
     const paidExpenses = rangeExpenses.filter(e => e.status === ExpenseStatus.PAGO).reduce((sum, e) => sum + e.value, 0);
-    const netProfit = rangeSales - paidExpenses;
+    const netProfit = rangeSales - totalExpenses;
     return { rangeSales, totalExpenses, paidExpenses, netProfit };
   }, [sales, expenses, startDate, endDate]);
 
@@ -66,8 +61,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
     return expenses
       .filter(e => {
         const matchesDate = e.dueDate >= startDate && e.dueDate <= endDate;
-        const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             e.category.toLowerCase().includes(searchTerm.toLowerCase());
+        // Fixed: e.description or e.category might potentially be undefined
+        const matchesSearch = (e.description || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (e.category || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'TODOS' || e.status === statusFilter;
         return matchesDate && matchesSearch && matchesStatus;
       })
@@ -99,46 +95,59 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
   };
 
   const resetForm = () => {
-    setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setCategory('DESPESAS'); setIsMobileFormOpen(false);
+    setEditingId(null); setDescription(''); setValue(''); setDueDate(getTodayString()); setCategory('GERAL'); setIsMobileFormOpen(false);
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto transition-colors uppercase">
-      <header className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-5 w-full lg:w-auto">
-          <div className="w-14 h-14 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl rotate-2 shrink-0">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto transition-colors uppercase bg-[#f8fafc] dark:bg-slate-950 min-h-screen">
+      
+      {/* Header Estilo Imagem */}
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center gap-5 w-full sm:w-auto">
+          <div className="w-14 h-14 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg rotate-2 shrink-0">
             <Receipt size={28} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">Bloco de <span className="text-rose-500">Despesas</span></h1>
-            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
-              <Plus size={12} className="text-sky-500" /> Lançamento Rápido (Pad)
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white leading-none uppercase tracking-tight">BLOCO DE <span className="text-rose-500">DESPESAS</span></h1>
+            <p className="text-[10px] font-bold text-sky-500 mt-1.5 uppercase tracking-widest flex items-center gap-2">
+              <Plus size={12} strokeWidth={3} /> LANÇAMENTO RÁPIDO (PAD)
             </p>
           </div>
         </div>
-        <button onClick={() => setIsMobileFormOpen(true)} className="w-full lg:w-auto h-12 px-8 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
-           <Plus size={18} /> Novo Lançamento
+        <button onClick={() => setIsMobileFormOpen(true)} className="w-full sm:w-auto px-10 h-14 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center gap-3">
+           <Plus size={20} /> Novo Lançamento
         </button>
       </header>
 
-      <div className="flex flex-col lg:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.8rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
-            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
-          </div>
-          <ArrowRight size={14} className="text-slate-300 shrink-0" />
-          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
-            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+      {/* Filtros Consolidados Estilo Imagem */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row gap-4 no-print">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-2xl px-5 h-14 border border-slate-100 dark:border-slate-800">
+            <span className="text-[9px] font-black text-slate-400 mr-3">DE</span>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-[11px] font-bold dark:text-white outline-none w-full" />
+            <ArrowRight size={16} className="text-slate-200 mx-2" />
+            <span className="text-[9px] font-black text-slate-400 mr-3">ATÉ</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent text-[11px] font-bold dark:text-white outline-none w-full" />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 lg:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input type="text" placeholder="FILTRAR..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
-          </div>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[9px] font-black uppercase outline-none dark:text-white">
+        
+        <div className="relative flex-1 lg:max-w-md">
+          <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+          <input 
+            type="text" 
+            placeholder="FILTRAR..." 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)} 
+            className="w-full h-14 pl-14 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-full text-[10px] font-black outline-none dark:text-white focus:ring-2 focus:ring-sky-500/10 uppercase"
+          />
+        </div>
+
+        <div className="lg:w-48">
+          <select 
+            value={statusFilter} 
+            onChange={e => setStatusFilter(e.target.value as any)} 
+            className="w-full h-14 px-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-full text-[10px] font-black uppercase outline-none dark:text-white appearance-none text-center"
+          >
             <option value="TODOS">STATUS</option>
             <option value={ExpenseStatus.PAGO}>PAGOS</option>
             <option value={ExpenseStatus.A_VENCER}>A VENCER</option>
@@ -146,78 +155,112 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <DRECard label="Faturamento" value={dreData.rangeSales} icon={ArrowUpRight} color="emerald" />
-        <DRECard label="Despesas" value={dreData.totalExpenses} icon={ArrowDownRight} color="rose" />
-        <DRECard label="Saldo Líquido" value={dreData.netProfit} icon={Wallet} color={dreData.netProfit >= 0 ? 'sky' : 'rose'} />
+      {/* Cards de Métricas Estilo Imagem */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <SummaryCard label="FATURAMENTO" value={dreData.rangeSales} icon={ArrowUpRight} color="emerald" />
+        <SummaryCard label="DESPESAS" value={dreData.totalExpenses} icon={ArrowDownRight} color="rose" />
+        <SummaryCard label="SALDO LÍQUIDO" value={dreData.netProfit} icon={Wallet} color="sky" />
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden min-h-[400px]">
+      {/* Tabela Estilo Imagem */}
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                <th className="px-6 py-4">DATA</th>
-                <th className="px-6 py-4">CATEGORIA</th>
-                <th className="px-6 py-4">DESCRIÇÃO</th>
-                <th className="px-6 py-4 text-right">VALOR</th>
-                <th className="px-6 py-4 text-center">STATUS</th>
-                <th className="px-6 py-4 text-right no-print">AÇÕES</th>
+              <tr className="text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800">
+                <th className="px-8 py-6">DATA</th>
+                <th className="px-8 py-6">CATEGORIA</th>
+                <th className="px-8 py-6">DESCRIÇÃO</th>
+                <th className="px-8 py-6 text-right">VALOR</th>
+                <th className="px-8 py-6 text-center">STATUS</th>
+                <th className="px-8 py-6 text-right no-print">AÇÕES</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {filteredExpenses.map((e) => (
                 <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 group transition-colors">
-                  <td className="px-6 py-4 text-[10px] font-bold text-slate-500">{new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                  <td className="px-6 py-4"><span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[8px] font-black text-slate-500 uppercase">{e.category}</span></td>
-                  <td className="px-6 py-4 font-black text-xs text-slate-800 dark:text-slate-200">{e.description}</td>
-                  <td className="px-6 py-4 text-right font-black text-rose-600 dark:text-rose-400">R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})} className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase transition-all ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white dark:bg-slate-800 text-amber-600 border border-amber-100 dark:border-amber-900/30'}`}>{e.status}</button>
+                  <td className="px-8 py-5 text-[10px] font-bold text-slate-500">{new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                  <td className="px-8 py-5">
+                    <span className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                      {e.category}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-right no-print">
-                    <div className="flex justify-end gap-1">
-                      <button onClick={() => handleEdit(e)} className="p-2 text-slate-300 hover:text-sky-500 transition-colors"><Pencil size={14} /></button>
-                      <button onClick={() => onDelete(e.id)} className="p-2 text-slate-200 hover:text-rose-500 transition-colors"><Trash2 size={14} /></button>
+                  <td className="px-8 py-5 font-black text-xs text-slate-800 dark:text-slate-200">{e.description}</td>
+                  <td className="px-8 py-5 text-right font-black text-sm text-rose-500">
+                    R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <button 
+                      onClick={() => onUpdate({...e, status: e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO})} 
+                      className={`px-5 py-2 rounded-full text-[8px] font-black uppercase transition-all shadow-sm ${e.status === ExpenseStatus.PAGO ? 'bg-emerald-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-amber-500 border border-amber-100 dark:border-amber-900/30'}`}
+                    >
+                      {e.status}
+                    </button>
+                  </td>
+                  <td className="px-8 py-5 text-right no-print">
+                    <div className="flex justify-end gap-3">
+                      <button onClick={() => handleEdit(e)} className="p-2 text-slate-300 hover:text-sky-500 transition-colors"><Pencil size={18} /></button>
+                      <button onClick={() => onDelete(e.id)} className="p-2 text-slate-200 hover:text-rose-500 transition-colors"><Trash2 size={18} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {filteredExpenses.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-24 text-center">
+                    <div className="flex flex-col items-center opacity-20">
+                      <Receipt size={48} className="mb-4" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhuma despesa no período</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Modal Estilizado */}
       {isMobileFormOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-sm" onClick={resetForm} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl dark:shadow-none border border-transparent dark:border-slate-800 relative animate-in zoom-in-95">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3.5rem] p-10 shadow-2xl relative border dark:border-slate-800 animate-in zoom-in-95">
              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">Lançar <span className="text-rose-500">Despesa</span></h3>
-                <button onClick={resetForm} className="p-2 text-slate-300 dark:text-slate-700"><X size={24}/></button>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-none uppercase">Lançar <span className="text-rose-500">Despesa</span></h3>
+                <button onClick={resetForm} className="p-3 text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-colors"><X size={28}/></button>
              </div>
-             <form onSubmit={handleAdd} className="space-y-4">
+             <form onSubmit={handleAdd} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Categoria</label>
-                      <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-black text-[10px] dark:text-white uppercase outline-none">
+                      <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Categoria</label>
+                      <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] dark:text-white uppercase outline-none">
                          {FIXED_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                    </div>
                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Data</label>
-                      <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none" required />
+                      <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Data</label>
+                      <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs dark:text-white outline-none" required />
                    </div>
                 </div>
                 <div className="space-y-1.5">
-                   <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Descrição</label>
-                   <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="EX: CONTA DE LUZ" className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" required />
+                   <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Descrição</label>
+                   <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="EX: CONTA DE LUZ" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase dark:text-white outline-none" required />
                 </div>
                 <div className="space-y-1.5">
-                   <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Valor R$</label>
-                   <input type="text" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-black text-base dark:text-white outline-none" required />
+                   <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase ml-3">Valor Total R$</label>
+                   <div className="relative">
+                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-rose-500 font-black text-lg">R$</span>
+                      <input 
+                        type="text" 
+                        value={value} 
+                        onChange={e => setValue(e.target.value)} 
+                        placeholder="0,00" 
+                        className="w-full h-16 pl-16 pr-6 bg-rose-50/20 dark:bg-slate-950 border border-rose-100 dark:border-rose-800/30 rounded-[1.8rem] text-2xl font-black text-rose-600 dark:text-rose-400 outline-none" 
+                        required 
+                      />
+                   </div>
                 </div>
-                <button type="submit" className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-6 shadow-xl active:scale-95 transition-all">SALVAR DESPESA</button>
+                <button type="submit" className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[1.8rem] font-black text-[11px] uppercase tracking-[0.2em] mt-6 shadow-2xl active:scale-95 transition-all">SALVAR LANÇAMENTO</button>
              </form>
           </div>
         </div>
@@ -226,19 +269,40 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
   );
 };
 
-const DRECard = ({ label, value, icon: Icon, color }: any) => {
+const SummaryCard = ({ label, value, icon: Icon, color }: any) => {
   const themes: any = {
-    sky: "bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400",
-    emerald: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
-    rose: "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400"
+    sky: { 
+      bg: "bg-sky-50 dark:bg-sky-950/30", 
+      text: "text-sky-600 dark:text-sky-400", 
+      iconBg: "bg-sky-100 dark:bg-sky-900/30",
+      border: "border-sky-50 dark:border-sky-900/10"
+    },
+    emerald: { 
+      bg: "bg-emerald-50 dark:bg-emerald-950/30", 
+      text: "text-emerald-600 dark:text-emerald-400", 
+      iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
+      border: "border-emerald-50 dark:border-emerald-900/10"
+    },
+    rose: { 
+      bg: "bg-rose-50 dark:bg-rose-950/30", 
+      text: "text-rose-600 dark:text-rose-400", 
+      iconBg: "bg-rose-100 dark:bg-rose-900/30",
+      border: "border-rose-50 dark:border-rose-900/10"
+    }
   };
+  const theme = themes[color] || themes.sky;
+
   return (
-    <div className={`p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm`}>
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">{label}</span>
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${themes[color]}`}><Icon size={16} /></div>
+    <div className={`p-8 rounded-[2.5rem] border ${theme.border} bg-white dark:bg-slate-900 shadow-sm flex flex-col justify-between min-h-[160px]`}>
+      <div className="flex items-center justify-between mb-6">
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600">{label}</span>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${theme.iconBg} ${theme.text}`}>
+          <Icon size={20} />
+        </div>
       </div>
-      <p className={`text-xl font-black ${themes[color].split(' ')[2]}`}>R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+      <p className={`text-2xl font-black tracking-tighter ${theme.text}`}>
+        R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+      </p>
     </div>
   );
 };
