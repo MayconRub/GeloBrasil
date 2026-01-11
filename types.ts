@@ -13,6 +13,12 @@ export enum DeliveryStatus {
   CANCELADO = 'Cancelado'
 }
 
+export interface Product {
+  id: string;
+  nome: string;
+  unidade: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -45,25 +51,6 @@ export interface Delivery {
   notes?: string;
   items?: DeliveryItem[];
   totalValue?: number;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  unit: 'KG' | 'SACO' | 'UN' | 'BARRA';
-  current_quantity: number;
-  min_quantity: number;
-  category: string;
-}
-
-export interface StockMovement {
-  id: string;
-  productId: string;
-  quantity: number;
-  type: 'IN' | 'OUT';
-  reason: 'PRODUÇÃO' | 'VENDA' | 'PERDA' | 'AJUSTE' | 'COMPRA';
-  date: string;
-  notes?: string;
 }
 
 export interface SaleItem {
@@ -170,6 +157,7 @@ export interface Employee {
   role: string;
   salary?: number;
   joinedAt: string;
+  status: 'ATIVO' | 'INATIVO';
 }
 
 export interface UserProfile {
@@ -199,4 +187,4 @@ export interface AppSettings {
   adminPassword?: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries' | 'inventory';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries';
