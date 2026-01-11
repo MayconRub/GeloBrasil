@@ -17,13 +17,14 @@ interface Props {
   employees: Employee[];
   sales: Sale[];
   onUpdate: (expense: Expense) => void;
+  onUpdateStatus: (id: string, status: ExpenseStatus) => void;
   onDelete: (id: string) => void;
   onUpdateCategories: (categoryName: string) => void;
   onDeleteCategory: (categoryName: string) => void;
   onReorderCategories?: (orderedNames: string[]) => void;
 }
 
-const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, onUpdate, onDelete }) => {
+const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, onUpdate, onUpdateStatus, onDelete }) => {
   const FIXED_CATEGORIES = ['GERAL', 'LUZ', 'CEMIG', 'INTERNET', 'IMPOSTO', 'DESPESAS', 'OUTROS'];
 
   const getTodayString = () => {
@@ -160,7 +161,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
 
   const toggleExpenseStatus = (e: Expense) => {
     const newStatus = e.status === ExpenseStatus.PAGO ? ExpenseStatus.A_VENCER : ExpenseStatus.PAGO;
-    onUpdate({ ...e, status: newStatus });
+    onUpdateStatus(e.id, newStatus);
   };
 
   return (
@@ -219,29 +220,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
             />
           </div>
         </div>
-      </div>
-
-      {/* Status Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-        <button 
-          onClick={() => setStatusFilter('TODOS')} 
-          className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${statusFilter === 'TODOS' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-100 dark:border-slate-800 opacity-60'}`}
-        >
-          TODOS
-        </button>
-        {[
-          { label: 'PAGO', value: ExpenseStatus.PAGO },
-          { label: 'A VENCER', value: ExpenseStatus.A_VENCER },
-          { label: 'ATRASADO', value: ExpenseStatus.VENCIDO },
-        ].map(status => (
-          <button 
-            key={status.label} 
-            onClick={() => setStatusFilter(status.value)} 
-            className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${statusFilter === status.value ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-100 dark:border-slate-800 opacity-60'}`}
-          >
-            {status.label}
-          </button>
-        ))}
       </div>
 
       {/* Summary Metrics */}
