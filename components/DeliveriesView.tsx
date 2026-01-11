@@ -136,7 +136,7 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
   const getVehicle = (id: string) => vehicles.find(v => v.id === id);
   const getProduct = (id: string) => products.find(p => p.id === id);
 
-  const handlePrintReceipt = (d: Delivery) => {
+  const handlePrintReceipt = async (d: Delivery) => {
     const client = getClient(d.clientId);
     const driver = getDriver(d.driverId);
     const vehicle = getVehicle(d.vehicleId);
@@ -144,6 +144,18 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
       const p = getProduct(item.productId);
       return `${String(item.quantity).padStart(3, ' ')} UN - ${p?.nome || 'PRODUTO'}`;
     }).join('\n');
+
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey || '')}`;
+
+    // Garantir que a imagem do QR Code está carregada antes de abrir a janela
+    if (settings.pixKey) {
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.src = qrUrl;
+        img.onload = resolve;
+        img.onerror = resolve; // Resolvemos de qualquer forma para não travar o app se o serviço de QR falhar
+      });
+    }
 
     const receiptText = `
 ========================================
@@ -184,7 +196,7 @@ ________________________________________
     if (printWindow) {
       const pixContent = settings.pixKey ? `
             <div class="qrcode-container">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey)}" />
+              <img src="${qrUrl}" />
             </div>` : `
             <div class="centered">
               CHAVE PIX NAO CONFIGURADA
@@ -234,16 +246,21 @@ ________________________________________
 ========================================
         OBRIGADO PELA PREFERENCIA
             </div>
+            <script>
+              // Aguarda todos os recursos (especialmente a imagem do QR Code) serem carregados
+              window.onload = function() {
+                // Pequeno delay para garantir a renderização gráfica estável
+                setTimeout(function() {
+                  window.focus();
+                  window.print();
+                  window.close();
+                }, 300);
+              };
+            </script>
           </body>
         </html>
       `);
       printWindow.document.close();
-      
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      }, 500);
     }
   };
 
@@ -641,7 +658,10 @@ ________________________________________
                       <h4 className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase truncate leading-tight">
                         {client?.name || 'Cliente em sincronização...'}
                       </h4>
-                      <div className="flex items-start gap-1.5 text-[8px] font-bold text-slate-400 mt-1 uppercase truncate"><MapPin size={10} className="shrink-0" /> <span>{client?.street || 'Endereço Indefinido'}, {client?.number || 'S/N'}</span></div>
+                      <div className="flex items-start gap-1.5 text-[8px] font-bold text-slate-400 mt-1 uppercase truncate">
+                        <MapPin size={10} className="shrink-0" /> 
+                        <span>{client?.street || 'Endereço Indefinido'}, {client?.number || 'S/N'} {client?.neighborhood && `| ${client.neighborhood}`}</span>
+                      </div>
                       
                       <div className={`flex items-center gap-1.5 text-[8px] font-black mt-1.5 uppercase transition-all ${isInRoute ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-600'}`}>
                         <UserCircle size={11} className={`${isInRoute ? 'text-sky-500' : 'text-slate-300'}`} />
@@ -754,28 +774,28 @@ ________________________________________
         </div>
       )}
 
-      {/* Confirmação de Pagamento */}
+      {/* Confirmação de Pagamento - Card Ajustado e Mais Compacto */}
       {showPaymentConfirm && deliveryToConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" />
-          <div className="bg-white dark:bg-slate-900 w-full max-md rounded-[2.5rem] p-8 sm:p-10 shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 text-center">
-            <div className="w-20 h-20 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-               <DollarSign size={40} />
+          <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-md animate-in fade-in duration-300" />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-[360px] rounded-[2rem] p-6 sm:p-8 shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 text-center">
+            <div className="w-16 h-16 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+               <DollarSign size={32} />
             </div>
-            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-2">Confirmação de Recebimento</h3>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed mb-8">
-              Você recebeu o pagamento de <span className="text-emerald-600 dark:text-emerald-400">R$ {deliveryToConfirm.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span> deste cliente?
+            <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">Pagamento Recebido?</h3>
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed mb-6">
+              Confirme o recebimento de <br/><span className="text-emerald-600 dark:text-emerald-400 text-sm font-black">R$ {deliveryToConfirm.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </p>
             
-            <div className="flex flex-col gap-3">
-              <button onClick={() => handleConfirmDeliveryWithPayment(true)} className="w-full h-16 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-3">
-                <CheckCircle2 size={20} /> SIM, RECEBI O VALOR
+            <div className="flex flex-col gap-2">
+              <button onClick={() => handleConfirmDeliveryWithPayment(true)} className="w-full h-14 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                <CheckCircle2 size={18} /> SIM, FOI PAGO
               </button>
-              <button onClick={() => handleConfirmDeliveryWithPayment(false)} className="w-full h-16 bg-white dark:bg-slate-950 text-rose-500 border-2 border-rose-100 dark:border-rose-900/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3">
-                <AlertTriangle size={20} /> NÃO, DEIXAR PENDENTE
+              <button onClick={() => handleConfirmDeliveryWithPayment(false)} className="w-full h-14 bg-slate-50 dark:bg-slate-950 text-rose-500 border border-rose-100 dark:border-rose-900/30 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-2">
+                <AlertTriangle size={18} /> NÃO, FICOU PENDENTE
               </button>
-              <button onClick={() => { setShowPaymentConfirm(false); setDeliveryToConfirm(null); }} className="w-full h-12 text-slate-300 dark:text-slate-600 font-black text-[8px] uppercase tracking-widest mt-2">
-                VOLTAR
+              <button onClick={() => { setShowPaymentConfirm(false); setDeliveryToConfirm(null); }} className="w-full py-3 text-slate-300 dark:text-slate-600 font-black text-[7px] uppercase tracking-widest mt-1 hover:text-slate-400 transition-colors">
+                CANCELAR
               </button>
             </div>
           </div>
