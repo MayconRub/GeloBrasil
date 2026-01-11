@@ -215,7 +215,12 @@ const App: React.FC = () => {
   const mobileFixedItems = menuItems.slice(0, 4);
   const mobileExtraItems = menuItems.slice(4);
 
-  const handleMobileNav = (viewId: string) => { setView(viewId as ViewType); setIsMobileMenuOpen(false); setIsNotificationsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const handleMobileNav = (viewId: string) => { 
+    setView(viewId as ViewType); 
+    setIsMobileMenuOpen(false); 
+    setIsNotificationsOpen(false); 
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+  };
 
   if (isLoading) return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col items-center justify-center">
@@ -255,13 +260,61 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 uppercase transition-colors duration-500 pb-28 lg:pb-0 relative`} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-      {(pullDistance > 0 || (isRefreshing && pullDistance > 0)) && (<div className="lg:hidden fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ transform: `translateY(${pullDistance}px)`, opacity: Math.min(pullDistance / 60, 1) }}><div className="mt-4 w-12 h-12 rounded-full glass-panel dark:bg-slate-900 border border-white/20 dark:border-slate-800 shadow-2xl flex items-center justify-center text-sky-500"><RefreshCw size={24} className={`${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: !isRefreshing ? `rotate(${pullDistance * 4}deg)` : undefined }} /></div></div>)}
-      {(bottomPullDistance > 0 || (isRefreshing && bottomPullDistance > 0)) && (<div className="lg:hidden fixed bottom-24 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ transform: `translateY(-${bottomPullDistance}px)`, opacity: Math.min(bottomPullDistance / 60, 1) }}><div className="w-12 h-12 rounded-full glass-panel dark:bg-slate-900 border border-white/20 dark:border-slate-800 shadow-2xl flex items-center justify-center text-sky-500"><RefreshCw size={24} className={`${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: !isRefreshing ? `rotate(${bottomPullDistance * 4}deg)` : undefined }} /></div></div>)}
-      {isSystemExpired && isAdmin && (<div className="fixed top-0 left-0 right-0 bg-rose-600 text-white p-3 z-[100] text-center flex items-center justify-center gap-4 shadow-xl no-print animate-in slide-in-from-top duration-500"><ShieldAlert size={18} className="animate-pulse" /><p className="text-[9px] font-black uppercase tracking-[0.2em]">SISTEMA EXPIRADO!</p><button onClick={() => setView('admin')} className="bg-white text-rose-600 px-4 py-1.5 rounded-lg text-[8px] font-black uppercase shadow-sm">Renovar</button></div>)}
-      <aside className={`hidden lg:flex w-64 flex-col bg-white dark:bg-slate-900 border-r border-sky-100 dark:border-slate-800 py-10 px-4 sticky top-0 h-screen z-50 transition-colors ${isSystemExpired && isAdmin ? 'pt-24' : ''}`}><div className="flex items-center gap-3 px-4 mb-8"><div className="w-10 h-10 rounded-2xl bg-[#5ecce3] flex items-center justify-center text-white shadow-lg"><Snowflake size={20} /></div><h1 className="text-sm font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate">{data.settings.companyName}</h1></div><div className="px-4 mb-8"><button onClick={toggleDarkMode} className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-sky-500 transition-all">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}<span className="text-[9px] font-black tracking-widest">{isDarkMode ? 'MODO CLARO' : 'MODO ESCURO'}</span></button></div><nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar pr-1 custom-scrollbar">{menuItems.map(item => (<button key={item.id} onClick={() => setView(item.id as ViewType)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${view === item.id ? 'bg-[#5ecce3] text-white shadow-xl' : 'text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 hover:text-sky-600'}`}><item.icon size={18} /> {item.label}</button>))}</nav><div className="mt-auto pt-4 border-t border-slate-50 dark:border-white/5"><button onClick={handleLogout} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 transition-all"><LogOut size={18} /> Sair</button></div></aside>
-      <div className={`lg:hidden flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-sky-50 dark:border-slate-800 sticky top-0 z-[60] transition-colors ${isSystemExpired && isAdmin ? 'mt-12' : ''}`}><div className="flex items-center gap-3 overflow-hidden"><div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-white shadow-lg shrink-0"><Snowflake size={18} /></div><h1 className="text-[11px] font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate leading-none">{data.settings.companyName}</h1></div><div className="flex items-center gap-2"><div className="relative"><button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className={`p-2 rounded-xl transition-all ${isNotificationsOpen ? 'text-sky-500 bg-sky-50 dark:bg-sky-900/30' : 'text-slate-400 dark:text-slate-500 hover:text-sky-500'}`}><Bell size={20} className={criticalExpenses.length > 0 ? 'animate-bounce' : ''} />{criticalExpenses.length > 0 && (<span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white dark:border-slate-900 shadow-sm animate-pulse">{criticalExpenses.length}</span>)}</button></div><button onClick={toggleDarkMode} className="p-2 text-slate-400 dark:text-slate-500">{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</button><span className="text-[8px] font-black text-sky-500 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/30 rounded-full border border-sky-100 uppercase tracking-widest">{userName}</span></div></div>
+    <div className={`min-h-screen flex flex-col lg:flex-row bg-[#f0f9ff] dark:bg-slate-950 transition-colors duration-500 pb-20 lg:pb-0 relative`} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+      {/* Pull to refresh indicators */}
+      {(pullDistance > 0 || (isRefreshing && pullDistance > 0)) && (
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none transition-all" style={{ transform: `translateY(${pullDistance}px)`, opacity: Math.min(pullDistance / 60, 1) }}>
+          <div className="mt-4 w-12 h-12 rounded-full glass-panel dark:bg-slate-900 border border-white/20 dark:border-slate-800 shadow-2xl flex items-center justify-center text-sky-500">
+            <RefreshCw size={24} className={`${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: !isRefreshing ? `rotate(${pullDistance * 4}deg)` : undefined }} />
+          </div>
+        </div>
+      )}
+      
+      {isSystemExpired && isAdmin && (
+        <div className="fixed top-0 left-0 right-0 bg-rose-600 text-white p-3 z-[100] text-center flex items-center justify-center gap-4 shadow-xl no-print animate-in slide-in-from-top duration-500">
+          <ShieldAlert size={18} className="animate-pulse" />
+          <p className="text-[9px] font-black uppercase tracking-[0.2em]">SISTEMA EXPIRADO!</p>
+          <button onClick={() => setView('admin')} className="bg-white text-rose-600 px-4 py-1.5 rounded-lg text-[8px] font-black uppercase shadow-sm">Renovar</button>
+        </div>
+      )}
 
+      {/* Desktop Sidebar */}
+      <aside className={`hidden lg:flex w-64 flex-col bg-white dark:bg-slate-900 border-r border-sky-100 dark:border-slate-800 py-10 px-4 sticky top-0 h-screen z-50 transition-colors ${isSystemExpired && isAdmin ? 'pt-24' : ''}`}>
+        <div className="flex items-center gap-3 px-4 mb-8">
+          <div className="w-10 h-10 rounded-2xl bg-[#5ecce3] flex items-center justify-center text-white shadow-lg"><Snowflake size={20} /></div>
+          <h1 className="text-sm font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate">{data.settings.companyName}</h1>
+        </div>
+        <nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar pr-1">
+          {menuItems.map(item => (
+            <button key={item.id} onClick={() => setView(item.id as ViewType)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${view === item.id ? 'bg-[#5ecce3] text-white shadow-xl' : 'text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 hover:text-sky-600'}`}>
+              <item.icon size={18} /> {item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="mt-auto pt-4 border-t border-slate-50 dark:border-white/5">
+           <button onClick={toggleDarkMode} className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-sky-500 transition-all mb-4">
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            <span className="text-[9px] font-black tracking-widest">{isDarkMode ? 'MODO CLARO' : 'MODO ESCURO'}</span>
+          </button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 transition-all"><LogOut size={18} /> Sair</button>
+        </div>
+      </aside>
+
+      {/* Mobile Top Header */}
+      <div className={`lg:hidden flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-sky-50 dark:border-slate-800 sticky top-0 z-[60] transition-colors ${isSystemExpired && isAdmin ? 'mt-12' : ''}`}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-white shadow-lg shrink-0"><Snowflake size={18} /></div>
+          <h1 className="text-[11px] font-black uppercase tracking-tighter text-slate-800 dark:text-white truncate leading-none">{data.settings.companyName}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleDarkMode} className="p-2 text-slate-400 dark:text-slate-500">
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <span className="text-[8px] font-black text-sky-500 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/30 rounded-full border border-sky-100 uppercase tracking-widest">{userName}</span>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
       <main className={`flex-1 max-w-7xl mx-auto w-full relative pt-2 lg:pt-0 ${isSystemExpired && isAdmin && view !== 'admin' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
         {view === 'dashboard' && <DashboardView sales={data.sales} expenses={data.expenses} production={data.production} deliveries={data.deliveries} clients={data.clients} onSwitchView={setView} settings={data.settings} onAddSale={wrap(syncSale)} />}
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} products={data.products} deliveries={data.deliveries} employees={data.employees} />}
@@ -274,17 +327,50 @@ const App: React.FC = () => {
         {view === 'admin' && isAdmin && <AdminView settings={data.settings} onUpdateSettings={wrap(syncSettings)} users={[]} products={data.products} onUpdateProduct={wrap(syncProductBase)} onDeleteProduct={wrap(deleteProductBase)} />}
       </main>
 
-      <div className="lg:hidden fixed bottom-6 left-3 right-3 z-[80] no-print">
+      {/* Mobile Navigation Bar */}
+      <div className="lg:hidden fixed bottom-4 left-3 right-3 z-[80] no-print">
         <nav className="glass-nav dark:bg-slate-900/95 flex items-center justify-between px-2 py-3 rounded-[2.2rem] shadow-2xl border border-white/40 dark:border-white/5">
-          {mobileFixedItems.map(item => (<button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex-1 flex flex-col items-center gap-1 transition-all duration-300 min-w-0 ${view === item.id && !isMobileMenuOpen ? 'text-sky-500 scale-105' : 'text-slate-400 active:scale-90'}`}><item.icon size={18} strokeWidth={view === item.id && !isMobileMenuOpen ? 3 : 2} className="shrink-0" /><span className="text-[7px] font-black uppercase tracking-tight truncate w-full text-center px-0.5">{item.label}</span></button>))}
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`flex-1 flex flex-col items-center gap-1 transition-all duration-300 min-w-0 ${isMobileMenuOpen ? 'text-sky-500 scale-105' : 'text-slate-400 active:scale-90'}`}><div className={`transition-transform duration-500 shrink-0 ${isMobileMenuOpen ? 'rotate-90' : ''}`}>{isMobileMenuOpen ? <X size={18} strokeWidth={3} /> : <MoreHorizontal size={18} strokeWidth={2} />}</div><span className="text-[7px] font-black uppercase tracking-tight truncate w-full text-center px-0.5">{isMobileMenuOpen ? 'FECHAR' : 'MAIS'}</span></button>
+          {mobileFixedItems.map(item => (
+            <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex-1 flex flex-col items-center gap-1 transition-all duration-300 min-w-0 ${view === item.id && !isMobileMenuOpen ? 'text-sky-500 scale-105' : 'text-slate-400 active:scale-90'}`}>
+              <item.icon size={18} strokeWidth={view === item.id && !isMobileMenuOpen ? 3 : 2} className="shrink-0" />
+              <span className="text-[7px] font-black uppercase tracking-tight truncate w-full text-center px-0.5">{item.label}</span>
+            </button>
+          ))}
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`flex-1 flex flex-col items-center gap-1 transition-all duration-300 min-w-0 ${isMobileMenuOpen ? 'text-sky-500 scale-105' : 'text-slate-400 active:scale-90'}`}>
+            <div className={`transition-transform duration-500 shrink-0 ${isMobileMenuOpen ? 'rotate-90' : ''}`}>{isMobileMenuOpen ? <X size={18} strokeWidth={3} /> : <MoreHorizontal size={18} strokeWidth={2} />}</div>
+            <span className="text-[7px] font-black uppercase tracking-tight truncate w-full text-center px-0.5">{isMobileMenuOpen ? 'FECHAR' : 'MAIS'}</span>
+          </button>
         </nav>
       </div>
 
+      {/* Mobile Expandable Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[100] animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-950 p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto rounded-t-[3rem]"><div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-8"></div><div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50 dark:border-white/5"><span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Menu Expandido</span><button onClick={() => setIsMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-full text-slate-300"><X size={18} /></button></div><div className="grid grid-cols-1 gap-3">{mobileExtraItems.map(item => (<button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex items-center justify-between w-full p-5 rounded-2xl transition-all duration-300 ${view === item.id ? 'bg-sky-500 text-white shadow-xl' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 active:bg-sky-50'}`}><div className="flex items-center gap-4"><div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ${view === item.id ? 'bg-white/20' : 'bg-white dark:bg-slate-800 text-sky-500'}`}><item.icon size={22} /></div><span className="text-sm font-black uppercase tracking-tight">{item.label}</span></div><ChevronRight size={18} className={view === item.id ? 'opacity-50' : 'text-slate-300 dark:text-slate-700'} /></button>))}<button onClick={handleLogout} className="flex items-center justify-between w-full p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-500 transition-all mt-4 border border-rose-100/50 dark:border-rose-900/30 active:scale-95"><div className="flex items-center gap-4"><div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-rose-500"><LogOut size={22} /></div><span className="text-sm font-black uppercase tracking-tight">Sair</span></div></button></div></div>
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-950 p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto rounded-t-[3rem]">
+            <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-8"></div>
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50 dark:border-white/5">
+              <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Menu Expandido</span>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-full text-slate-300"><X size={18} /></button>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {mobileExtraItems.map(item => (
+                <button key={item.id} onClick={() => handleMobileNav(item.id)} className={`flex items-center justify-between w-full p-5 rounded-2xl transition-all duration-300 ${view === item.id ? 'bg-sky-500 text-white shadow-xl' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 active:bg-sky-50'}`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ${view === item.id ? 'bg-white/20' : 'bg-white dark:bg-slate-800 text-sky-500'}`}><item.icon size={22} /></div>
+                    <span className="text-sm font-black uppercase tracking-tight">{item.label}</span>
+                  </div>
+                  <ChevronRight size={18} className={view === item.id ? 'opacity-50' : 'text-slate-300 dark:text-slate-700'} />
+                </button>
+              ))}
+              <button onClick={handleLogout} className="flex items-center justify-between w-full p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-500 transition-all mt-4 border border-rose-100/50 dark:border-rose-900/30 active:scale-95">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-rose-500"><LogOut size={22} /></div>
+                  <span className="text-sm font-black uppercase tracking-tight">Sair</span>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

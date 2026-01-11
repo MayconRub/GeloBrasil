@@ -58,961 +58,270 @@ const DeliveriesView: React.FC<Props> = ({ deliveries, clients, drivers, vehicle
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   };
 
-  const getFirstDayOfMonth = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  };
-
-  const getLastDayOfMonth = () => {
-    const now = new Date();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-  };
-
-  const getNowTimeString = () => {
-    const now = new Date();
-    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  };
-
-  const formatPhone = (value: string) => {
-    if (!value) return "";
-    value = value.replace(/\D/g, "");
-    value = value.substring(0, 11);
-    if (value.length > 10) return value.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
-    else if (value.length > 6) return value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
-    else if (value.length > 2) return value.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2");
-    else if (value.length > 0) return value.replace(/^(\d{0,2}).*/, "($1");
-    return value;
-  };
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<DeliveryStatus | 'TODOS'>('TODOS');
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(getTodayString());
   const [endDate, setEndDate] = useState(getTodayString());
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isOpen, setIsOpen] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
   const [deliveryToConfirm, setDeliveryToConfirm] = useState<Delivery | null>(null);
 
   const [form, setForm] = useState<Partial<Delivery>>({ 
     status: DeliveryStatus.PENDENTE, 
     scheduledDate: getTodayString(),
-    scheduledTime: getNowTimeString(),
+    scheduledTime: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
     items: [],
     totalValue: 0,
     notes: ''
   });
   
   const [isExpressMode, setIsExpressMode] = useState(false);
-  const [expressClient, setExpressClient] = useState<{
-    name: string;
-    phone: string;
-    street: string;
-    number: string;
-    neighborhood: string;
-    city: string;
-    type: 'PARTICULAR' | 'REVENDEDOR';
-  }>({
-    name: '',
-    phone: '',
-    street: '',
-    number: '',
-    neighborhood: '',
-    city: 'MONTES CLAROS',
-    type: 'PARTICULAR'
-  });
-
+  const [expressClient, setExpressClient] = useState({ name: '', phone: '', street: '', number: '', neighborhood: '', city: 'MONTES CLAROS', type: 'PARTICULAR' as const });
   const [selectedProductId, setSelectedProductId] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
   const [itemUnitPrice, setItemUnitPrice] = useState('');
   const [localTotalValue, setLocalTotalValue] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const getClient = (id: string) => clients.find(c => c.id === id);
   const getDriver = (id: string) => drivers.find(d => d.id === id);
-  const getVehicle = (id: string) => vehicles.find(v => v.id === id);
   const getProduct = (id: string) => products.find(p => p.id === id);
 
-  // Busca preço sugerido do cliente ao selecionar produto na entrega
   useEffect(() => {
     if (selectedProductId && form.clientId) {
       const client = clients.find(c => c.id === form.clientId);
       const customPrice = client?.product_prices?.[selectedProductId];
-      if (customPrice) {
-        setItemUnitPrice(customPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-      } else {
-        setItemUnitPrice('');
-      }
-    } else {
-      setItemUnitPrice('');
+      if (customPrice) setItemUnitPrice(customPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+      else setItemUnitPrice('');
     }
   }, [selectedProductId, form.clientId, clients]);
 
-  const handlePrintReceipt = async (d: Delivery) => {
-    const client = getClient(d.clientId);
-    const driver = getDriver(d.driverId);
-    const vehicle = getVehicle(d.vehicleId);
-    const itemsList = (d.items || []).map(item => {
-      const p = getProduct(item.productId);
-      return `${String(item.quantity).padStart(3, ' ')} UN - ${p?.nome || 'PRODUTO'}`;
-    }).join('\n');
-
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey || '')}`;
-
-    if (settings.pixKey) {
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.src = qrUrl;
-        img.onload = resolve;
-        img.onerror = resolve; 
-      });
-    }
-
-    const receiptText = `
-========================================
-             ${settings.companyName || 'GELO BRASIL'}
-========================================
-         COMPROVANTE DE ENTREGA
-----------------------------------------
-PEDIDO Nº: ${d.sequenceNumber || 'PROCESSANDO...'}
-----------------------------------------
-CLIENTE: ${client?.name || 'NAO INFORMADO'}
-ENDERECO: ${client?.street || ''}, ${client?.number || ''}
-BAIRRO: ${client?.neighborhood || ''}
-CIDADE: ${client?.city || ''}
-----------------------------------------
-DATA: ${new Date(d.scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-HORA: ${d.scheduledTime || '--:--'}
-----------------------------------------
-MOTORISTA: ${driver?.name || 'NAO INFORMADO'}
-VEICULO: ${vehicle?.modelo || ''} (${vehicle?.placa || ''})
-----------------------------------------
-ITENS DA CARGA:
-${itemsList}
-----------------------------------------
-VALOR TOTAL: R$ ${(d.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-----------------------------------------
-${d.notes ? `OBSERVACOES: \n${d.notes.toUpperCase()}\n----------------------------------------` : ''}
-
-ASSINATURA DO CLIENTE:
-
-
-________________________________________
-
-           PAGAMENTO VIA PIX
-
-`.trim();
-
-    const printWindow = window.open('', '_blank', 'width=400,height=800');
-    if (printWindow) {
-      const pixContent = settings.pixKey ? `
-            <div class="qrcode-container">
-              <img src="${qrUrl}" />
-            </div>` : `
-            <div class="centered">
-              CHAVE PIX NAO CONFIGURADA
-            </div>`;
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>PEDIDO ${d.sequenceNumber || ''} - ${settings.companyName}</title>
-            <style>
-              @font-face {
-                font-family: 'ReceiptFont';
-                src: local('Courier New'), local('Courier');
-              }
-              body { 
-                font-family: 'ReceiptFont', monospace; 
-                font-size: 13px; 
-                width: 80mm; 
-                margin: 0; 
-                padding: 5px;
-                white-space: pre-wrap;
-                text-transform: uppercase;
-                color: black;
-                background: white;
-              }
-              .centered { text-align: center; display: block; width: 100%; }
-              .qrcode-container { 
-                width: 100%; 
-                text-align: center; 
-                margin: 15px 0;
-              }
-              .qrcode-container img {
-                width: 150px;
-                height: 150px;
-                image-rendering: pixelated;
-              }
-              @media print {
-                body { margin: 0; padding: 0; width: 80mm; }
-                @page { margin: 0; size: 80mm auto; }
-              }
-            </style>
-          </head>
-          <body>
-            ${receiptText}
-            ${pixContent}
-            <div class="centered">
-========================================
-        OBRIGADO PELA PREFERENCIA
-            </div>
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.focus();
-                  window.print();
-                  window.close();
-                }, 300);
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  };
-
   const filtered = useMemo(() => {
-    const results = deliveries.filter(d => {
+    return deliveries.filter(d => {
       const client = getClient(d.clientId);
       const matchesStatus = activeFilter === 'TODOS' || d.status === activeFilter;
       const matchesDate = d.scheduledDate >= startDate && d.scheduledDate <= endDate;
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = !searchTerm || 
+      return matchesStatus && matchesDate && (!searchTerm || 
         client?.name.toLowerCase().includes(searchLower) ||
-        client?.street.toLowerCase().includes(searchLower) ||
-        d.sequenceNumber?.toString().includes(searchTerm) ||
-        d.notes?.toLowerCase().includes(searchLower);
-      return matchesStatus && matchesDate && matchesSearch;
-    });
-
-    if (activeFilter === 'TODOS') {
-      const statusPriority: Record<DeliveryStatus, number> = {
-        [DeliveryStatus.PENDENTE]: 1,
-        [DeliveryStatus.EM_ROTA]: 2,
-        [DeliveryStatus.ENTREGUE_PENDENTE_PGTO]: 3,
-        [DeliveryStatus.ENTREGUE]: 4,
-        [DeliveryStatus.CANCELADO]: 5,
-      };
-
-      return results.sort((a, b) => {
-        const prioA = statusPriority[a.status] || 99;
-        const prioB = statusPriority[b.status] || 99;
-        if (prioA !== prioB) return prioA - prioB;
-        return (a.scheduledDate + (a.scheduledTime || '')).localeCompare(b.scheduledDate + (b.scheduledTime || ''));
-      });
-    }
-
-    return results.sort((a, b) => (a.scheduledDate + (a.scheduledTime || '')).localeCompare(b.scheduledDate + (b.scheduledTime || '')));
+        d.sequenceNumber?.toString().includes(searchTerm));
+    }).sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
   }, [deliveries, activeFilter, startDate, endDate, searchTerm, clients]);
-
-  const closingStats = useMemo(() => {
-    const rangeDeliveries = deliveries.filter(d => d.scheduledDate >= startDate && d.scheduledDate <= endDate);
-    const completed = rangeDeliveries.filter(d => d.status === DeliveryStatus.ENTREGUE);
-    const notPaid = rangeDeliveries.filter(d => d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO);
-    const cancelled = rangeDeliveries.filter(d => d.status === DeliveryStatus.CANCELADO);
-
-    return {
-      completedCount: completed.length,
-      completedValue: completed.reduce((acc, d) => acc + (d.totalValue || 0), 0),
-      notPaidCount: notPaid.length,
-      notPaidValue: notPaid.reduce((acc, d) => acc + (d.totalValue || 0), 0),
-      cancelledCount: cancelled.length,
-      cancelledValue: cancelled.reduce((acc, d) => acc + (d.totalValue || 0), 0),
-      driverStats: drivers.map(driver => ({
-        name: driver.name,
-        count: completed.filter(d => d.driverId === driver.id).length,
-        value: completed.filter(d => d.driverId === driver.id).reduce((acc, d) => acc + (d.totalValue || 0), 0)
-      })).filter(s => s.count > 0)
-    };
-  }, [deliveries, startDate, endDate, drivers]);
-
-  const handleShortcutToday = () => { setStartDate(getTodayString()); setEndDate(getTodayString()); };
-  const handleShortcutMonth = () => { setStartDate(getFirstDayOfMonth()); setEndDate(getLastDayOfMonth()); };
-
-  const searchedClients = useMemo(() => {
-    if (!clientSearch) return [];
-    const term = clientSearch.toLowerCase();
-    return clients.filter(c => c.name.toLowerCase().includes(term) || c.street.toLowerCase().includes(term)).slice(0, 5);
-  }, [clients, clientSearch]);
-
-  const parseCurrency = (val: string): number => {
-    if (!val) return 0;
-    const sanitized = val.toString().replace(/\./g, '').replace(',', '.');
-    const parsed = parseFloat(sanitized);
-    return isNaN(parsed) ? 0 : parsed;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-
-    const totalVal = parseCurrency(localTotalValue);
-    if (totalVal <= 0) {
-      alert("O VALOR TOTAL DA ENTREGA DEVE SER MAIOR QUE ZERO.");
-      return;
-    }
+    const totalVal = parseFloat(localTotalValue.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(totalVal) || totalVal <= 0) return alert("VALOR INVÁLIDO");
 
     setIsSubmitting(true);
     try {
       let finalClientId = form.clientId;
-
       if (isExpressMode) {
-        if (!expressClient.name || !expressClient.phone || !expressClient.street) {
-          alert("PREENCHA OS DADOS DO CLIENTE (NOME, WHATSAPP E RUA)");
-          setIsSubmitting(false);
-          return;
-        }
-        
-        const newClientId = crypto.randomUUID();
-        const newClient: Client = {
-          ...expressClient,
-          id: newClientId,
-          created_at: new Date().toISOString()
-        };
-        
-        await onAddClient(newClient);
-        finalClientId = newClientId;
+        const newId = crypto.randomUUID();
+        await onAddClient({ ...expressClient, id: newId, created_at: new Date().toISOString() } as Client);
+        finalClientId = newId;
       }
-
-      if (!finalClientId || !form.driverId || !form.vehicleId) {
-        alert("SELECIONE O CLIENTE, MOTORISTA E VEÍCULO.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      await onUpdate({ 
-        ...form, 
-        id: form.id || crypto.randomUUID(), 
-        clientId: finalClientId,
-        totalValue: totalVal,
-        notes: form.notes?.toUpperCase()
-      } as Delivery);
-      
+      await onUpdate({ ...form, id: form.id || crypto.randomUUID(), clientId: finalClientId, totalValue: totalVal } as Delivery);
       handleCloseModal();
-    } catch (error) {
-      console.error(error);
-      alert("ERRO AO SALVAR AGENDAMENTO.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (error) { console.error(error); }
+    finally { setIsSubmitting(false); }
   };
 
   const handleCloseModal = () => {
     setIsOpen(false);
-    setForm({ status: DeliveryStatus.PENDENTE, scheduledDate: getTodayString(), scheduledTime: getNowTimeString(), items: [], totalValue: 0, notes: '' });
-    setClientSearch(''); 
-    setLocalTotalValue(''); 
-    setIsClientDropdownOpen(false);
+    setForm({ status: DeliveryStatus.PENDENTE, scheduledDate: getTodayString(), items: [], totalValue: 0 });
+    setLocalTotalValue('');
+    setClientSearch('');
     setIsExpressMode(false);
-    setIsSubmitting(false);
-    setItemQuantity('1');
-    setItemUnitPrice('');
-    setSelectedProductId('');
-    setExpressClient({
-      name: '',
-      phone: '',
-      street: '',
-      number: '',
-      neighborhood: '',
-      city: 'MONTES CLAROS',
-      type: 'PARTICULAR'
-    });
-  };
-
-  const handleEdit = (delivery: Delivery) => {
-    const client = clients.find(c => c.id === delivery.clientId);
-    setForm(delivery);
-    setClientSearch(client?.name || '');
-    setLocalTotalValue(delivery.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '');
-    setIsOpen(true);
-  };
-
-  const selectClient = (client: Client) => {
-    setForm({ ...form, clientId: client.id });
-    setClientSearch(client.name);
-    setIsClientDropdownOpen(false);
   };
 
   const handleAddItem = () => {
     const qty = parseInt(itemQuantity);
-    const uPrice = parseCurrency(itemUnitPrice);
-    
+    const uPrice = parseFloat(itemUnitPrice.replace(/\./g, '').replace(',', '.'));
     if (!selectedProductId || isNaN(qty) || qty <= 0) return;
     
     const newItems = [...(form.items || [])];
-    const existingIdx = newItems.findIndex(i => i.productId === selectedProductId);
-    
-    if (existingIdx > -1) {
-      newItems[existingIdx].quantity += qty;
-      if (uPrice > 0) newItems[existingIdx].unitPrice = uPrice;
+    const idx = newItems.findIndex(i => i.productId === selectedProductId);
+    if (idx > -1) {
+      newItems[idx].quantity += qty;
+      if (!isNaN(uPrice)) newItems[idx].unitPrice = uPrice;
     } else {
-      newItems.push({ 
-        productId: selectedProductId, 
-        quantity: qty, 
-        unitPrice: uPrice > 0 ? uPrice : undefined 
-      });
+      newItems.push({ productId: selectedProductId, quantity: qty, unitPrice: isNaN(uPrice) ? undefined : uPrice });
     }
     
-    setForm({ ...form, items: newItems });
-    setSelectedProductId('');
-    setItemQuantity('1');
-    setItemUnitPrice('');
-
-    // Cálculo automático do total com base nos itens da cesta
     const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
-    if (newTotal > 0) {
-      setLocalTotalValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    }
-  };
-
-  const openStatusConfirmation = (delivery: Delivery) => {
-    setDeliveryToConfirm(delivery);
-    setShowPaymentConfirm(true);
-  };
-
-  const handleConfirmDeliveryWithPayment = async (paid: boolean) => {
-    if (!deliveryToConfirm) return;
-    const newStatus = paid ? DeliveryStatus.ENTREGUE : DeliveryStatus.ENTREGUE_PENDENTE_PGTO;
-    await onUpdate({ 
-      ...deliveryToConfirm, 
-      status: newStatus, 
-      deliveredAt: new Date().toISOString() 
-    });
-    setShowPaymentConfirm(false);
-    setDeliveryToConfirm(null);
-  };
-
-  const handleCancelDelivery = async (delivery: Delivery) => {
-    if (confirm(`DESEJA CANCELAR O PEDIDO Nº ${delivery.sequenceNumber || ''} DE ${getClient(delivery.clientId)?.name}?`)) {
-      await onUpdate({ ...delivery, status: DeliveryStatus.CANCELADO });
-    }
-  };
-
-  const updateStatus = async (delivery: Delivery, status: DeliveryStatus) => {
-    await onUpdate({ ...delivery, status });
-  };
-
-  const handlePrintSummary = () => {
-    const printWindow = window.open('', '_blank', 'width=800,height=1000');
-    if (printWindow) {
-      const driverContent = closingStats.driverStats.map(s => `
-        <div class="item">
-          <span>${s.name}</span>
-          <strong>${s.count} Entregas - R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-        </div>
-      `).join('');
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>FECHAMENTO DE ENTREGAS - ${settings.companyName}</title>
-            <style>
-              body { font-family: sans-serif; padding: 40px; color: #1e293b; }
-              .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
-              .header h1 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
-              .period { color: #64748b; font-size: 14px; margin-top: 5px; font-weight: bold; }
-              .section { margin-bottom: 30px; }
-              .section h2 { font-size: 14px; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 15px; }
-              .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-              .card { background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; }
-              .card p { margin: 0; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 800; }
-              .card h3 { margin: 5px 0 0 0; font-size: 24px; font-weight: 900; }
-              .item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-              .item:last-child { border: none; }
-              .item strong { color: #0f172a; }
-              .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #cbd5e1; text-transform: uppercase; }
-              @media print { .no-print { display: none; } }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>FECHAMENTO DE LOGÍSTICA</h1>
-              <div class="period">${new Date(startDate + 'T00:00:00').toLocaleDateString()} ATÉ ${new Date(endDate + 'T00:00:00').toLocaleDateString()}</div>
-              <div class="period">${settings.companyName}</div>
-            </div>
-            
-            <div class="section">
-              <h2>RESUMO GERAL</h2>
-              <div class="grid">
-                <div class="card">
-                  <p>Entregas Concluídas</p>
-                  <h3>${closingStats.completedCount}</h3>
-                </div>
-                <div class="card">
-                  <p>Total Recebido</p>
-                  <h3 style="color: #10b981">R$ ${closingStats.completedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-                </div>
-                <div class="card">
-                  <p>Pendentes de Pagamento</p>
-                  <h3>${closingStats.notPaidCount} (R$ ${closingStats.notPaidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</h3>
-                </div>
-                <div class="card">
-                  <p>Pedidos Cancelados</p>
-                  <h3>${closingStats.cancelledCount} (R$ ${closingStats.cancelledValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</h3>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <h2>DESEMPENHO POR MOTORISTA</h2>
-              ${driverContent}
-            </div>
-
-            <div class="footer">Relatório gerado em ${new Date().toLocaleString()}</div>
-            <div class="no-print" style="margin-top: 30px; text-align: center;">
-              <button onclick="window.print()" style="padding: 10px 30px; background: #0f172a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">IMPRIMIR AGORA</button>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  };
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'TODOS': return { color: 'indigo', icon: ListFilter, label: 'TODOS' };
-      case DeliveryStatus.PENDENTE: return { color: 'amber', icon: Clock, label: 'AGENDADOS' };
-      case DeliveryStatus.EM_ROTA: return { color: 'sky', icon: Truck, label: 'EM ROTA' };
-      case DeliveryStatus.ENTREGUE_PENDENTE_PGTO: return { color: 'rose', icon: AlertTriangle, label: 'NÃO PAGO' };
-      case DeliveryStatus.ENTREGUE: return { color: 'emerald', icon: CheckCircle2, label: 'CONCLUÍDO' };
-      case DeliveryStatus.CANCELADO: return { color: 'slate', icon: Ban, label: 'CANCELADOS' };
-      default: return { color: 'slate', icon: Filter, label: status };
-    }
+    setForm({ ...form, items: newItems });
+    if (newTotal > 0) setLocalTotalValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+    setSelectedProductId(''); setItemQuantity('1'); setItemUnitPrice('');
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-4 pb-24 max-w-[1600px] mx-auto overflow-x-hidden transition-colors">
+    <div className="p-4 sm:p-8 space-y-6 pb-24 lg:pb-20 max-w-[1600px] mx-auto transition-colors uppercase bg-[#f8fafc] dark:bg-slate-950 min-h-screen">
       <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="w-10 h-10 bg-slate-900 dark:bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-lg"><Truck size={20} /></div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">ENTREGAS</h2>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">{settings.companyName} • LOGÍSTICA</p>
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="w-12 h-12 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg shrink-0"><Truck size={24} /></div>
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none uppercase">Logística</h2>
+            <p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-widest">Painel de Entregas</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button onClick={() => setShowSummaryModal(true)} className="flex-1 sm:flex-none px-5 h-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
-            <BarChart3 size={16} className="text-sky-50" /> <span className="hidden sm:inline">FECHAMENTO</span>
-          </button>
-          <button onClick={() => setIsOpen(true)} className="flex-1 sm:flex-none px-5 h-10 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-            <Plus size={16} /> <span className="hidden sm:inline">LANÇAR ENTREGA</span>
-          </button>
-        </div>
+        <button onClick={() => setIsOpen(true)} className="w-full sm:w-auto px-6 h-12 bg-sky-500 text-white rounded-xl font-black text-[9px] uppercase shadow-xl flex items-center justify-center gap-2">
+           <Plus size={18} /> LANÇAR ROTA
+        </button>
       </header>
 
-      <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
-            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
-          </div>
-          <ArrowRight size={14} className="text-slate-300 shrink-0" />
-          <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
-            <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
-          </div>
-        </div>
+      {/* Filters Mobile Stacked */}
+      <div className="flex flex-col gap-3 bg-white dark:bg-slate-900 p-3 rounded-[1.8rem] border shadow-sm no-print">
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            <button onClick={handleShortcutToday} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Hoje</button>
-            <button onClick={handleShortcutMonth} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Mês</button>
-          </div>
-          <div className="relative flex-1 md:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input type="text" placeholder="BUSCAR PEDIDO OU CLIENTE..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
-          </div>
+           <div className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-10 border flex items-center">
+             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[9px] font-bold dark:text-white w-full" />
+           </div>
+           <ArrowRight size={14} className="text-slate-300 shrink-0" />
+           <div className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-10 border flex items-center">
+             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[9px] font-bold dark:text-white w-full" />
+           </div>
+        </div>
+        <div className="relative">
+           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+           <input type="text" placeholder="BUSCAR PEDIDO..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-10 pl-9 bg-slate-50 dark:bg-slate-950 border rounded-xl text-[9px] font-black uppercase outline-none dark:text-white" />
         </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto no-scrollbar py-3 px-1">
-        {['TODOS', ...Object.values(DeliveryStatus)].map(status => {
-          const config = getStatusConfig(status);
-          const isActive = activeFilter === status;
-          
-          const colorStyles: Record<string, string> = {
-            indigo: isActive ? 'bg-indigo-600 text-white border-indigo-700 shadow-indigo-100' : 'bg-indigo-50/50 text-indigo-500 border-indigo-100/50',
-            amber: isActive ? 'bg-amber-500 text-white border-amber-600 shadow-amber-100' : 'bg-amber-50/50 text-amber-600 border-amber-100/50',
-            sky: isActive ? 'bg-sky-500 text-white border-sky-600 shadow-sky-100' : 'bg-sky-50/50 text-sky-600 border-sky-100/50',
-            rose: isActive ? 'bg-rose-500 text-white border-rose-600 shadow-rose-100' : 'bg-rose-50/50 text-rose-600 border-rose-100/50',
-            emerald: isActive ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-100' : 'bg-emerald-50/50 text-emerald-600 border-emerald-100/50',
-            slate: isActive ? 'bg-slate-700 text-white border-slate-800 shadow-slate-100' : 'bg-slate-50/50 text-slate-400 border-slate-100/50',
-          };
-
-          return (
-            <button 
-              key={status} 
-              onClick={() => setActiveFilter(status as any)} 
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.1em] transition-all whitespace-nowrap border-2 ${colorStyles[config.color]} ${isActive ? 'scale-105 shadow-lg -translate-y-0.5' : 'opacity-70 hover:opacity-100'}`}
-            >
-              <config.icon size={14} strokeWidth={3} className={isActive ? 'animate-pulse' : ''} />
-              {config.label}
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${isActive ? 'bg-white/20' : 'bg-slate-200/50 text-slate-500'}`}>
-                {status === 'TODOS' ? deliveries.length : deliveries.filter(d => d.status === status).length}
-              </span>
-            </button>
-          );
-        })}
+      {/* Horizontal Status Filter */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+        {['TODOS', ...Object.values(DeliveryStatus)].map(status => (
+          <button 
+            key={status} 
+            onClick={() => setActiveFilter(status as any)} 
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[8px] font-black transition-all whitespace-nowrap border-2 ${activeFilter === status ? 'bg-sky-500 text-white border-sky-600 shadow-md scale-105' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800'}`}
+          >
+            {status}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(d => {
           const client = getClient(d.clientId);
           const driver = getDriver(d.driverId);
-          const isOverdue = d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO;
-          const isCancelled = d.status === DeliveryStatus.CANCELADO;
-          const isInRoute = d.status === DeliveryStatus.EM_ROTA;
-          const isPending = d.status === DeliveryStatus.PENDENTE;
-          
           return (
-            <div key={d.id} className={`bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border flex flex-col h-full transition-all group ${isCancelled ? 'opacity-60 grayscale border-slate-200 dark:border-slate-800 bg-slate-50/30' : d.status === DeliveryStatus.ENTREGUE ? 'border-emerald-100 dark:border-emerald-900/30 shadow-sm' : isOverdue ? 'border-rose-200 dark:border-rose-900/50 shadow-sm' : 'border-slate-100 dark:border-slate-800 shadow-sm'}`}>
+            <div key={d.id} className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border shadow-sm flex flex-col transition-all active:scale-[0.98]">
               <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCancelled ? 'bg-slate-200 text-slate-500' : d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-500 text-white' : isOverdue ? 'bg-rose-500 text-white' : d.status === DeliveryStatus.EM_ROTA ? 'bg-sky-500 text-white' : isPending ? 'bg-amber-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}><Truck size={18} /></div>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-500' : 'bg-amber-500'}`}><Truck size={18} /></div>
                     <div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded ${isCancelled ? 'bg-slate-100 text-slate-500' : d.status === DeliveryStatus.ENTREGUE ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : isOverdue ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/40' : 'bg-slate-50 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{d.status}</span>
-                          {d.scheduledTime && !isCancelled && <span className="text-[7px] font-black text-sky-500 uppercase tracking-tighter">{d.scheduledTime}</span>}
-                          {d.sequenceNumber && <span className="flex items-center gap-0.5 text-[7px] font-black text-slate-400 bg-slate-50 dark:bg-slate-800 px-1 py-0.5 rounded uppercase tracking-tighter"><Hash size={8}/> {d.sequenceNumber}</span>}
+                          <span className="text-[7px] font-black uppercase px-2 py-0.5 rounded bg-slate-50 dark:bg-slate-800 text-slate-500">{d.status}</span>
+                          <span className="text-[8px] font-black text-sky-500 uppercase">#{d.sequenceNumber || '---'}</span>
                         </div>
+                        <h4 className="font-black text-slate-800 dark:text-slate-100 text-xs uppercase mt-1 truncate max-w-[150px]">{client?.name || 'Carregando...'}</h4>
                     </div>
                   </div>
-                  <div className="flex gap-0.5 no-print">
-                    {!isCancelled && <button onClick={() => handlePrintReceipt(d)} title="Imprimir Comprovante" className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"><Printer size={16} /></button>}
-                    {activeFilter === DeliveryStatus.EM_ROTA && d.status === DeliveryStatus.EM_ROTA && (
-                      <button onClick={() => openStatusConfirmation(d)} title="Confirmar Entrega" className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900 rounded-lg"><CheckCircle2 size={16} /></button>
-                    )}
-                    {activeFilter === DeliveryStatus.ENTREGUE_PENDENTE_PGTO && d.status === DeliveryStatus.ENTREGUE_PENDENTE_PGTO && (
-                      <button onClick={() => openStatusConfirmation(d)} title="Confirmar Recebimento" className="p-1.5 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900 rounded-lg"><HandCoins size={16} /></button>
-                    )}
-                    {!isCancelled && (
-                      <>
-                        <button onClick={() => handleEdit(d)} className="p-1.5 text-slate-300 hover:text-sky-500 transition-colors"><Pencil size={16} /></button>
-                        <button onClick={() => handleCancelDelivery(d)} title="Cancelar Entrega" className="p-1.5 text-slate-200 hover:text-rose-500 transition-colors"><XCircle size={16} /></button>
-                      </>
-                    )}
+                  <div className="flex gap-1 no-print">
+                    <button onClick={() => d.status === DeliveryStatus.PENDENTE ? onUpdate({...d, status: DeliveryStatus.EM_ROTA}) : setDeliveryToConfirm(d)} className="p-2 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-lg"><ChevronRight size={16}/></button>
                   </div>
               </div>
 
-              <div className="flex-1 space-y-3">
-                  <div className="min-w-0">
-                      <h4 className="font-black text-slate-800 dark:text-slate-100 text-[11px] uppercase truncate leading-tight">
-                        {client?.name || 'Cliente em sincronização...'}
-                      </h4>
-                      <div className="flex items-start gap-1.5 text-[8px] font-bold text-slate-400 mt-1 uppercase truncate">
-                        <MapPin size={10} className="shrink-0" /> 
-                        <span>{client?.street || 'Endereço Indefinido'}, {client?.number || 'S/N'} {client?.neighborhood && `| ${client.neighborhood}`}</span>
-                      </div>
-                      
-                      <div className={`flex items-center gap-1.5 text-[8px] font-black mt-1.5 uppercase transition-all ${isInRoute ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-600'}`}>
-                        <UserCircle size={11} className={`${isInRoute ? 'text-sky-500' : 'text-slate-300'}`} />
-                        <span>ENTREGADOR: {driver?.name || 'NÃO ATRIBUÍDO'}</span>
-                      </div>
-                  </div>
-                  
-                  <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div className="space-y-1">
-                      {d.items && d.items.length > 0 ? d.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[8px] font-black uppercase">
-                          <div className="flex items-center gap-2 truncate flex-1">
-                            <span className="text-slate-500 dark:text-slate-400 truncate">{getProduct(item.productId)?.nome || 'Produto'}</span>
-                            {item.unitPrice && <span className="text-[7px] text-emerald-500 px-1 bg-emerald-50 dark:bg-emerald-900/20 rounded">R$ {item.unitPrice.toLocaleString('pt-BR')}</span>}
-                          </div>
-                          <span className="text-slate-900 dark:text-white shrink-0">{item.quantity} un</span>
-                        </div>
-                      )) : <p className="text-[8px] text-slate-300 uppercase italic">Carga Vazia</p>}
-                    </div>
-                  </div>
-                  
-                  {d.notes && (
-                    <div className="p-2.5 bg-sky-50/30 dark:bg-slate-950/30 border border-sky-100/30 dark:border-slate-800 rounded-xl">
-                       <p className="text-[7px] font-black text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-1 flex items-center gap-1"><FileEdit size={8}/> Observação:</p>
-                       <p className="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase leading-relaxed italic line-clamp-2">{d.notes}</p>
-                    </div>
-                  )}
+              <div className="space-y-2 bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border">
+                 <div className="flex items-start gap-2 text-[7px] font-black text-slate-400 uppercase">
+                    <MapPin size={10} className="shrink-0" />
+                    <span className="truncate">{client?.street || '---'}, {client?.number}</span>
+                 </div>
+                 <div className="flex items-center gap-2 text-[7px] font-black text-slate-400 uppercase">
+                    <UserCircle size={10} className="shrink-0 text-sky-500" />
+                    <span className="truncate">{driver?.name || 'SEM MOTORISTA'}</span>
+                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                  <div className="text-[8px] font-black text-slate-400 uppercase">{new Date(d.scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
-                  <div className={`text-[10px] font-black ${isOverdue ? 'text-rose-600 dark:text-rose-400 animate-pulse' : isCancelled ? 'text-slate-300' : 'text-slate-800 dark:text-white'}`}>R$ {(d.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                  {d.status === DeliveryStatus.PENDENTE && !isCancelled && <button onClick={() => updateStatus(d, DeliveryStatus.EM_ROTA)} className="px-3 py-1.5 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-lg text-[8px] font-black uppercase hover:bg-sky-500 hover:text-white transition-all">INICIAR ROTA</button>}
+              <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                  <span className="text-[8px] font-black text-slate-400 uppercase">{d.scheduledTime || '--:--'}</span>
+                  <span className="text-xs font-black text-slate-900 dark:text-white">R$ {(d.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {showSummaryModal && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setShowSummaryModal(false)} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
-            <div className="p-8 border-b border-slate-50 dark:border-slate-800 shrink-0">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg"><FileText size={28} /></div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Fechamento de Logística</h3>
-                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Período: {new Date(startDate + 'T00:00:00').toLocaleDateString()} — {new Date(endDate + 'T00:00:00').toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setShowSummaryModal(false)} className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-colors"><X size={24}/></button>
-               </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                 <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-3xl">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200/50 dark:shadow-none"><CheckCircle2 size={20} /></div>
-                      <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Entregue & Pago</span>
-                    </div>
-                    <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 leading-none">R$ {closingStats.completedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-[8px] font-black text-emerald-600/50 uppercase mt-2">{closingStats.completedCount} PEDIDOS CONCLUÍDOS</p>
-                 </div>
-                 <div className="p-6 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 rounded-3xl">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-rose-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-rose-200/50 dark:shadow-none"><HandCoins size={20} /></div>
-                      <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">Entregue / Pendente</span>
-                    </div>
-                    <p className="text-2xl font-black text-rose-700 dark:text-rose-300 leading-none">R$ {closingStats.notPaidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-[8px] font-black text-rose-600/50 uppercase mt-2">{closingStats.notPaidCount} CLIENTES EM DÉBITO</p>
-                 </div>
-                 <div className="p-6 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-slate-400 dark:bg-slate-700 text-white rounded-xl flex items-center justify-center shadow-lg"><Ban size={20} /></div>
-                      <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Venda Cancelada</span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-600 dark:text-slate-300 leading-none">R$ {closingStats.cancelledValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-[8px] font-black text-slate-400/50 uppercase mt-2">{closingStats.cancelledCount} PEDIDOS CANCELADOS</p>
-                 </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-950/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                 <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"><PieChart size={14} className="text-sky-500" /> Desempenho por Motorista</h4>
-                 <div className="space-y-4">
-                    {closingStats.driverStats.length === 0 ? (
-                      <p className="text-[10px] font-black text-slate-300 uppercase text-center py-4">Sem entregas concluídas no período</p>
-                    ) : closingStats.driverStats.map((s, idx) => (
-                      <div key={idx} className="flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                           <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center font-black text-slate-400 group-hover:text-sky-500 transition-colors">{s.name.charAt(0)}</div>
-                           <div>
-                              <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase leading-none mb-1">{s.name}</p>
-                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{s.count} Entregas Realizadas</p>
-                           </div>
-                        </div>
-                        <p className="text-sm font-black text-slate-900 dark:text-white">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-            </div>
-
-            <div className="p-8 border-t border-slate-50 dark:border-slate-800 shrink-0">
-               <button onClick={handlePrintSummary} className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
-                 <Printer size={20} /> Imprimir Fechamento
-               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPaymentConfirm && deliveryToConfirm && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-md animate-in fade-in duration-300" />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-[360px] rounded-[2rem] p-6 sm:p-8 shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 text-center">
-            <div className="w-16 h-16 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
-               <DollarSign size={32} />
-            </div>
-            <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">Pagamento Recebido?</h3>
-            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed mb-6">
-              Confirme o recebimento de <br/><span className="text-emerald-600 dark:text-emerald-400 text-sm font-black">R$ {deliveryToConfirm.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            </p>
-            
-            <div className="flex flex-col gap-2">
-              <button onClick={() => handleConfirmDeliveryWithPayment(true)} className="w-full h-14 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
-                <CheckCircle2 size={18} /> SIM, FOI PAGO
-              </button>
-              <button onClick={() => handleConfirmDeliveryWithPayment(false)} className="w-full h-14 bg-slate-50 dark:bg-slate-950 text-rose-500 border border-rose-100 dark:border-rose-900/30 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-2">
-                <AlertTriangle size={18} /> NÃO, FICOU PENDENTE
-              </button>
-              <button onClick={() => { setShowPaymentConfirm(false); setDeliveryToConfirm(null); }} className="w-full py-3 text-slate-300 dark:text-slate-600 font-black text-[7px] uppercase tracking-widest mt-1 hover:text-slate-400 transition-colors">
-                CANCELAR
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Delivery Form Modal / Bottom Sheet */}
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4 md:p-6">
-          <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={handleCloseModal} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-full sm:h-auto sm:max-h-[95vh] rounded-none sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl dark:shadow-none relative animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-transparent dark:border-slate-800">
-            <button onClick={handleCloseModal} className="absolute top-4 right-4 sm:top-8 sm:right-8 w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-700 hover:text-rose-500 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all z-[210] active:scale-90"><X size={20} strokeWidth={3} /></button>
-            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-6 sm:mb-10 flex items-center gap-3 shrink-0"><div className="w-10 h-10 sm:w-12 sm:h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner"><PackageCheck size={24} /></div>{form.id ? 'Editar' : 'Lançar'} <span className="text-sky-500">Entrega</span></h3>
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-8 sm:space-y-10 pb-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                 <div className="space-y-6 sm:space-y-8">
-                    <div className="flex items-center justify-between px-2">
-                       <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                         {isExpressMode ? <UserPlus size={14} className="text-emerald-500" /> : <Search size={14} className="text-sky-500" />}
-                         {isExpressMode ? 'Cadastro Rápido' : 'Localizar Cliente'}
-                       </label>
-                       <button type="button" onClick={() => { setIsExpressMode(!isExpressMode); if (!isExpressMode) setForm({...form, clientId: undefined}); }} className={`text-[8px] font-black px-3 py-1 rounded-full border transition-all ${isExpressMode ? 'bg-sky-50 border-sky-200 text-sky-500' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
-                         {isExpressMode ? 'BUSCAR CADASTRADO' : 'NOVO CLIENTE?'}
-                       </button>
-                    </div>
-
-                    {!isExpressMode ? (
-                      <div className="space-y-2 relative" ref={dropdownRef}>
-                        <div className="relative">
-                          <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" />
-                          <input type="text" placeholder="BUSQUE POR NOME OU ENDEREÇO..." className="w-full h-14 sm:h-16 pl-14 pr-14 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[11px] uppercase outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner dark:shadow-none" value={clientSearch} onChange={(e) => { setClientSearch(e.target.value); setIsClientDropdownOpen(true); if (form.clientId) setForm({ ...form, clientId: undefined }); }} onFocus={() => setIsClientDropdownOpen(true)} />
-                          {form.clientId && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg"><Check size={18} strokeWidth={3} /></div>}
-                        </div>
-                        {isClientDropdownOpen && searchedClients.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl dark:shadow-none z-[220] overflow-hidden animate-in fade-in slide-in-from-top-2">
-                            {searchedClients.map(c => (
-                              <button key={c.id} type="button" onClick={() => selectClient(c)} className="w-full p-4 hover:bg-sky-50 dark:hover:bg-slate-700 text-left border-b border-slate-50 dark:border-slate-950 last:border-0 transition-all flex items-start gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-sky-900 text-sky-500 flex items-center justify-center shrink-0"><MapPin size={16} /></div>
-                                <div className="min-w-0">
-                                  <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-1">{c.name}</p>
-                                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase truncate">{c.street}, {c.number}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                        <input type="text" placeholder="NOME DO CLIENTE" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" value={expressClient.name} onChange={e => setExpressClient({...expressClient, name: e.target.value.toUpperCase()})} />
-                        <input type="text" placeholder="WHATSAPP / CELULAR" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none" value={expressClient.phone} onChange={e => setExpressClient({...expressClient, phone: formatPhone(e.target.value)})} />
-                        <div className="grid grid-cols-3 gap-2">
-                           <input type="text" placeholder="RUA" className="col-span-2 h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" value={expressClient.street} onChange={e => setExpressClient({...expressClient, street: e.target.value.toUpperCase()})} />
-                           <input type="text" placeholder="Nº" className="h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white outline-none" value={expressClient.number} onChange={e => setExpressClient({...expressClient, number: e.target.value})} />
-                        </div>
-                        <input type="text" placeholder="BAIRRO" className="w-full h-12 px-5 bg-emerald-50/10 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white outline-none" value={expressClient.neighborhood} onChange={e => setExpressClient({...expressClient, neighborhood: e.target.value.toUpperCase()})} />
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Motorista</label>
-                        <select 
-                          className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase px-4 dark:text-white" 
-                          value={form.driverId || ''} 
-                          onChange={e => {
-                            const dId = e.target.value;
-                            const linkedV = vehicles.find(v => v.motorista_id === dId);
-                            setForm({
-                              ...form, 
-                              driverId: dId,
-                              vehicleId: linkedV ? linkedV.id : form.vehicleId
-                            });
-                          }} 
-                          required
-                        >
-                          <option value="">-- MOTORISTA --</option>
-                          {drivers.filter(d => d.status === 'ATIVO').map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Veículo</label>
-                        <select className="w-full h-14 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase px-4 dark:text-white" value={form.vehicleId || ''} onChange={e => setForm({...form, vehicleId: e.target.value})} required>
-                          <option value="">-- VEÍCULO --</option>
-                          {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Data</label>
-                        <input type="date" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledDate || ''} onChange={e => setForm({...form, scheduledDate: e.target.value})} required />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2 tracking-widest">Hora</label>
-                        <input type="time" className="w-full h-14 sm:h-16 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm dark:text-white" value={form.scheduledTime || ''} onChange={e => setForm({...form, scheduledTime: e.target.value})} required />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><AlignLeft size={12} className="text-sky-500" /> Observação da Entrega</label>
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-sm" onClick={handleCloseModal} />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-t-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl relative animate-in slide-in-from-bottom duration-500 sm:zoom-in-95 overflow-y-auto max-h-[95vh] custom-scrollbar">
+            <header className="flex justify-between items-center mb-8 sticky top-0 bg-white dark:bg-slate-900 z-10 pb-2">
+               <h3 className="text-xl font-black uppercase text-slate-800 dark:text-white">Nova Entrega</h3>
+               <button onClick={handleCloseModal} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X/></button>
+            </header>
+            <form onSubmit={handleSubmit} className="space-y-6 pb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div className="space-y-5">
+                    <div className="space-y-1">
+                       <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Localizar Cliente</label>
                        <div className="relative">
-                         <textarea 
-                           placeholder="EX: DEIXAR NA PORTARIA, CLIENTE PAGARÁ NO CARTÃO..." 
-                           className="w-full h-24 p-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-[10px] uppercase dark:text-white outline-none resize-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/10 transition-all shadow-inner"
-                           value={form.notes || ''}
-                           onChange={e => setForm({...form, notes: e.target.value.toUpperCase()})}
-                         />
-                       </div>
-                     </div>
-                 </div>
-
-                 <div className="space-y-8">
-                   <div className="bg-slate-50 dark:bg-slate-950/80 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-inner">
-                     <h4 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2"><ShoppingBag size={18} className="text-sky-500" /> Itens da Carga</h4>
-                     <div className="space-y-4">
-                        <select className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
-                          <option value="">ESCOLHER PRODUTO...</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                        </select>
-                        <div className="grid grid-cols-2 gap-3">
-                           <div className="flex items-center gap-3">
-                              <button type="button" onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Minus size={16} /></button>
-                              <input type="number" className="flex-1 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/><button type="button" onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"><Plus size={16} /></button>
-                           </div>
-                           <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500">R$</span>
-                              <input placeholder="PREÇO UN." value={itemUnitPrice} onChange={e => setItemUnitPrice(e.target.value.replace(/[^0-9,]/g, ''))} className="w-full h-10 pl-8 pr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[11px] text-emerald-600 outline-none" />
-                           </div>
-                        </div>
-                        <button type="button" onClick={handleAddItem} disabled={!selectedProductId} className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30">Adicionar à Cesta</button>
-                     </div>
-                     <div className="mt-8 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-6">
-                        {form.items?.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProduct(item.productId)?.nome}</p>
-                              <div className="flex items-center gap-2">
-                                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{item.quantity} un</p>
-                                {item.unitPrice && <span className="text-[8px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 rounded">R$ {item.unitPrice.toLocaleString('pt-BR')}</span>}
-                              </div>
+                          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input type="text" placeholder="NOME DO CLIENTE..." className="w-full h-12 pl-12 pr-4 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold text-xs dark:text-white uppercase outline-none" value={clientSearch} onChange={e => {setClientSearch(e.target.value); setIsClientDropdownOpen(true);}} onFocus={() => setIsClientDropdownOpen(true)} />
+                          {isClientDropdownOpen && clientSearch && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border rounded-xl shadow-2xl z-50 overflow-hidden">
+                               {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).slice(0, 5).map(c => (
+                                 <button key={c.id} type="button" onClick={() => {setForm({...form, clientId: c.id}); setClientSearch(c.name); setIsClientDropdownOpen(false);}} className="w-full p-4 text-left hover:bg-sky-50 dark:hover:bg-slate-700 border-b last:border-none flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-500"><MapPin size={14}/></div>
+                                    <span className="text-[10px] font-black uppercase dark:text-white">{c.name}</span>
+                                 </button>
+                               ))}
                             </div>
-                            <button type="button" onClick={() => {
-                              const newItems = (form.items || []).filter(i => i.productId !== item.productId);
-                              setForm({ ...form, items: newItems });
-                              const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
-                              setLocalTotalValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-                            }} className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14}/></button>
-                          </div>
-                        ))}
-                     </div>
-                   </div>
-
-                   <div className="space-y-4">
-                     <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><DollarSign size={12} className="text-emerald-500" /> Valor Total (R$)</label>
-                       <div className="relative">
-                         <DollarSign size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" />
-                         <input type="text" placeholder="0,00" className="w-full h-16 sm:h-20 pl-16 pr-8 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-[1.5rem] sm:rounded-[2rem] font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 outline-none transition-all placeholder:text-emerald-200" value={localTotalValue} onChange={e => setLocalTotalValue(e.target.value.replace(/[^0-9,]/g, ''))} required />
+                          )}
                        </div>
-                     </div>
-                   </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                       <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Entregador</label>
+                          <select className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl text-[10px] font-black dark:text-white" value={form.driverId || ''} onChange={e => setForm({...form, driverId: e.target.value})} required>
+                             <option value="">SELECIONAR...</option>
+                             {drivers.filter(d => d.status === 'ATIVO').map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          </select>
+                       </div>
+                       <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Veículo</label>
+                          <select className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl text-[10px] font-black dark:text-white" value={form.vehicleId || ''} onChange={e => setForm({...form, vehicleId: e.target.value})} required>
+                             <option value="">SELECIONAR...</option>
+                             {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa}</option>)}
+                          </select>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="space-y-5">
+                    <div className="bg-slate-50 dark:bg-slate-950/40 p-6 rounded-[2rem] border">
+                       <h5 className="text-[10px] font-black uppercase text-slate-400 mb-4 flex items-center gap-2"><ShoppingBag size={14}/> Cesta de Carga</h5>
+                       <div className="space-y-3">
+                          <select className="w-full h-10 px-4 bg-white dark:bg-slate-900 border rounded-xl text-[9px] font-black dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
+                             <option value="">ESCOLHER PRODUTO...</option>
+                             {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                          </select>
+                          <div className="grid grid-cols-2 gap-2">
+                             <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setItemQuantity(q => Math.max(1, parseInt(q)-1).toString())} className="w-10 h-10 bg-white border rounded-lg flex items-center justify-center active:scale-90"><Minus size={14}/></button>
+                                <input type="number" className="flex-1 h-10 text-center font-black bg-white border rounded-lg text-xs" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} />
+                                <button type="button" onClick={() => setItemQuantity(q => (parseInt(q)+1).toString())} className="w-10 h-10 bg-white border rounded-lg flex items-center justify-center active:scale-90"><Plus size={14}/></button>
+                             </div>
+                             <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500">R$</span><input placeholder="PREÇO" value={itemUnitPrice} onChange={e => setItemUnitPrice(e.target.value)} className="w-full h-10 pl-8 bg-white border rounded-lg font-black text-[11px]" /></div>
+                          </div>
+                          <button type="button" onClick={handleAddItem} className="w-full h-10 bg-sky-500 text-white rounded-xl text-[9px] font-black uppercase shadow-lg">ADICIONAR ITEM</button>
+                       </div>
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Total do Pedido</label>
+                       <div className="relative">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={24}/>
+                          <input type="text" value={localTotalValue} onChange={e => setLocalTotalValue(e.target.value)} className="w-full h-16 pl-12 pr-6 bg-emerald-50/10 border-2 border-emerald-100 rounded-[1.5rem] text-3xl font-black text-emerald-600 outline-none" required />
+                       </div>
+                    </div>
                  </div>
               </div>
-              <div className="pt-8 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <button type="submit" disabled={isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0} className={`w-full h-16 sm:h-20 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95 flex items-center justify-center gap-4 ${(isSubmitting || (!isExpressMode && !form.clientId) || (isExpressMode && !expressClient.name) || (form.items?.length || 0) === 0) ? 'bg-slate-100 text-slate-300' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-emerald-600 shadow-2xl'}`}>
-                  {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : <PackageCheck size={24} />}
-                  {form.id ? 'ATUALIZAR' : 'CONFIRMAR'}
-                </button>
-              </div>
+              <button type="submit" className="w-full h-20 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">CONCLUIR AGENDAMENTO</button>
             </form>
           </div>
         </div>

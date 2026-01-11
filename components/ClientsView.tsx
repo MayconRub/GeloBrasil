@@ -22,291 +22,110 @@ const ClientsView: React.FC<Props> = ({ clients, products, onUpdate, onDelete })
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [priceForm, setPriceForm] = useState<Record<string, string>>({});
   
-  const [form, setForm] = useState<Partial<Client>>({ 
-    type: 'PARTICULAR', 
-    street: '', 
-    number: '', 
-    neighborhood: '', 
-    city: 'MONTES CLAROS' 
-  });
+  const [form, setForm] = useState<Partial<Client>>({ type: 'PARTICULAR', street: '', number: '', neighborhood: '', city: 'MONTES CLAROS' });
 
   const filtered = useMemo(() => {
-    return clients.filter(c => 
-      (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (c.street || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.neighborhood || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.city || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return clients.filter(c => (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()));
   }, [clients, searchTerm]);
-
-  const formatPhone = (value: string) => {
-    if (!value) return "";
-    value = value.replace(/\D/g, "");
-    value = value.substring(0, 11);
-    if (value.length > 10) return value.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
-    else if (value.length > 6) return value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
-    else if (value.length > 2) return value.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2");
-    else if (value.length > 0) return value.replace(/^(\d{0,2}).*/, "($1");
-    return value;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const maskedValue = formatPhone(e.target.value);
-    setForm({ ...form, phone: maskedValue });
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.phone || !form.street) return;
-    onUpdate({
-      ...form,
-      id: form.id || crypto.randomUUID(),
-      created_at: form.created_at || new Date().toISOString()
-    } as Client);
+    onUpdate({ ...form, id: form.id || crypto.randomUUID(), created_at: form.created_at || new Date().toISOString() } as Client);
     setIsOpen(false);
-    resetForm();
-  };
-
-  const handleEdit = (c: Client) => {
-    setForm(c);
-    setIsOpen(true);
-  };
-
-  const resetForm = () => {
-    setForm({ 
-      type: 'PARTICULAR', 
-      street: '', 
-      number: '', 
-      neighborhood: '', 
-      city: 'MONTES CLAROS' 
-    });
-  };
-
-  const openPriceModal = (client: Client) => {
-    setSelectedClient(client);
-    const initialPrices: Record<string, string> = {};
-    products.forEach(p => {
-      initialPrices[p.id] = client.product_prices?.[p.id]?.toString() || '';
-    });
-    setPriceForm(initialPrices);
-    setIsPriceModalOpen(true);
   };
 
   const handleSavePrices = () => {
     if (!selectedClient) return;
     const finalPrices: Record<string, number> = {};
-    Object.entries(priceForm).forEach(([id, val]) => {
-      if (val) finalPrices[id] = parseFloat(val.replace(',', '.'));
+    // Fix: Explicitly cast 'val' as string to resolve 'Property replace does not exist on type unknown' error
+    Object.entries(priceForm).forEach(([id, val]) => { 
+      if (val) finalPrices[id] = parseFloat((val as string).replace(',', '.')); 
     });
-    
-    onUpdate({
-      ...selectedClient,
-      product_prices: finalPrices
-    });
+    onUpdate({ ...selectedClient, product_prices: finalPrices });
     setIsPriceModalOpen(false);
-    setSelectedClient(null);
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 pb-20 transition-colors">
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-normal uppercase leading-none">CADASTRO DE <span className="text-sky-500">CLIENTES</span></h2>
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">Base de Dados e CRM</p>
+    <div className="p-4 sm:p-8 space-y-6 pb-24 lg:pb-20 transition-colors uppercase bg-[#f8fafc] dark:bg-slate-950 min-h-screen">
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="w-full sm:w-auto">
+          <h2 className="text-xl sm:text-3xl font-black text-slate-800 dark:text-white uppercase leading-none">Clientes</h2>
+          <p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-widest">Base de Dados CRM</p>
         </div>
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="w-full sm:w-auto px-8 py-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl dark:shadow-none active:scale-95 transition-all"
-        >
-          <UserPlus size={18} /> Novo Cliente
+        <button onClick={() => setIsOpen(true)} className="w-full sm:w-auto px-6 h-12 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 shadow-xl">
+          <UserPlus size={18} /> NOVO CLIENTE
         </button>
       </header>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden">
-        <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/20 flex items-center gap-4">
-          <Search size={20} className="text-slate-300 dark:text-slate-600" />
-          <input 
-            type="text" 
-            placeholder="BUSCAR NOME, RUA, BAIRRO OU CIDADE..." 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-transparent outline-none font-black text-[10px] uppercase dark:text-white"
-          />
+      <div className="bg-white dark:bg-slate-900 rounded-[1.8rem] border shadow-sm overflow-hidden">
+        <div className="p-4 border-b bg-slate-50/50 dark:bg-slate-950/20 flex items-center gap-3">
+          <Search size={18} className="text-slate-300" />
+          <input type="text" placeholder="BUSCAR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-transparent outline-none font-black text-[10px] uppercase dark:text-white" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
           {filtered.map(c => (
-            <div key={c.id} className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 group hover:border-sky-200 dark:hover:border-sky-900 transition-all relative overflow-hidden">
+            <div key={c.id} className="bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all active:scale-[0.98]">
                <div className="flex justify-between items-start mb-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${c.type === 'REVENDEDOR' ? 'bg-indigo-500 text-white' : 'bg-sky-500 text-white shadow-lg dark:shadow-none'}`}>
-                    {c.type === 'REVENDEDOR' ? <Building2 size={24} /> : <User size={24} />}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${c.type === 'REVENDEDOR' ? 'bg-indigo-500' : 'bg-sky-500'}`}>
+                    {c.type === 'REVENDEDOR' ? <Building2 size={20} /> : <User size={20} />}
                   </div>
-                  <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openPriceModal(c)} title="Tabela de Preços" className="p-2 text-slate-300 dark:text-slate-600 hover:text-emerald-500 transition-all"><Tag size={18} /></button>
-                    <button onClick={() => handleEdit(c)} className="p-2 text-slate-300 dark:text-slate-600 hover:text-sky-500 transition-all"><Pencil size={18} /></button>
-                    <button onClick={() => onDelete(c.id)} className="p-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-all"><Trash2 size={18} /></button>
+                  <div className="flex gap-1">
+                    <button onClick={() => {setSelectedClient(c); setIsPriceModalOpen(true);}} className="p-2 text-slate-300 hover:text-emerald-500"><Tag size={16} /></button>
+                    <button onClick={() => {setForm(c); setIsOpen(true);}} className="p-2 text-slate-300 hover:text-sky-500"><Pencil size={16} /></button>
+                    <button onClick={() => onDelete(c.id)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={16} /></button>
                   </div>
                </div>
-               <h4 className="font-black text-slate-800 dark:text-slate-100 text-sm uppercase leading-tight truncate">{c.name}</h4>
-               <div className="flex items-center gap-2 mt-1">
-                 <span className={`inline-block px-2 py-0.5 rounded text-[7px] font-black ${c.type === 'REVENDEDOR' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-500'}`}>
-                   {c.type}
-                 </span>
-                 {c.product_prices && Object.keys(c.product_prices).length > 0 && (
-                   <span className="px-2 py-0.5 rounded text-[7px] font-black bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">PREÇO ESPECIAL</span>
-                 )}
-               </div>
-
-               <div className="mt-6 space-y-3">
-                  <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400">
-                    <MapPin size={14} className="shrink-0 text-slate-300 dark:text-slate-700 mt-0.5" />
-                    <div className="text-[9px] font-bold uppercase leading-relaxed">
-                      <p>{c.street}, {c.number}</p>
-                      <p>{c.neighborhood} - {c.city}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                      <Phone size={14} className="shrink-0 text-slate-300 dark:text-slate-700" />
-                      <p className="text-[9px] font-bold uppercase">{c.phone}</p>
-                    </div>
-                    <div className="flex gap-2">
-                       <button onClick={() => openPriceModal(c)} className="p-2 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg hover:text-emerald-500 transition-all"><Calculator size={14}/></button>
-                       <a 
-                         // Fix: Explicitly treat phone as a string to ensure "replace" is available on the expression
-                         href={`https://wa.me/55${(String(c.phone || '')).replace(/\D/g, '')}`} 
-                         target="_blank"
-                         className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
-                       >
-                         <MessageCircle size={14} />
-                       </a>
-                    </div>
-                  </div>
+               <h4 className="font-black text-slate-800 dark:text-slate-100 text-xs uppercase leading-tight truncate">{c.name}</h4>
+               <p className="text-[7px] font-black text-slate-400 mt-1 uppercase tracking-widest">{c.phone} | {c.city}</p>
+               
+               <div className="mt-4 flex gap-2">
+                 <button onClick={() => {setSelectedClient(c); setIsPriceModalOpen(true);}} className="flex-1 h-9 bg-white dark:bg-slate-800 border rounded-lg text-[7px] font-black uppercase flex items-center justify-center gap-2">Preços</button>
+                 <a href={`https://wa.me/55${String(c.phone || '').replace(/\D/g, '')}`} target="_blank" className="w-10 h-9 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg flex items-center justify-center"><MessageCircle size={14} /></a>
                </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Modal de Preços Personalizados */}
+      {/* Modals are already optimized to "Bottom Sheet" in App design patterns */}
       {isPriceModalOpen && selectedClient && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-md transition-all" onClick={() => setIsPriceModalOpen(false)} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] p-8 shadow-2xl dark:shadow-none border border-transparent dark:border-slate-800 relative animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner"><DollarSign size={28} /></div>
-                <div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Tabela de Preços</h3>
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Cliente: {selectedClient.name}</p>
-                </div>
-              </div>
-              <button onClick={() => setIsPriceModalOpen(false)} className="p-3 text-slate-300 dark:text-slate-700 hover:text-rose-500 transition-colors"><X size={24}/></button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 mb-8">
-              {products.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 font-black text-[10px] uppercase">Nenhum produto cadastrado no catálogo base</div>
-              ) : products.map(p => (
-                <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl group hover:border-emerald-200 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center border text-slate-300"><Package size={20} /></div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase truncate">{p.nome}</p>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{p.unidade}</p>
-                    </div>
-                  </div>
-                  <div className="relative w-32">
-                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-500">R$</span>
-                     <input 
-                       type="text" 
-                       placeholder="VALOR" 
-                       className="w-full h-12 pl-10 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
-                       value={priceForm[p.id] || ''}
-                       onChange={e => setPriceForm({...priceForm, [p.id]: e.target.value.replace(/[^0-9,]/g, '')})}
-                     />
-                  </div>
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setIsPriceModalOpen(false)} />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2rem] p-6 shadow-2xl relative animate-in slide-in-from-bottom duration-500 max-h-[85vh] overflow-y-auto">
+            <h3 className="text-lg font-black uppercase mb-6 flex items-center gap-3"><DollarSign className="text-emerald-500"/> Tabela: {selectedClient.name}</h3>
+            <div className="space-y-3 mb-6">
+              {products.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl">
+                   <div className="min-w-0"><p className="text-[9px] font-black uppercase truncate dark:text-white">{p.nome}</p></div>
+                   <input type="text" placeholder="R$ 0,00" className="w-24 h-9 px-3 bg-white dark:bg-slate-950 border rounded-lg font-black text-[10px] dark:text-white text-right" value={priceForm[p.id] || ''} onChange={e => setPriceForm({...priceForm, [p.id]: e.target.value})} />
                 </div>
               ))}
             </div>
-
-            <div className="pt-6 border-t border-slate-50 dark:border-slate-800">
-               <button 
-                 onClick={handleSavePrices}
-                 className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[1.8rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
-               >
-                 <Save size={20} /> ATUALIZAR TABELA DO CLIENTE
-               </button>
-            </div>
+            <button onClick={handleSavePrices} className="w-full h-14 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-black text-[10px] uppercase shadow-xl">SALVAR PREÇOS</button>
           </div>
         </div>
       )}
 
       {isOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/95 backdrop-blur-sm transition-all" onClick={() => { setIsOpen(false); resetForm(); }} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl dark:shadow-none border border-transparent dark:border-slate-800 relative animate-in zoom-in-95">
-            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-8">{form.id ? 'Editar Cliente' : 'Cadastrar Cliente'}</h3>
+        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-500">
+            <h3 className="text-lg font-black uppercase mb-6">{form.id ? 'Editar' : 'Novo'} Cliente</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Nome Completo / Fantasia</label>
-                <input 
-                  className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase dark:text-white" 
-                  value={form.name || ''} 
-                  onChange={e => setForm({...form, name: e.target.value})} 
-                  required 
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Telefone (WhatsApp)</label>
-                  <input 
-                    type="tel"
-                    placeholder="(00) 00000-0000"
-                    className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs dark:text-white" 
-                    value={form.phone || ''} 
-                    onChange={handlePhoneChange} 
-                    required 
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase ml-2">Tipo de Cliente</label>
-                  <select 
-                    className="w-full h-12 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase dark:text-white" 
-                    value={form.type} 
-                    onChange={e => setForm({...form, type: e.target.value as any})}
-                  >
+               <input className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold text-xs uppercase dark:text-white" value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} placeholder="NOME" required />
+               <div className="grid grid-cols-2 gap-3">
+                  <input className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold text-xs dark:text-white" value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} placeholder="TELEFONE" required />
+                  <select className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl font-black text-[10px] uppercase dark:text-white" value={form.type} onChange={e => setForm({...form, type: e.target.value as any})}>
                     <option value="PARTICULAR">PARTICULAR</option>
                     <option value="REVENDEDOR">REVENDEDOR</option>
                   </select>
-                </div>
-              </div>
-              
-              <div className="pt-4 border-t border-slate-50 dark:border-slate-800">
-                <p className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-4">Endereço de Entrega</p>
-                <div className="grid grid-cols-4 gap-3">
-                  <div className="col-span-3 space-y-1.5">
-                    <label className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Rua / Logradouro</label>
-                    <input className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white" value={form.street || ''} onChange={e => setForm({...form, street: e.target.value})} required />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Nº</label>
-                    <input className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs dark:text-white" value={form.number || ''} onChange={e => setForm({...form, number: e.target.value})} required />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Bairro</label>
-                    <input className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white" value={form.neighborhood || ''} onChange={e => setForm({...form, neighborhood: e.target.value})} required />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase ml-2">Cidade</label>
-                    <input className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-bold text-xs uppercase dark:text-white" value={form.city || ''} onChange={e => setForm({...form, city: e.target.value})} required />
-                  </div>
-                </div>
-              </div>
-
-              <button className="w-full h-14 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-6 shadow-xl dark:shadow-none">SALVAR CADASTRO</button>
+               </div>
+               <div className="grid grid-cols-3 gap-3">
+                  <input className="col-span-2 w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold text-xs uppercase dark:text-white" value={form.street || ''} onChange={e => setForm({...form, street: e.target.value})} placeholder="RUA" required />
+                  <input className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold text-xs dark:text-white" value={form.number || ''} onChange={e => setForm({...form, number: e.target.value})} placeholder="Nº" required />
+               </div>
+               <button className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase shadow-xl mt-4">SALVAR CADASTRO</button>
             </form>
           </div>
         </div>
