@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck
+  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck, UserCircle
 } from 'lucide-react';
-import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product } from '../types';
+import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product, Delivery, Employee } from '../types';
 
 interface Props {
   sales: Sale[];
@@ -14,9 +14,11 @@ interface Props {
   onUpdateMonthlyGoal: (goal: MonthlyGoal) => void;
   clients: Client[];
   products: Product[];
+  deliveries: Delivery[];
+  employees: Employee[];
 }
 
-const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clients, products }) => {
+const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clients, products, deliveries, employees }) => {
   const getTodayString = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -162,24 +164,74 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
           </button>
 
           {showCatalog && (
-            <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2 duration-300">
-               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Selecione os Itens Vendidos</p>
-               <div className="flex gap-2 mb-4">
-                  <select className="flex-1 h-12 px-4 bg-white dark:bg-slate-900 border rounded-xl text-[10px] font-black uppercase outline-none dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
-                    <option value="">PRODUTO...</option>
+            <div className="bg-slate-50 dark:bg-slate-950/80 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-inner animate-in slide-in-from-top-2 duration-300">
+               <h4 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                 <ShoppingBag size={18} className="text-sky-500" /> Cesta de Produtos
+               </h4>
+               
+               <div className="space-y-4">
+                  <select 
+                    className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white outline-none" 
+                    value={selectedProductId} 
+                    onChange={e => setSelectedProductId(e.target.value)}
+                  >
+                    <option value="">ESCOLHER PRODUTO...</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                   </select>
-                  <input type="number" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} className="w-16 h-12 text-center bg-white dark:bg-slate-900 border rounded-xl font-black text-sm outline-none dark:text-white" />
-                  <button type="button" onClick={handleAddItem} className="h-12 w-12 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20}/></button>
+
+                  <div className="flex items-center gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setItemQuantity(q => Math.max(1, parseInt(q) - 1).toString())} 
+                      className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <input 
+                      type="number" 
+                      className="flex-1 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-lg dark:text-white outline-none" 
+                      value={itemQuantity} 
+                      onChange={e => setItemQuantity(e.target.value)} 
+                      min="1"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setItemQuantity(q => (parseInt(q || '0') + 1).toString())} 
+                      className="w-12 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={handleAddItem} 
+                    disabled={!selectedProductId} 
+                    className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30 transition-all"
+                  >
+                    Adicionar à Cesta
+                  </button>
                </div>
-               <div className="space-y-2 max-h-[120px] overflow-y-auto no-scrollbar">
+
+               <div className="mt-8 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-6">
                   {items.map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[9px] font-black uppercase dark:text-white">
-                      <span>{it.quantity}x {getProductName(it.productId)}</span>
-                      <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-400 p-1 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={14}/></button>
+                    <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none truncate mb-1">{getProductName(it.productId)}</p>
+                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{it.quantity} un</p>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setItems(items.filter((_,i)=>i!==idx))} 
+                        className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-950/30 text-rose-300 hover:text-rose-500 rounded-lg transition-all"
+                      >
+                        <Trash2 size={14}/>
+                      </button>
                     </div>
                   ))}
-                  {items.length === 0 && <p className="text-[8px] text-slate-300 uppercase text-center py-4 italic">Nenhum item detalhado ainda</p>}
+                  {items.length === 0 && (
+                    <p className="text-[8px] text-slate-300 uppercase text-center py-4 italic">Cesta vazia</p>
+                  )}
                </div>
             </div>
           )}
@@ -238,6 +290,9 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
             <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-50 dark:border-slate-800"><th className="px-8 py-6">DETALHES</th><th className="px-8 py-6 text-right">VALOR</th><th className="px-8 py-6 text-center">AÇÕES</th></tr></thead><tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {filteredSales.map(s => {
                 const isFromDelivery = s.description.includes('ENTREGA CONCLUÍDA');
+                const delivery = isFromDelivery ? deliveries.find(d => d.saleId === s.id) : null;
+                const driver = delivery ? employees.find(e => e.id === delivery.driverId) : null;
+                
                 return (
                   <tr key={s.id} className={`hover:bg-slate-50/30 dark:hover:bg-slate-800/40 transition-colors group ${isFromDelivery ? 'bg-slate-50/10' : ''}`}>
                     <td className="px-8 py-5">
@@ -245,7 +300,21 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                         {isFromDelivery && <Truck size={12} className="text-sky-500 shrink-0" />}
                         <p className={`text-[11px] font-black leading-none ${isFromDelivery ? 'text-sky-700 dark:text-sky-400' : 'text-slate-800 dark:text-slate-200'} mb-1`}>{s.description}</p>
                       </div>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase flex items-center gap-1"><User size={8}/> {getClientName(s.clientId)} <span className="text-slate-200 ml-2">|</span> {new Date(s.date + 'T00:00:00').toLocaleDateString()}</p>
+                      <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                        <p className="text-[8px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                          <User size={8}/> {getClientName(s.clientId)} 
+                          <span className="text-slate-200 ml-2">|</span> 
+                          {new Date(s.date + 'T00:00:00').toLocaleDateString()}
+                        </p>
+                        {isFromDelivery && driver && (
+                          <>
+                            <span className="text-slate-200 text-[8px]">|</span>
+                            <p className="text-[7px] font-black text-sky-600 dark:text-sky-400 uppercase flex items-center gap-1">
+                              <UserCircle size={10} /> MOTORISTA: {driver.name}
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-5 text-right font-black text-sm text-emerald-600">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                     <td className="px-8 py-5 text-center">

@@ -293,6 +293,7 @@ ________________________________________
       notPaidCount: notPaid.length,
       notPaidValue: notPaid.reduce((acc, d) => acc + (d.totalValue || 0), 0),
       cancelledCount: cancelled.length,
+      cancelledValue: cancelled.reduce((acc, d) => acc + (d.totalValue || 0), 0),
       driverStats: drivers.map(driver => ({
         name: driver.name,
         count: completed.filter(d => d.driverId === driver.id).length,
@@ -489,7 +490,7 @@ ________________________________________
                 </div>
                 <div class="card">
                   <p>Pedidos Cancelados</p>
-                  <h3>${closingStats.cancelledCount}</h3>
+                  <h3>${closingStats.cancelledCount} (R$ ${closingStats.cancelledValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</h3>
                 </div>
               </div>
             </div>
@@ -696,7 +697,7 @@ ________________________________________
             </div>
 
             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                  <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-3xl">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200/50 dark:shadow-none"><CheckCircle2 size={20} /></div>
@@ -712,6 +713,14 @@ ________________________________________
                     </div>
                     <p className="text-2xl font-black text-rose-700 dark:text-rose-300 leading-none">R$ {closingStats.notPaidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     <p className="text-[8px] font-black text-rose-600/50 uppercase mt-2">{closingStats.notPaidCount} CLIENTES EM DÉBITO</p>
+                 </div>
+                 <div className="p-6 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-slate-400 dark:bg-slate-700 text-white rounded-xl flex items-center justify-center shadow-lg"><Ban size={20} /></div>
+                      <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Venda Cancelada</span>
+                    </div>
+                    <p className="text-2xl font-black text-slate-600 dark:text-slate-300 leading-none">R$ {closingStats.cancelledValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[8px] font-black text-slate-400/50 uppercase mt-2">{closingStats.cancelledCount} PEDIDOS CANCELADOS</p>
                  </div>
               </div>
 
@@ -749,7 +758,7 @@ ________________________________________
       {showPaymentConfirm && deliveryToConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/95 dark:bg-black/98 backdrop-blur-xl animate-in fade-in duration-300" />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 sm:p-10 shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 text-center">
+          <div className="bg-white dark:bg-slate-900 w-full max-md rounded-[2.5rem] p-8 sm:p-10 shadow-3xl relative animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 text-center">
             <div className="w-20 h-20 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
                <DollarSign size={40} />
             </div>
