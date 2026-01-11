@@ -75,47 +75,42 @@ export const fetchAllData = async (): Promise<AppData> => {
   const today = new Date().toISOString().split('T')[0];
   
   const sortedProducts = (prods.data || [])
-    .map(p => ({ id: p.id, nome: p.nome.toUpperCase(), unidade: p.unidade || 'UN' }))
+    .map(p => ({ id: p.id, nome: (p.nome || '').toUpperCase(), unidade: p.unidade || 'UN' }))
     .sort((a, b) => {
       const indexA = CUSTOM_PRODUCT_ORDER.indexOf(a.nome);
       const indexB = CUSTOM_PRODUCT_ORDER.indexOf(b.nome);
-      
-      // Se ambos estão na lista customizada, ordena pela posição na lista
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      // Se apenas A está na lista, A vem primeiro
       if (indexA !== -1) return -1;
-      // Se apenas B está na lista, B vem primeiro
       if (indexB !== -1) return 1;
-      // Se nenhum está na lista, ordena alfabeticamente
       return a.nome.localeCompare(b.nome);
     });
 
   return {
-    sales: (sales.data || []).map(s => ({ id: s.id, value: Number(s.valor), date: s.data, description: s.descricao?.toUpperCase() || '', clientId: s.cliente_id, items: s.items })),
-    production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: p.observacao?.toUpperCase() })),
+    sales: (sales.data || []).map(s => ({ id: s.id, value: Number(s.valor), date: s.data, description: (s.descricao || '').toUpperCase(), clientId: s.cliente_id, items: s.items })),
+    production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: (p.observacao || '').toUpperCase() })),
     monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: Number(g.valor) })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
-      description: e.description?.toUpperCase(), 
+      description: (e.descricao || e.description || '').toUpperCase(), 
       value: Number(e.valor), 
       dueDate: e.data_vencimento,
-      status: e.status === 'Pago' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
-      category: e.category?.toUpperCase() || 'GERAL', 
+      status: (e.status || '').toUpperCase() === 'PAGO' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
+      category: (e.categoria || e.category || 'GERAL').toUpperCase(), 
       vehicleId: e.veiculo_id, 
       employeeId: e.funcionario_id, 
       kmReading: Number(e.km_reading), 
-      observation: e.observacao?.toUpperCase()
+      observation: (e.observacao || '').toUpperCase()
     })),
     employees: (employees.data || []).map(emp => ({ 
-      id: emp.id, name: emp.nome.toUpperCase(), role: emp.cargo?.toUpperCase() || 'FUNCIONÁRIO', salary: Number(emp.salario), joinedAt: emp.data_admissao, status: (emp.status || 'ATIVO') as 'ATIVO' | 'INATIVO'
+      id: emp.id, name: (emp.nome || '').toUpperCase(), role: (emp.cargo || 'FUNCIONÁRIO').toUpperCase(), salary: Number(emp.salario), joinedAt: emp.data_admissao, status: (emp.status || 'ATIVO') as 'ATIVO' | 'INATIVO'
     })),
-    vehicles: (vehicles.data || []).map(v => ({...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase(), tipo_combustivel: v.tipo_combustivel || 'FLEX', km_atual: Number(v.km_atual) || 0, km_ultima_troca: Number(v.km_ultima_troca) || 0})),
-    fuelLogs: (fuels.data || []).map(f => ({...f, tipo_combustivel: f.tipo_combustivel.toUpperCase(), valor_total: Number(f.valor_total) || 0, litros: Number(f.litros) || 0})),
-    maintenanceLogs: (maints.data || []).map(m => ({...m, servico: m.servico.toUpperCase(), custo: Number(m.custo) || 0})),
-    fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: f.tipo_infracao.toUpperCase(), valor: Number(f.valor) || 0})),
-    categories: (cats.data || []).map(c => c.nome.toUpperCase()),
+    vehicles: (vehicles.data || []).map(v => ({...v, modelo: (v.modelo || '').toUpperCase(), placa: (v.placa || '').toUpperCase(), tipo_combustivel: v.tipo_combustivel || 'FLEX', km_atual: Number(v.km_atual) || 0, km_ultima_troca: Number(v.km_ultima_troca) || 0})),
+    fuelLogs: (fuels.data || []).map(f => ({...f, tipo_combustivel: (f.tipo_combustivel || '').toUpperCase(), valor_total: Number(f.valor_total) || 0, litros: Number(f.litros) || 0})),
+    maintenanceLogs: (maints.data || []).map(m => ({...m, servico: (m.servico || '').toUpperCase(), custo: Number(m.custo) || 0})),
+    fineLogs: (fines.data || []).map(f => ({...f, tipo_infracao: (f.tipo_infracao || '').toUpperCase(), valor: Number(f.valor) || 0})),
+    categories: (cats.data || []).map(c => (c.nome || '').toUpperCase()),
     clients: (clients.data || []).map(c => ({ id: c.id, name: c.name, phone: c.phone, street: c.street || '', number: c.address_number || '', neighborhood: c.neighborhood || '', city: c.city || '', type: c.type, cnpj_cpf: c.cnpj_cpf, created_at: c.created_at })),
-    // Fix: Ensure database mapping uses correct camelCase properties for Delivery interface (scheduledTime)
+    // Use camelCase properties for Delivery mapping to match types.ts interface
     deliveries: (deliveries.data || []).map(d => ({ id: d.id, sequenceNumber: d.numero_sequencial, saleId: d.sale_id, clientId: d.cliente_id, driverId: d.funcionario_id, vehicleId: d.veiculo_id, status: d.status as DeliveryStatus, scheduledDate: d.scheduled_date, scheduledTime: d.scheduled_time, deliveredAt: d.delivered_at, notes: d.notes, items: d.items, totalValue: Number(d.total_value) || 0 })),
     products: sortedProducts,
     settings,
@@ -123,26 +118,35 @@ export const fetchAllData = async (): Promise<AppData> => {
   };
 };
 
-export const syncProductBase = (p: Product) => supabase.from('produtos_base').upsert({ id: p.id, nome: p.nome.toUpperCase(), unidade: p.unidade });
+export const syncProductBase = (p: Product) => supabase.from('produtos_base').upsert({ id: p.id, nome: (p.nome || '').toUpperCase(), unidade: p.unidade });
 export const deleteProductBase = (id: string) => supabase.from('produtos_base').delete().eq('id', id);
 
-export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: e.name.toUpperCase(), cargo: e.role.toUpperCase(), salario: Number(e.salary), data_admissao: e.joinedAt, status: e.status });
+export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: (e.name || '').toUpperCase(), cargo: (e.role || '').toUpperCase(), salario: Number(e.salary), data_admissao: e.joinedAt, status: e.status });
 
 export const syncSettings = async (s: AppSettings) => {
-  const payload: any = { id: 1, nome_empresa: s.companyName.toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), pix_key: s.pixKey, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_vendas_diaria: s.salesGoalDaily, admin_email: s.adminEmail, admin_password: s.adminPassword };
+  const payload: any = { id: 1, nome_empresa: (s.companyName || '').toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), pix_key: s.pixKey, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_vendas_diaria: s.salesGoalDaily, admin_email: s.adminEmail, admin_password: s.adminPassword };
   const { error } = await supabase.from('configuracoes').upsert({ ...payload, menu_order: s.menuOrder }, { onConflict: 'id' });
   if (error && (error.message.includes('menu_order') || error.code === '42703')) { return supabase.from('configuracoes').upsert(payload, { onConflict: 'id' }); }
   return { error };
 };
 
-// Fix property 'valor' to 'value' in syncSale to match the Sale interface
-export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: Number(s.value), data: s.date, descricao: s.description.toUpperCase(), cliente_id: s.clientId, items: s.items });
+export const syncSale = (s: Sale) => supabase.from('vendas').upsert({ id: s.id, valor: Number(s.value), data: s.date, descricao: (s.description || '').toUpperCase(), cliente_id: s.clientId, items: s.items });
 
-// Fix property 'km_reading' to 'kmReading' in syncExpense to match the Expense interface
-export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ id: e.id, descricao: e.description.toUpperCase(), valor: Number(e.value), data_vencimento: e.dueDate, status: e.status, categoria: e.category.toUpperCase(), veiculo_id: e.vehicleId, funcionario_id: e.employeeId, km_reading: e.kmReading });
+export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ 
+  id: e.id, 
+  description: (e.description || '').toUpperCase(), 
+  valor: Number(e.value), 
+  data_vencimento: e.dueDate, 
+  status: e.status, 
+  categoria: (e.category || 'GERAL').toUpperCase(), 
+  veiculo_id: e.vehicleId, 
+  funcionario_id: e.employeeId, 
+  km_reading: e.kmReading,
+  observacao: (e.observation || '').toUpperCase()
+});
 
-export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: Number(p.quantityKg), data: p.date, observacao: p.observation?.toUpperCase() });
-export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome: nome.toUpperCase() });
+export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: Number(p.quantityKg), data: p.date, observacao: (p.observation || '').toUpperCase() });
+export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome: (nome || '').toUpperCase() });
 export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: Number(g.value) }, { onConflict: 'tipo,mes,ano' });
 
 export const deleteSale = (id: string) => supabase.from('vendas').delete().eq('id', id);
@@ -158,12 +162,12 @@ export const syncCategoriesOrder = async (orderedNames: string[]) => {
   return Promise.all(updates);
 };
 
-export const syncClient = (c: Client) => supabase.from('clientes').upsert({ id: c.id, name: c.name.toUpperCase(), phone: c.phone, street: c.street.toUpperCase(), address_number: c.number, neighborhood: c.neighborhood.toUpperCase(), city: c.city.toUpperCase(), type: c.type, cnpj_cpf: c.cnpj_cpf });
+export const syncClient = (c: Client) => supabase.from('clientes').upsert({ id: c.id, name: (c.name || '').toUpperCase(), phone: c.phone, street: (c.street || '').toUpperCase(), address_number: c.number, neighborhood: (c.neighborhood || '').toUpperCase(), city: (c.city || '').toUpperCase(), type: c.type, cnpj_cpf: c.cnpj_cpf });
 
 export const deleteClient = (id: string) => supabase.from('clientes').delete().eq('id', id);
 
 export const syncDelivery = (d: Delivery) => {
-  // Fix: Access properties from 'd' (type Delivery) using correct camelCase names (scheduledDate, scheduledTime, deliveredAt, totalValue)
+  // Use d.saleId instead of d.sale_id as sale_id is not a property of Delivery interface
   const payload: any = { id: d.id, sale_id: d.saleId, cliente_id: d.clientId, funcionario_id: d.driverId, veiculo_id: d.vehicleId, status: d.status, scheduled_date: d.scheduledDate, scheduled_time: d.scheduledTime, delivered_at: d.deliveredAt, notes: d.notes?.toUpperCase(), items: d.items, total_value: Number(d.totalValue) || 0 };
   if (d.sequenceNumber) { payload.numero_sequencial = d.sequenceNumber; }
   return supabase.from('entregas').upsert(payload);
@@ -171,12 +175,12 @@ export const syncDelivery = (d: Delivery) => {
 
 export const deleteDelivery = (id: string) => supabase.from('entregas').delete().eq('id', id);
 
-export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({ ...v, modelo: v.modelo.toUpperCase(), placa: v.placa.toUpperCase(), tipo_combustivel: v.tipo_combustivel?.toUpperCase() || 'FLEX', km_atual: Number(v.km_atual) || 0, km_ultima_troca: Number(v.km_ultima_troca) || 0 });
+export const syncVehicle = (v: Vehicle) => supabase.from('veiculos').upsert({ ...v, modelo: (v.modelo || '').toUpperCase(), placa: (v.placa || '').toUpperCase(), tipo_combustivel: v.tipo_combustivel?.toUpperCase() || 'FLEX', km_atual: Number(v.km_atual) || 0, km_ultima_troca: Number(v.km_ultima_troca) || 0 });
 
 export const deleteVehicle = (id: string) => supabase.from('veiculos').delete().eq('id', id);
 
 export const syncFuel = async (f: FuelLog) => {
-  const payload = { ...f, tipo_combustivel: f.tipo_combustivel.toUpperCase(), km_registro: Number(f.km_registro) || 0, litros: Number(f.litros) || 0, valor_litro: Number(f.valor_litro) || 0, valor_total: Number(f.valor_total) || 0 };
+  const payload = { ...f, tipo_combustivel: (f.tipo_combustivel || '').toUpperCase(), km_registro: Number(f.km_registro) || 0, litros: Number(f.litros) || 0, valor_litro: Number(f.valor_litro) || 0, valor_total: Number(f.valor_total) || 0 };
   const { error } = await supabase.from('frota_abastecimentos').upsert(payload);
   if (!error) {
     await supabase.from('veiculos').update({ km_atual: payload.km_registro }).eq('id', f.veiculo_id);
@@ -186,7 +190,7 @@ export const syncFuel = async (f: FuelLog) => {
 };
 
 export const syncMaintenance = async (m: MaintenanceLog) => {
-  const maintPayload = { ...m, servico: m.servico.toUpperCase(), custo: Number(m.custo) || 0, km_registro: Number(m.km_registro) || 0 };
+  const maintPayload = { ...m, servico: (m.servico || '').toUpperCase(), custo: Number(m.custo) || 0, km_registro: Number(m.km_registro) || 0 };
   const { error: maintError } = await supabase.from('frota_manutencoes').upsert(maintPayload);
   if (!maintError) {
     if (maintPayload.servico.includes('ÓLEO')) { await supabase.from('veiculos').update({ km_ultima_troca: maintPayload.km_registro }).eq('id', maintPayload.veiculo_id); }
@@ -196,9 +200,9 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
 };
 
 export const syncFine = async (f: FineLog) => {
-    const { error } = await supabase.from('frota_multas').upsert({ ...f, tipo_infracao: f.tipo_infracao.toUpperCase(), valor: Number(f.valor) || 0 });
+    const { error } = await supabase.from('frota_multas').upsert({ ...f, tipo_infracao: (f.tipo_infracao || '').toUpperCase(), valor: Number(f.valor) || 0 });
     if (!error && (f.situacao === 'Paga' || f.situacao === 'Em aberto')) {
-        await supabase.from('despesas').insert({ id: crypto.randomUUID(), descricao: `MULTA: ${f.tipo_infracao.toUpperCase()}`, valor: Number(f.valor), data_vencimento: f.data_vencimento, status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer', categoria: 'MULTAS', veiculo_id: f.veiculo_id, funcionario_id: f.funcionario_id });
+        await supabase.from('despesas').insert({ id: crypto.randomUUID(), descricao: `MULTA: ${(f.tipo_infracao || '').toUpperCase()}`, valor: Number(f.valor), data_vencimento: f.data_vencimento, status: f.situacao === 'Paga' ? 'Pago' : 'A Vencer', categoria: 'MULTAS', veiculo_id: f.veiculo_id, funcionario_id: f.funcionario_id });
     }
     return { error };
 };
