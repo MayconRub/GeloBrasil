@@ -164,8 +164,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
 
   const handlePrintSaleReceipt = async (s: Sale) => {
     const client = clients.find(c => c.id === s.clientId);
-    
-    // Formatação detalhada dos itens para o comprovante igual ao comprovante de entrega
     const saleItemsList = (s.items || []).map(item => {
       const p = products.find(prod => prod.id === item.productId);
       return `${String(item.quantity).padStart(3, ' ')} UN - ${p?.nome || 'PRODUTO'}`;
@@ -188,7 +186,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
 ========================================
              ${settings?.companyName || 'GELO BRASIL'}
 ========================================
-         COMPROVANTE DE ENTREGA
+         COMPROVANTE DE VENDA
 ----------------------------------------
 CLIENTE: ${client?.name || 'CONSUMIDOR AVULSO'}
 ${client ? `ENDERECO: ${client.street || ''}, ${client.number || ''}\nBAIRRO: ${client.neighborhood || ''}\n` : ''}
@@ -198,15 +196,12 @@ HORA: ${timeStr}
 ----------------------------------------
 DESCRIÇÃO: ${s.description}
 ----------------------------------------
-${saleItemsList ? `ITENS DA CARGA:\n${saleItemsList}\n----------------------------------------` : ''}
+${saleItemsList ? `ITENS:\n${saleItemsList}\n----------------------------------------` : ''}
 VALOR TOTAL: R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 ----------------------------------------
 
-ASSINATURA / VISTO:
-
-
 ________________________________________
-           PAGAMENTO VIA PIX
+           ASSINATURA / VISTO
 
 `.trim();
 
@@ -220,7 +215,7 @@ ________________________________________
       printWindow.document.write(`
         <html>
           <head>
-            <title>COMPROVANTE - ${settings?.companyName}</title>
+            <title>VENDA - ${settings?.companyName}</title>
             <style>
               @font-face {
                 font-family: 'ReceiptFont';
@@ -479,7 +474,7 @@ ________________________________________
         </div>
         <div className="flex items-center gap-3">
           <button onClick={handlePrintReport} className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
-            <FileText size={18} className="text-sky-50" /> <span className="hidden sm:inline">RELATÓRIO</span>
+            <FileText size={18} className="text-sky-500" /> <span className="hidden sm:inline">RELATÓRIO</span>
           </button>
           <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
         </div>
