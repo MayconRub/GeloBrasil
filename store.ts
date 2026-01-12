@@ -32,7 +32,7 @@ const CUSTOM_PRODUCT_ORDER = [
 
 export const fetchSettings = async (): Promise<AppSettings> => {
   const { data: settings } = await supabase.from('configuracoes').select('*').single();
-  const defaultOrder = ['dashboard', 'sales', 'clients', 'deliveries', 'expenses', 'production', 'team', 'fleet', 'admin'];
+  const defaultOrder = ['dashboard', 'sales', 'clients', 'deliveries', 'billing', 'expenses', 'production', 'team', 'fleet', 'admin'];
   return {
     companyName: settings?.nome_empresa?.toUpperCase() || 'GELO BRASIL LTDA',
     cnpj: settings?.cnpj || '42.996.710/0001-63',
@@ -92,7 +92,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       date: s.data, 
       description: (s.descricao || '').toUpperCase(), 
       clientId: s.cliente_id,
-      items: s.itens || [], // Recupera a cesta salva no campo JSONB
+      items: s.itens || [],
       created_at: s.created_at
     })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: (p.observacao || '').toUpperCase() })),
@@ -103,7 +103,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       value: Number(e.valor), 
       dueDate: e.data_vencimento,
       status: (e.status || '').toUpperCase() === 'PAGO' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
-      category: (e.category || 'GERAL').toUpperCase(), 
+      category: (e.categoria || e.category || 'GERAL').toUpperCase(), 
       vehicleId: e.veiculo_id, 
       employeeId: e.funcionario_id, 
       kmReading: Number(e.km_reading)
@@ -156,7 +156,7 @@ export const syncSale = (s: Sale) => supabase.from('vendas').upsert({
   data: s.date, 
   descricao: (s.description || '').toUpperCase(), 
   cliente_id: s.clientId,
-  itens: s.items || [] // Envia a cesta para a nova coluna do Supabase
+  itens: s.items || []
 });
 
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ 

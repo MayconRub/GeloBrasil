@@ -190,4 +190,4 @@ export interface AppSettings {
   adminPassword?: string;
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries';
+export type ViewType = 'dashboard' | 'sales' | 'production' | 'expenses' | 'team' | 'fleet' | 'admin' | 'clients' | 'deliveries' | 'billing';

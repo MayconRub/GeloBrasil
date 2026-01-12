@@ -5,7 +5,7 @@ import {
   X, LogOut, MoreHorizontal, ChevronRight, Mail, Lock, LogIn, Phone, 
   ShieldCheck, UserPlus, PackageCheck, Moon, Sun, LayoutGrid, ShieldAlert,
   QrCode, Copy, Check, MessageCircle, EyeOff, Eye, Activity, RefreshCw,
-  Bell, AlertCircle
+  Bell, AlertCircle, HandCoins
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { fetchAllData, syncSale, syncExpense, updateExpenseStatus, syncEmployee, syncVehicle, syncCategory, syncSettings, AppData, syncProduction, syncMonthlyGoal, syncCategoriesOrder, syncFuel, syncMaintenance, syncFine, deleteSale, deleteExpense, deleteProduction, deleteEmployee, deleteVehicle, deleteCategory, deleteFuel, deleteMaintenance, deleteFine, syncClient, deleteClient, syncDelivery, deleteDelivery, syncProductBase, deleteProductBase } from './store';
@@ -19,6 +19,7 @@ import FleetView from './components/FleetView';
 import AdminView from './components/AdminView';
 import ClientsView from './components/ClientsView';
 import DeliveriesView from './components/DeliveriesView';
+import BillingView from './components/BillingView';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('dashboard');
@@ -109,16 +110,6 @@ const App: React.FC = () => {
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  const criticalExpenses = useMemo(() => {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayStr = today.toISOString().split('T')[0];
-    const limit = new Date(today);
-    limit.setDate(limit.getDate() + 2);
-    const limitStr = limit.toISOString().split('T')[0];
-    return data.expenses.filter(e => e.status !== ExpenseStatus.PAGO && e.dueDate <= limitStr).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  }, [data.expenses]);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -171,6 +162,32 @@ const App: React.FC = () => {
     else loadAppData();
   };
 
+  const handleBillingPayment = async (delivery: Delivery) => {
+    const deliveryToSave = { ...delivery, status: DeliveryStatus.ENTREGUE, deliveredAt: new Date().toISOString() };
+    const newSaleId = crypto.randomUUID();
+    const newSale: Sale = { 
+      id: newSaleId, 
+      value: deliveryToSave.totalValue || 0, 
+      date: new Date().toISOString().split('T')[0], 
+      description: `COBRANÇA ENTREGA #${deliveryToSave.sequenceNumber || ''}`.toUpperCase(), 
+      clientId: deliveryToSave.clientId 
+    };
+    
+    const saleResult = await syncSale(newSale);
+    if (saleResult.error) {
+      alert("ERRO AO LANÇAR VENDA DE COBRANÇA: " + saleResult.error.message.toUpperCase());
+      return;
+    }
+    
+    deliveryToSave.saleId = newSaleId;
+    const deliveryResult = await syncDelivery(deliveryToSave);
+    if (deliveryResult.error) {
+      alert("ERRO AO ATUALIZAR ENTREGA: " + deliveryResult.error.message.toUpperCase());
+    } else {
+      loadAppData();
+    }
+  };
+
   const userName = useMemo(() => currentUserEmail ? currentUserEmail.split('@')[0].toUpperCase() : 'CONECTADO', [currentUserEmail]);
 
   const isAdmin = useMemo(() => {
@@ -194,13 +211,29 @@ const App: React.FC = () => {
       { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
       { id: 'clients', label: 'CLIENTES', icon: UserPlus },
       { id: 'deliveries', label: 'ENTREGAS', icon: PackageCheck },
+      { id: 'billing', label: 'COBRANÇA', icon: HandCoins },
       { id: 'expenses', label: 'DESPESAS', icon: Receipt },
       { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
       { id: 'team', label: 'EQUIPE', icon: Users },
       { id: 'fleet', label: 'FROTA', icon: Truck },
       { id: 'admin', label: 'ADMIN', icon: ShieldCheck },
     ];
-    const order = data.settings?.menuOrder?.length > 0 ? data.settings.menuOrder : ALL_MODULES.map(m => m.id);
+
+    // Se houver uma ordem salva, usamos ela, mas garantimos que novos módulos apareçam
+    let order = data.settings?.menuOrder?.length > 0 ? [...data.settings.menuOrder] : ALL_MODULES.map(m => m.id);
+    
+    // Identifica módulos em ALL_MODULES que não estão na lista de 'order' (como o 'billing' se foi adicionado recentemente)
+    const missingIds = ALL_MODULES.map(m => m.id).filter(id => !order.includes(id));
+    if (missingIds.length > 0) {
+      // Insere novos módulos antes do 'admin' ou ao final
+      const adminIdx = order.indexOf('admin');
+      if (adminIdx !== -1) {
+        order.splice(adminIdx, 0, ...missingIds);
+      } else {
+        order.push(...missingIds);
+      }
+    }
+
     return order
       .map(id => ALL_MODULES.find(m => m.id === id))
       .filter((item): item is typeof ALL_MODULES[0] => {
@@ -320,6 +353,7 @@ const App: React.FC = () => {
         {view === 'sales' && <SalesView sales={data.sales} onUpdate={wrap(syncSale)} onDelete={wrap(deleteSale)} settings={data.settings} monthlyGoals={data.monthlyGoals} onUpdateMonthlyGoal={wrap(syncMonthlyGoal)} clients={data.clients} products={data.products} deliveries={data.deliveries} employees={data.employees} />}
         {view === 'clients' && <ClientsView clients={data.clients} products={data.products} onUpdate={wrap(syncClient)} onDelete={wrap(deleteClient)} />}
         {view === 'deliveries' && <DeliveriesView deliveries={data.deliveries} clients={data.clients} drivers={data.employees} vehicles={data.vehicles} products={data.products} onUpdate={handleUpdateDeliveryWithSync} onDelete={wrap(deleteDelivery)} onAddClient={wrap(syncClient)} settings={data.settings} />}
+        {view === 'billing' && <BillingView deliveries={data.deliveries} clients={data.clients} onMarkAsPaid={handleBillingPayment} />}
         {view === 'production' && <ProductionView settings={data.settings} production={data.production} onUpdate={wrap(syncProduction)} onDelete={wrap(deleteProduction)} products={data.products} />}
         {view === 'expenses' && <ExpensesView expenses={data.expenses} categories={data.categories} vehicles={data.vehicles} employees={data.employees} onUpdate={wrap(syncExpense)} onUpdateStatus={wrap(updateExpenseStatus)} onDelete={wrap(deleteExpense)} onUpdateCategories={wrap(syncCategory)} onDeleteCategory={wrap(deleteCategory)} onReorderCategories={wrap(syncCategoriesOrder)} sales={data.sales} />}
         {view === 'team' && <TeamView employees={data.employees} onUpdate={wrap(syncEmployee)} onDelete={wrap(deleteEmployee)} onAddExpense={wrap(syncExpense)} companyName={data.settings.companyName} />}

@@ -47,7 +47,8 @@ import {
   QrCode,
   Trash2,
   Plus,
-  ShoppingBasket
+  ShoppingBasket,
+  HandCoins
 } from 'lucide-react';
 import { AppSettings, UserProfile, Product } from '../types';
 
@@ -63,15 +64,27 @@ interface Props {
 const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, products, onUpdateProduct, onDeleteProduct }) => {
   const [activeTab, setActiveTab] = useState<'license' | 'company' | 'visual' | 'users' | 'products'>('license');
   
+  const ALL_MODULES = useMemo(() => [
+    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutGrid },
+    { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
+    { id: 'clients', label: 'CLIENTES', icon: UserPlus },
+    { id: 'deliveries', label: 'ENTREGAS', icon: PackageCheck },
+    { id: 'billing', label: 'COBRANÇA', icon: HandCoins },
+    { id: 'expenses', label: 'DESPESAS', icon: Receipt },
+    { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
+    { id: 'team', label: 'EQUIPE', icon: Users },
+    { id: 'fleet', label: 'FROTA', icon: Truck },
+    { id: 'admin', label: 'ADMIN', icon: ShieldCheck },
+  ], []);
+
   // Estados de Configuração
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [cnpj, setCnpj] = useState(settings.cnpj || '');
   const [pixKey, setPixKey] = useState(settings.pixKey || '');
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
   const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
-  const [menuOrder, setMenuOrder] = useState<string[]>(settings.menuOrder || []);
+  const [menuOrder, setMenuOrder] = useState<string[]>([]);
 
-  // Estados de Produto
   const [newProdName, setNewProdName] = useState('');
   const [newProdUnit, setNewProdUnit] = useState('UN');
   
@@ -84,8 +97,25 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
     setPixKey(settings.pixKey || '');
     setExpirationDate(settings.expirationDate);
     setHiddenViews(settings.hiddenViews || []);
-    setMenuOrder(settings.menuOrder || []);
-  }, [settings]);
+    
+    // Garante que todos os módulos existentes no sistema estejam na lista de ordem
+    const savedOrder = settings.menuOrder || [];
+    const fullOrder = [...savedOrder];
+    
+    ALL_MODULES.forEach(mod => {
+      if (!fullOrder.includes(mod.id)) {
+        // Se for o admin, coloca no final, senão coloca antes do admin
+        const adminIdx = fullOrder.indexOf('admin');
+        if (adminIdx !== -1) {
+          fullOrder.splice(adminIdx, 0, mod.id);
+        } else {
+          fullOrder.push(mod.id);
+        }
+      }
+    });
+    
+    setMenuOrder(fullOrder);
+  }, [settings, ALL_MODULES]);
 
   const toggleViewVisibility = (id: string) => {
     const newHidden = hiddenViews.includes(id) ? hiddenViews.filter(v => v !== id) : [...hiddenViews, id];
@@ -101,18 +131,6 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
     newOrder[targetIndex] = temp;
     setMenuOrder(newOrder);
   };
-
-  const ALL_MODULES = [
-    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutGrid },
-    { id: 'sales', label: 'VENDAS', icon: CircleDollarSign },
-    { id: 'clients', label: 'CLIENTES', icon: UserPlus },
-    { id: 'deliveries', label: 'ENTREGAS', icon: PackageCheck },
-    { id: 'expenses', label: 'DESPESAS', icon: Receipt },
-    { id: 'production', label: 'PRODUÇÃO', icon: Snowflake },
-    { id: 'team', label: 'EQUIPE', icon: Users },
-    { id: 'fleet', label: 'FROTA', icon: Truck },
-    { id: 'admin', label: 'ADMIN', icon: ShieldCheck },
-  ];
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
