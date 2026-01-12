@@ -117,11 +117,9 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     setDate(sale.date);
     setClientId(sale.clientId || '');
     
-    // CORREÇÃO: Garante que os itens sejam carregados no estado local
     const savedItems = sale.items || [];
     setItems([...savedItems]);
     
-    // Abre os detalhes se houver itens
     setShowCatalog(savedItems.length > 0);
     setIsMobileFormOpen(true);
   };
@@ -256,6 +254,15 @@ ________________________________________
                 height: 150px;
                 image-rendering: pixelated;
               }
+              .disclaimer {
+                text-align: center;
+                font-weight: bold;
+                font-size: 10px;
+                margin-top: 15px;
+                padding: 5px;
+                border-top: 1px dashed #ccc;
+                white-space: nowrap; /* Garante que fique em uma linha */
+              }
               @media print {
                 body { margin: 0; padding: 0; width: 80mm; }
                 @page { margin: 0; size: 80mm auto; }
@@ -268,6 +275,9 @@ ________________________________________
             <div class="centered">
 ========================================
         OBRIGADO PELA PREFERENCIA
+            </div>
+            <div class="disclaimer">
+              ESTE DOCUMENTO NÃO É UM COMPROVANTE FISCAL
             </div>
             <script>
               window.onload = function() {
@@ -494,14 +504,11 @@ ________________________________________
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Formulário à Esquerda */}
         <div className="hidden lg:block">
            {renderFormContent()}
         </div>
 
-        {/* Listagem à Direita */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Barra de Filtro Padronizada */}
           <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
             <div className="flex items-center gap-2 flex-1">
               <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">

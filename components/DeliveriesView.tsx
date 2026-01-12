@@ -273,6 +273,15 @@ ________________________________________
                 height: 150px;
                 image-rendering: pixelated;
               }
+              .disclaimer {
+                text-align: center;
+                font-weight: bold;
+                font-size: 10px;
+                margin-top: 15px;
+                padding: 5px;
+                border-top: 1px dashed #ccc;
+                white-space: nowrap; /* Garante que fique em uma linha */
+              }
               @media print {
                 body { margin: 0; padding: 0; width: 80mm; }
                 @page { margin: 0; size: 80mm auto; }
@@ -285,6 +294,9 @@ ________________________________________
             <div class="centered">
 ========================================
         OBRIGADO PELA PREFERENCIA
+            </div>
+            <div class="disclaimer">
+              ESTE DOCUMENTO NÃO É UM COMPROVANTE FISCAL
             </div>
             <script>
               window.onload = function() {
