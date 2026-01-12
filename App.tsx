@@ -50,6 +50,15 @@ const App: React.FC = () => {
 
   const SYSTEM_EXPIRATION_PIX = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
 
+  // Função auxiliar para obter a data local no formato YYYY-MM-DD
+  const getLocalISODate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -148,7 +157,13 @@ const App: React.FC = () => {
     const deliveryToSave = { ...delivery };
     if (deliveryToSave.status === DeliveryStatus.ENTREGUE && !deliveryToSave.saleId) {
       const newSaleId = crypto.randomUUID();
-      const newSale: Sale = { id: newSaleId, value: deliveryToSave.totalValue || 0, date: new Date().toISOString().split('T')[0], description: `ENTREGA CONCLUÍDA - PEDIDO #${deliveryToSave.sequenceNumber || ''}`.toUpperCase(), clientId: deliveryToSave.clientId };
+      const newSale: Sale = { 
+        id: newSaleId, 
+        value: deliveryToSave.totalValue || 0, 
+        date: getLocalISODate(), // Alterado para data local
+        description: `ENTREGA CONCLUÍDA - PEDIDO #${deliveryToSave.sequenceNumber || ''}`.toUpperCase(), 
+        clientId: deliveryToSave.clientId 
+      };
       const saleResult = await syncSale(newSale);
       if (saleResult.error) { alert("ERRO AO GERAR VENDA DA ENTREGA: " + saleResult.error.message.toUpperCase()); return; }
       deliveryToSave.saleId = newSaleId;
@@ -168,7 +183,7 @@ const App: React.FC = () => {
     const newSale: Sale = { 
       id: newSaleId, 
       value: deliveryToSave.totalValue || 0, 
-      date: new Date().toISOString().split('T')[0], 
+      date: getLocalISODate(), // Alterado para data local para evitar divergência de dia
       description: `COBRANÇA ENTREGA #${deliveryToSave.sequenceNumber || ''}`.toUpperCase(), 
       clientId: deliveryToSave.clientId 
     };
