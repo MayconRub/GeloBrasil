@@ -81,6 +81,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [cnpj, setCnpj] = useState(settings.cnpj || '');
   const [pixKey, setPixKey] = useState(settings.pixKey || '');
+  const [systemPixKey, setSystemPixKey] = useState(settings.systemPixKey || '');
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
   const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
   const [menuOrder, setMenuOrder] = useState<string[]>([]);
@@ -95,16 +96,15 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
     setCompanyName(settings.companyName);
     setCnpj(settings.cnpj || '');
     setPixKey(settings.pixKey || '');
+    setSystemPixKey(settings.systemPixKey || '');
     setExpirationDate(settings.expirationDate);
     setHiddenViews(settings.hiddenViews || []);
     
-    // Garante que todos os módulos existentes no sistema estejam na lista de ordem
     const savedOrder = settings.menuOrder || [];
     const fullOrder = [...savedOrder];
     
     ALL_MODULES.forEach(mod => {
       if (!fullOrder.includes(mod.id)) {
-        // Se for o admin, coloca no final, senão coloca antes do admin
         const adminIdx = fullOrder.indexOf('admin');
         if (adminIdx !== -1) {
           fullOrder.splice(adminIdx, 0, mod.id);
@@ -135,7 +135,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsUpdating(true);
-    await onUpdateSettings({ ...settings, companyName, cnpj, pixKey, expirationDate, hiddenViews, menuOrder });
+    await onUpdateSettings({ ...settings, companyName, cnpj, pixKey, systemPixKey, expirationDate, hiddenViews, menuOrder });
     setIsUpdating(false);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
@@ -231,8 +231,81 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
       )}
 
       {activeTab === 'license' && (
-        <div className={`p-8 rounded-[2.5rem] border-4 flex flex-col lg:flex-row items-center justify-between gap-6 transition-all duration-700 animate-in slide-in-from-bottom-4 duration-500 ${isExpired() ? 'bg-rose-500 border-rose-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'}`}>
-          <div className="flex items-center gap-6"><div className="w-20 h-20 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] flex items-center justify-center shadow-xl">{isExpired() ? <Lock size={32} /> : <Unlock size={32} />}</div><div><h4 className="text-3xl font-black uppercase tracking-tighter leading-none mb-2">Contrato de Uso</h4><p className={`text-[10px] font-black uppercase tracking-widest ${isExpired() ? 'text-rose-100' : 'text-slate-400'}`}>Vencimento: {new Date(expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p></div></div>
+        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+          <div className={`p-8 rounded-[2.5rem] border-4 flex flex-col lg:flex-row items-center justify-between gap-6 transition-all duration-700 ${isExpired() ? 'bg-rose-500 border-rose-600 text-white shadow-2xl shadow-rose-200' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'}`}>
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] flex items-center justify-center shadow-xl">
+                 {isExpired() ? <Lock size={32} /> : <Unlock size={32} />}
+              </div>
+              <div>
+                <h4 className="text-3xl font-black uppercase tracking-tighter leading-none mb-2">Contrato de Uso</h4>
+                <p className={`text-[10px] font-black uppercase tracking-widest ${isExpired() ? 'text-rose-100' : 'text-slate-400'}`}>
+                  Situação Atual: {isExpired() ? 'LICENÇA EXPIRADA' : 'SISTEMA LIBERADO'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-2xl flex items-center justify-center">
+                    <CalendarDays size={24} />
+                  </div>
+                  <div>
+                    <h5 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Alterar Vencimento</h5>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Controle de acesso do cliente</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-4">Próximo Vencimento</label>
+                  <div className="relative">
+                    <CalendarDays size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <input 
+                      type="date" 
+                      value={expirationDate} 
+                      onChange={e => setExpirationDate(e.target.value)}
+                      className="w-full h-16 pl-14 pr-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-2xl flex items-center justify-center">
+                    <QrCode size={24} />
+                  </div>
+                  <div>
+                    <h5 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Cópia e Cola PIX</h5>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Para pagamento da licença</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-4">Chave PIX Mensalidade</label>
+                  <div className="relative">
+                    <QrCode size={20} className="absolute left-5 top-5 text-slate-300" />
+                    <textarea 
+                      value={systemPixKey} 
+                      onChange={e => setSystemPixKey(e.target.value)}
+                      placeholder="Cole aqui o código PIX Copia e Cola para ser usado no vencimento..."
+                      className="w-full h-32 pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-mono text-[9px] outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => handleSubmit()}
+              className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl shadow-xl flex items-center justify-center gap-4 uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all mt-4"
+            >
+              <Save size={20} /> Salvar Parâmetros de Licenciamento
+            </button>
+          </div>
         </div>
       )}
 

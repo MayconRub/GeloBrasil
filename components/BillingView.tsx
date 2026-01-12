@@ -12,19 +12,23 @@ import {
   DollarSign, 
   Phone,
   MessageCircle,
-  AlertCircle
+  AlertCircle,
+  Package
 } from 'lucide-react';
-import { Delivery, Client, DeliveryStatus } from '../types';
+import { Delivery, Client, DeliveryStatus, Product } from '../types';
 
 interface Props {
   deliveries: Delivery[];
   clients: Client[];
+  products: Product[];
   onMarkAsPaid: (delivery: Delivery) => Promise<void>;
 }
 
-const BillingView: React.FC<Props> = ({ deliveries, clients, onMarkAsPaid }) => {
+const BillingView: React.FC<Props> = ({ deliveries, clients, products, onMarkAsPaid }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+
+  const getProductName = (id: string) => products.find(p => p.id === id)?.nome || 'PRODUTO';
 
   const pendingDeliveries = useMemo(() => {
     return deliveries
@@ -100,35 +104,35 @@ const BillingView: React.FC<Props> = ({ deliveries, clients, onMarkAsPaid }) => 
               <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 -mr-12 -mt-12 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
               
               <div className="flex justify-between items-start mb-6">
-                 <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl flex items-center justify-center shrink-0">
                        <AlertCircle size={24} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                        <div className="flex items-center gap-2">
                           <span className="text-[10px] font-black text-slate-800 dark:text-white truncate max-w-[120px]">{client?.name || '---'}</span>
-                          <span className="bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded text-[8px] font-black text-slate-400"><Hash size={8} className="inline mr-0.5" />{d.sequenceNumber}</span>
+                          <span className="bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded text-[8px] font-black text-slate-400 shrink-0"><Hash size={8} className="inline mr-0.5" />{d.sequenceNumber}</span>
                        </div>
                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Venda em Aberto</p>
                     </div>
                  </div>
-                 <div className="text-right">
+                 <div className="text-right shrink-0">
                     <p className="text-lg font-black text-rose-600 dark:text-rose-400 leading-none">R$ {d.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">{new Date(d.scheduledDate + 'T00:00:00').toLocaleDateString()}</span>
                  </div>
               </div>
 
               <div className="flex-1 space-y-4">
-                 <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl space-y-2">
-                    <div className="flex justify-between items-center text-[9px] font-black uppercase">
-                       <span className="text-slate-400">Itens do Pedido:</span>
+                 <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl space-y-3">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase border-b border-slate-200 dark:border-slate-800 pb-2">
+                       <span className="text-slate-400 flex items-center gap-1.5"><Package size={10} /> Produtos da Venda:</span>
                        <span className="text-slate-800 dark:text-white">{(d.items || []).length} TIPO(S)</span>
                     </div>
-                    <div className="max-h-[80px] overflow-y-auto no-scrollbar">
+                    <div className="max-h-[120px] overflow-y-auto no-scrollbar space-y-1.5">
                        {(d.items || []).map((item, idx) => (
-                         <div key={idx} className="flex justify-between text-[8px] font-bold uppercase text-slate-500 dark:text-slate-400">
-                           <span className="truncate mr-2">PRODUTO EM SINCRONIA...</span>
-                           <span className="shrink-0">{item.quantity} UN</span>
+                         <div key={idx} className="flex justify-between items-center text-[9px] font-black uppercase">
+                           <span className="text-slate-600 dark:text-slate-400 truncate mr-2">{getProductName(item.productId)}</span>
+                           <span className="text-slate-900 dark:text-white shrink-0 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">{item.quantity} UN</span>
                          </div>
                        ))}
                     </div>

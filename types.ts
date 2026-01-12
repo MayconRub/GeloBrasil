@@ -175,6 +175,7 @@ export interface AppSettings {
   cnpj?: string;
   address?: string;
   pixKey?: string;
+  systemPixKey?: string;
   primaryColor: string;
   logoId: string;
   loginHeader: string;

@@ -38,6 +38,7 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     cnpj: settings?.cnpj || '42.996.710/0001-63',
     address: settings?.endereco?.toUpperCase() || '',
     pixKey: settings?.pix_key || '',
+    systemPixKey: settings?.mensalidade_pix || '',
     primaryColor: settings?.cor_primaria || '#5ecce3',
     logoId: settings?.logo_id || 'Snowflake',
     loginHeader: settings?.login_header?.toUpperCase() || 'ADMIN',
@@ -144,7 +145,7 @@ export const deleteProductBase = (id: string) => supabase.from('produtos_base').
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: (e.name || '').toUpperCase(), cargo: (e.role || '').toUpperCase(), salario: Number(e.salary), data_admissao: e.joinedAt, status: e.status });
 
 export const syncSettings = async (s: AppSettings) => {
-  const payload: any = { id: 1, nome_empresa: (s.companyName || '').toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), pix_key: s.pixKey, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_vendas_diaria: s.salesGoalDaily, admin_email: s.adminEmail, admin_password: s.adminPassword };
+  const payload: any = { id: 1, nome_empresa: (s.companyName || '').toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), pix_key: s.pixKey, mensalidade_pix: s.systemPixKey, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_vendas_diaria: s.salesGoalDaily, admin_email: s.adminEmail, admin_password: s.adminPassword };
   const { error } = await supabase.from('configuracoes').upsert({ ...payload, menu_order: s.menuOrder }, { onConflict: 'id' });
   if (error && (error.message.includes('menu_order') || error.code === '42703')) { return supabase.from('configuracoes').upsert(payload, { onConflict: 'id' }); }
   return { error };
