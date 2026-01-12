@@ -48,7 +48,8 @@ import {
   Trash2,
   Plus,
   ShoppingBasket,
-  HandCoins
+  HandCoins,
+  MessageCircle
 } from 'lucide-react';
 import { AppSettings, UserProfile, Product } from '../types';
 
@@ -82,6 +83,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
   const [cnpj, setCnpj] = useState(settings.cnpj || '');
   const [pixKey, setPixKey] = useState(settings.pixKey || '');
   const [systemPixKey, setSystemPixKey] = useState(settings.systemPixKey || '');
+  const [supportPhone, setSupportPhone] = useState(settings.supportPhone || '');
   const [expirationDate, setExpirationDate] = useState(settings.expirationDate);
   const [hiddenViews, setHiddenViews] = useState<string[]>(settings.hiddenViews || []);
   const [menuOrder, setMenuOrder] = useState<string[]>([]);
@@ -97,6 +99,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
     setCnpj(settings.cnpj || '');
     setPixKey(settings.pixKey || '');
     setSystemPixKey(settings.systemPixKey || '');
+    setSupportPhone(settings.supportPhone || '');
     setExpirationDate(settings.expirationDate);
     setHiddenViews(settings.hiddenViews || []);
     
@@ -135,10 +138,21 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsUpdating(true);
-    await onUpdateSettings({ ...settings, companyName, cnpj, pixKey, systemPixKey, expirationDate, hiddenViews, menuOrder });
+    await onUpdateSettings({ ...settings, companyName, cnpj, pixKey, systemPixKey, supportPhone, expirationDate, hiddenViews, menuOrder });
     setIsUpdating(false);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
+  };
+
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    value = value.replace(/\D/g, "");
+    value = value.substring(0, 11);
+    if (value.length > 10) return value.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+    else if (value.length > 6) return value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+    else if (value.length > 2) return value.replace(/^(\d{2})(\d{0,5}).*/, "($1 $2");
+    else if (value.length > 0) return value.replace(/^(\d{0,2}).*/, "($1");
+    return value;
   };
 
   const handleAddProduct = () => {
@@ -248,13 +262,13 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
 
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-2">
                   <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-2xl flex items-center justify-center">
                     <CalendarDays size={24} />
                   </div>
                   <div>
-                    <h5 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Alterar Vencimento</h5>
+                    <h5 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Parâmetros de Licença</h5>
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Controle de acesso do cliente</p>
                   </div>
                 </div>
@@ -270,6 +284,21 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
                       className="w-full h-16 pl-14 pr-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase ml-4">WhatsApp do Suporte</label>
+                  <div className="relative">
+                    <MessageCircle size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <input 
+                      type="text" 
+                      value={supportPhone} 
+                      onChange={e => setSupportPhone(formatPhone(e.target.value))}
+                      placeholder="(00) 00000-0000"
+                      className="w-full h-16 pl-14 pr-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner"
+                    />
+                  </div>
+                  <p className="text-[7px] font-black text-slate-400 uppercase ml-4 italic">Este número aparecerá no botão da tela de bloqueio.</p>
                 </div>
               </div>
 
@@ -292,7 +321,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
                       value={systemPixKey} 
                       onChange={e => setSystemPixKey(e.target.value)}
                       placeholder="Cole aqui o código PIX Copia e Cola para ser usado no vencimento..."
-                      className="w-full h-32 pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-mono text-[9px] outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner resize-none"
+                      className="w-full h-40 pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl font-mono text-[9px] outline-none focus:ring-4 focus:ring-sky-50 dark:focus:ring-sky-900/20 dark:text-white transition-all shadow-inner resize-none"
                     />
                   </div>
                 </div>
@@ -301,7 +330,7 @@ const AdminView: React.FC<Props> = ({ settings, onUpdateSettings, users, product
 
             <button 
               onClick={() => handleSubmit()}
-              className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl shadow-xl flex items-center justify-center gap-4 uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all mt-4"
+              className="w-full h-16 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black rounded-2xl shadow-xl flex items-center justify-center gap-4 uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all mt-4"
             >
               <Save size={20} /> Salvar Parâmetros de Licenciamento
             </button>
