@@ -162,6 +162,121 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     }
   };
 
+  const handlePrintSaleReceipt = async (s: Sale) => {
+    const client = clients.find(c => c.id === s.clientId);
+    
+    // Formatação detalhada dos itens para o comprovante igual ao comprovante de entrega
+    const saleItemsList = (s.items || []).map(item => {
+      const p = products.find(prod => prod.id === item.productId);
+      return `${String(item.quantity).padStart(3, ' ')} UN - ${p?.nome || 'PRODUTO'}`;
+    }).join('\n');
+
+    const qrUrl = settings?.pixKey ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey)}` : '';
+
+    if (qrUrl) {
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.src = qrUrl;
+        img.onload = resolve;
+        img.onerror = resolve; 
+      });
+    }
+
+    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+    const receiptText = `
+========================================
+             ${settings?.companyName || 'GELO BRASIL'}
+========================================
+         COMPROVANTE DE ENTREGA
+----------------------------------------
+CLIENTE: ${client?.name || 'CONSUMIDOR AVULSO'}
+${client ? `ENDERECO: ${client.street || ''}, ${client.number || ''}\nBAIRRO: ${client.neighborhood || ''}\n` : ''}
+----------------------------------------
+DATA: ${new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+HORA: ${timeStr}
+----------------------------------------
+DESCRIÇÃO: ${s.description}
+----------------------------------------
+${saleItemsList ? `ITENS DA CARGA:\n${saleItemsList}\n----------------------------------------` : ''}
+VALOR TOTAL: R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+----------------------------------------
+
+ASSINATURA / VISTO:
+
+
+________________________________________
+           PAGAMENTO VIA PIX
+
+`.trim();
+
+    const printWindow = window.open('', '_blank', 'width=400,height=800');
+    if (printWindow) {
+      const pixContent = settings?.pixKey ? `
+            <div class="qrcode-container">
+              <img src="${qrUrl}" />
+            </div>` : '';
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>COMPROVANTE - ${settings?.companyName}</title>
+            <style>
+              @font-face {
+                font-family: 'ReceiptFont';
+                src: local('Courier New'), local('Courier');
+              }
+              body { 
+                font-family: 'ReceiptFont', monospace; 
+                font-size: 13px; 
+                width: 80mm; 
+                margin: 0; 
+                padding: 5px;
+                white-space: pre-wrap;
+                text-transform: uppercase;
+                color: black;
+                background: white;
+              }
+              .centered { text-align: center; display: block; width: 100%; }
+              .qrcode-container { 
+                width: 100%; 
+                text-align: center; 
+                margin: 15px 0;
+              }
+              .qrcode-container img {
+                width: 150px;
+                height: 150px;
+                image-rendering: pixelated;
+              }
+              @media print {
+                body { margin: 0; padding: 0; width: 80mm; }
+                @page { margin: 0; size: 80mm auto; }
+              }
+            </style>
+          </head>
+          <body>
+            ${receiptText}
+            ${pixContent}
+            <div class="centered">
+========================================
+        OBRIGADO PELA PREFERENCIA
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.focus();
+                  window.print();
+                  window.close();
+                }, 300);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
   const handlePrintReport = () => {
     const totalValue = filteredSales.reduce((acc, sale) => acc + sale.value, 0);
     const printWindow = window.open('', '_blank');
@@ -363,8 +478,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
            <h2 className="text-3xl font-black text-slate-800 dark:text-white leading-none uppercase tracking-tighter flex items-center gap-2">VENDAS <span className="text-sky-500">DIÁRIAS</span></h2>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handlePrintReport} className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm flex items-center gap-2 active:scale-95 transition-all">
-            <FileText size={18} className="text-sky-500" /> <span className="hidden sm:inline">RELATÓRIO</span>
+          <button onClick={handlePrintReport} className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
+            <FileText size={18} className="text-sky-50" /> <span className="hidden sm:inline">RELATÓRIO</span>
           </button>
           <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
         </div>
@@ -433,18 +548,21 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                            <div className="flex justify-center gap-3 transition-all">
                               {!isFromDelivery && (
                                 <>
+                                  <button onClick={() => handlePrintSaleReceipt(s)} title="Imprimir Comprovante" className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition-colors shadow-sm active:scale-95"><Printer size={18}/></button>
                                   <button onClick={() => handleEdit(s)} title="Editar Venda" className="p-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors shadow-lg active:scale-95"><Pencil size={18}/></button>
                                   <button onClick={() => onDelete(s.id)} title="Excluir Venda" className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-lg active:scale-95"><Trash2 size={18}/></button>
                                 </>
                               )}
                               {isFromDelivery && (
-                                <button 
-                                  onClick={() => alert('ESTA VENDA FOI GERADA AUTOMATICAMENTE PELO PAINEL DE ENTREGAS. PARA ALTERAR OU CANCELAR, UTILIZE O MÓDULO DE ENTREGAS.')} 
-                                  title="VENDA GERADA NO PAINEL DE ENTREGAS. PARA EDITAR OU CANCELAR, VÁ ATÉ O MÓDULO DE ENTREGAS." 
-                                  className="p-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 hover:text-sky-500 transition-colors cursor-help"
-                                >
-                                  <Lock size={18} />
-                                </button>
+                                <div className="flex justify-center gap-3">
+                                   <button 
+                                      onClick={() => alert('ESTA VENDA FOI GERADA AUTOMATICAMENTE PELO PAINEL DE ENTREGAS. PARA ALTERAR OU CANCELAR, UTILIZE O MÓDULO DE ENTREGAS.')} 
+                                      title="VENDA GERADA NO PAINEL DE ENTREGAS. PARA EDITAR OU CANCELAR, VÁ ATÉ O MÓDULO DE ENTREGAS." 
+                                      className="p-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 hover:text-sky-500 transition-colors cursor-help"
+                                    >
+                                      <Lock size={18} />
+                                    </button>
+                                </div>
                               )}
                            </div>
                         </td>

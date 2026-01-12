@@ -92,14 +92,15 @@ export const fetchAllData = async (): Promise<AppData> => {
       date: s.data, 
       description: (s.descricao || '').toUpperCase(), 
       clientId: s.cliente_id,
-      created_at: s.created_at
+      created_at: s.created_at,
+      items: s.items || s.itens // Tenta ambas as chaves para compatibilidade
     })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: (p.observacao || '').toUpperCase() })),
     monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: Number(g.valor) })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
       description: (e.descricao || e.description || '').toUpperCase(), 
-      value: Number(e.valor), 
+      value: Number(e.value), 
       dueDate: e.data_vencimento,
       status: (e.status || '').toUpperCase() === 'PAGO' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
       category: (e.category || 'GERAL').toUpperCase(), 
@@ -125,7 +126,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       vehicleId: d.veiculo_id, 
       status: d.status as DeliveryStatus, 
       scheduledDate: d.scheduled_date, 
-      scheduledTime: d.scheduled_time, 
+      scheduled_time: d.scheduled_time, 
       deliveredAt: d.delivered_at, 
       notes: d.notes, 
       items: d.items, 
@@ -154,7 +155,8 @@ export const syncSale = (s: Sale) => supabase.from('vendas').upsert({
   valor: Number(s.value), 
   data: s.date, 
   descricao: (s.description || '').toUpperCase(), 
-  cliente_id: s.clientId 
+  cliente_id: s.clientId,
+  items: s.items
 });
 
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ 
@@ -171,6 +173,7 @@ export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({
 
 export const updateExpenseStatus = (id: string, status: ExpenseStatus) => supabase.from('despesas').update({ status }).eq('id', id);
 
+// Fix: Use p.observation instead of p.observacao to match the Production interface
 export const syncProduction = (p: Production) => supabase.from('producao').upsert({ id: p.id, quantityKg: Number(p.quantityKg), data: p.date, observacao: (p.observation || '').toUpperCase() });
 export const syncCategory = (nome: string) => supabase.from('categorias').upsert({ nome: (nome || '').toUpperCase() });
 export const syncMonthlyGoal = (g: MonthlyGoal) => supabase.from('metas_mensais').upsert({ tipo: g.type, mes: g.month, ano: g.year, valor: Number(g.value) }, { onConflict: 'tipo,mes,ano' });
@@ -201,12 +204,10 @@ export const syncDelivery = (d: Delivery) => {
     veiculo_id: d.vehicleId, 
     status: d.status, 
     scheduled_date: d.scheduledDate, 
-    // Fix: access scheduledTime using camelCase to match the Delivery interface
     scheduled_time: d.scheduledTime, 
     delivered_at: d.deliveredAt, 
     notes: d.notes?.toUpperCase(), 
     items: d.items, 
-    // Fix: access totalValue using camelCase to match the Delivery interface
     total_value: Number(d.totalValue) || 0 
   };
   if (d.sequenceNumber) { payload.numero_sequencial = d.sequenceNumber; }
