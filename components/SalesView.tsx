@@ -55,7 +55,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const handleShortcutToday = () => { setStartDate(getTodayString()); setEndDate(getTodayString()); };
   const handleShortcutMonth = () => { setStartDate(getFirstDayOfMonth()); setEndDate(getLastDayOfMonth()); };
 
-  // Máscara de Moeda Brasileira
+  // MÁSCARA DE MOEDA E RECALCULO AUTOMÁTICO
   const maskCurrency = (val: string) => {
     const digits = val.replace(/\D/g, "");
     if (!digits) return "";
@@ -65,6 +65,16 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
       maximumFractionDigits: 2 
     }).format(amount);
   };
+
+  // RECALCULO AUTOMÁTICO DO VALOR TOTAL SEMPRE QUE A CESTA MUDAR
+  useEffect(() => {
+    if (items.length > 0) {
+      const total = items.reduce((acc, item) => acc + (item.quantity * (item.unitPrice || 0)), 0);
+      if (total > 0) {
+        setValue(total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+      }
+    }
+  }, [items]);
 
   // Ao selecionar um produto, busca o preço personalizado do cliente
   useEffect(() => {
@@ -97,14 +107,22 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   };
 
   const handleEdit = (sale: Sale) => {
-    if (sale.description.includes('ENTREGA CONCLUÍDA')) return;
+    if (sale.description.includes('ENTREGA CONCLUÍDA')) {
+        alert("ESTA VENDA FOI GERADA PELA LOGÍSTICA. PARA ALTERAR, VÁ AO MÓDULO DE ENTREGAS.");
+        return;
+    }
     setEditingId(sale.id);
     setDescription(sale.description);
     setValue(sale.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     setDate(sale.date);
     setClientId(sale.clientId || '');
-    setItems(sale.items || []);
-    setShowCatalog((sale.items?.length || 0) > 0);
+    
+    // CORREÇÃO: Garante que os itens sejam carregados no estado local
+    const savedItems = sale.items || [];
+    setItems([...savedItems]);
+    
+    // Abre os detalhes se houver itens
+    setShowCatalog(savedItems.length > 0);
     setIsMobileFormOpen(true);
   };
 
@@ -155,11 +173,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     setSelectedProductId('');
     setItemQuantity('1');
     setItemUnitPrice('');
-
-    const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * (curr.unitPrice || 0)), 0);
-    if (newTotal > 0) {
-      setValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    }
   };
 
   const handlePrintSaleReceipt = async (s: Sale) => {
@@ -343,7 +356,7 @@ ________________________________________
         </div>
         <div>
            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none flex items-center gap-2">
-             LANÇAR <span className="text-emerald-500">VENDA</span>
+             {editingId ? 'EDITAR' : 'LANÇAR'} <span className="text-emerald-500">VENDA</span>
            </h3>
            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Registro de Faturamento</p>
         </div>
@@ -415,7 +428,7 @@ ________________________________________
                   <input 
                     type="number" 
                     placeholder="QTD"
-                    className="w-full h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none" 
+                    className="w-full h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none shadow-sm" 
                     value={itemQuantity} 
                     onChange={e => setItemQuantity(e.target.value)} 
                     min="1"
@@ -427,7 +440,7 @@ ________________________________________
                     placeholder="PREÇO UN." 
                     value={itemUnitPrice} 
                     onChange={e => setItemUnitPrice(maskCurrency(e.target.value))}
-                    className="w-full h-12 pl-8 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none"
+                    className="w-full h-12 pl-8 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none shadow-sm"
                   />
                 </div>
               </div>
@@ -446,9 +459,9 @@ ________________________________________
                   <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase truncate">{getProductName(it.productId)}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase">{it.quantity} un x R$ {it.unitPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{it.quantity} un x R$ {it.unitPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
-                    <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-300 hover:text-rose-500"><Trash2 size={14}/></button>
+                    <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-300 hover:text-rose-500 p-2"><Trash2 size={16}/></button>
                   </div>
                 ))}
               </div>
@@ -459,7 +472,7 @@ ________________________________________
           type="submit" 
           className="w-full h-20 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[2.2rem] font-black uppercase text-xs tracking-widest shadow-2xl active:scale-95 transition-all"
         >
-          CONCLUIR LANÇAMENTO
+          {editingId ? 'SALVAR ALTERAÇÕES' : 'CONCLUIR LANÇAMENTO'}
         </button>
       </form>
     </div>
@@ -476,7 +489,7 @@ ________________________________________
           <button onClick={handlePrintReport} className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
             <FileText size={18} className="text-sky-500" /> <span className="hidden sm:inline">RELATÓRIO</span>
           </button>
-          <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
+          <button onClick={() => { resetForm(); setIsMobileFormOpen(true); }} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
         </div>
       </header>
 
@@ -545,14 +558,13 @@ ________________________________________
                                 <>
                                   <button onClick={() => handlePrintSaleReceipt(s)} title="Imprimir Comprovante" className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition-colors shadow-sm active:scale-95"><Printer size={18}/></button>
                                   <button onClick={() => handleEdit(s)} title="Editar Venda" className="p-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors shadow-lg active:scale-95"><Pencil size={18}/></button>
-                                  <button onClick={() => onDelete(s.id)} title="Excluir Venda" className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-lg active:scale-95"><Trash2 size={18}/></button>
+                                  <button onClick={() => { if(confirm('EXCLUIR ESTA VENDA?')) onDelete(s.id); }} title="Excluir Venda" className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-lg active:scale-95"><Trash2 size={18}/></button>
                                 </>
                               )}
                               {isFromDelivery && (
                                 <div className="flex justify-center gap-3">
                                    <button 
                                       onClick={() => alert('ESTA VENDA FOI GERADA AUTOMATICAMENTE PELO PAINEL DE ENTREGAS. PARA ALTERAR OU CANCELAR, UTILIZE O MÓDULO DE ENTREGAS.')} 
-                                      title="VENDA GERADA NO PAINEL DE ENTREGAS. PARA EDITAR OU CANCELAR, VÁ ATÉ O MÓDULO DE ENTREGAS." 
                                       className="p-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 hover:text-sky-500 transition-colors cursor-help"
                                     >
                                       <Lock size={18} />

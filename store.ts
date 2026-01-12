@@ -92,6 +92,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       date: s.data, 
       description: (s.descricao || '').toUpperCase(), 
       clientId: s.cliente_id,
+      items: s.itens || [], // Recupera a cesta salva no campo JSONB
       created_at: s.created_at
     })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: (p.observacao || '').toUpperCase() })),
@@ -154,7 +155,8 @@ export const syncSale = (s: Sale) => supabase.from('vendas').upsert({
   valor: Number(s.value), 
   data: s.date, 
   descricao: (s.description || '').toUpperCase(), 
-  cliente_id: s.clientId 
+  cliente_id: s.clientId,
+  itens: s.items || [] // Envia a cesta para a nova coluna do Supabase
 });
 
 export const syncExpense = (e: Expense) => supabase.from('despesas').upsert({ 
@@ -201,12 +203,10 @@ export const syncDelivery = (d: Delivery) => {
     veiculo_id: d.vehicleId, 
     status: d.status, 
     scheduled_date: d.scheduledDate, 
-    // Fix: access scheduledTime using camelCase to match the Delivery interface
     scheduled_time: d.scheduledTime, 
     delivered_at: d.deliveredAt, 
     notes: d.notes?.toUpperCase(), 
     items: d.items, 
-    // Fix: access totalValue using camelCase to match the Delivery interface
     total_value: Number(d.totalValue) || 0 
   };
   if (d.sequenceNumber) { payload.numero_sequencial = d.sequenceNumber; }

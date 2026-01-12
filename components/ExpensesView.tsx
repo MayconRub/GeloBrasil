@@ -174,7 +174,7 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
             <Receipt size={24} />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none uppercase tracking-tight truncate">Gestão <span className="text-rose-500">Planilha</span></h1>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none uppercase tracking-tight truncate">Bloco de <span className="text-rose-500">Despesas</span></h1>
             <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Controle Financeiro de Despesas</p>
           </div>
         </div>
