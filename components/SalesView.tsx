@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck, UserCircle, Calculator
+  Plus, Trash2, Search, Pencil, TrendingUp, DollarSign, ArrowUpRight, LayoutList, Save, Check, X, User, ShoppingBag, Minus, Package, ArrowRight, Calendar, Clock, Loader2, ChevronDown, ChevronUp, Lock, Info, Truck, UserCircle, Calculator, Printer, FileText
 } from 'lucide-react';
 import { Sale, AppSettings, MonthlyGoal, Client, SaleItem, Product, Delivery, Employee } from '../types';
 
@@ -120,15 +120,10 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
         return matchesDate && (!searchTerm || (s.description || '').toLowerCase().includes(searchTerm.toLowerCase()) || (clientName || '').toLowerCase().includes(searchTerm.toLowerCase()));
       })
       .sort((a, b) => {
-        // Primeiro ordena pela data informada no lançamento (mais recente primeiro)
         if (a.date !== b.date) return b.date.localeCompare(a.date);
-        
-        // Se a data for a mesma, ordena pela data/hora de criação no sistema (created_at)
         if (a.created_at && b.created_at) {
           return b.created_at.localeCompare(a.created_at);
         }
-        
-        // Fallback: usar o ID para manter uma ordem estável caso created_at não esteja disponível
         return b.id.localeCompare(a.id);
       });
   }, [sales, startDate, endDate, searchTerm, clients]);
@@ -165,6 +160,69 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     if (newTotal > 0) {
       setValue(newTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     }
+  };
+
+  const handlePrintReport = () => {
+    const totalValue = filteredSales.reduce((acc, sale) => acc + sale.value, 0);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const rows = filteredSales.map(s => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: 800;">${s.description}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${getClientName(s.clientId)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>RELATÓRIO DE VENDAS - ${settings?.companyName}</title>
+          <style>
+            body { font-family: 'Plus Jakarta Sans', sans-serif; text-transform: uppercase; padding: 40px; color: #1e293b; }
+            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+            h1 { margin: 0; font-size: 24px; font-weight: 900; }
+            .period { font-size: 12px; color: #64748b; margin-top: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
+            th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #64748b; font-size: 10px; }
+            .total-container { margin-top: 40px; text-align: right; border-top: 2px solid #000; padding-top: 20px; }
+            .total-label { font-size: 12px; font-weight: 800; color: #64748b; }
+            .total-value { font-size: 24px; font-weight: 900; color: #10b981; margin-top: 5px; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>RELATÓRIO DE VENDAS</h1>
+            <div class="period">${settings?.companyName}</div>
+            <div class="period">PERÍODO: ${new Date(startDate + 'T00:00:00').toLocaleDateString()} ATÉ ${new Date(endDate + 'T00:00:00').toLocaleDateString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>DATA</th>
+                <th>DESCRIÇÃO</th>
+                <th>CLIENTE</th>
+                <th style="text-align: right;">VALOR</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+          <div class="total-container">
+            <div class="total-label">VALOR TOTAL DO PERÍODO</div>
+            <div class="total-value">R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          </div>
+          <div class="no-print" style="margin-top: 40px; text-align: center;">
+            <button onclick="window.print()" style="padding: 12px 30px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 900; cursor: pointer;">IMPRIMIR RELATÓRIO</button>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const renderFormContent = () => (
@@ -304,7 +362,12 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
            <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg"><TrendingUp size={28} /></div>
            <h2 className="text-3xl font-black text-slate-800 dark:text-white leading-none uppercase tracking-tighter flex items-center gap-2">VENDAS <span className="text-sky-500">DIÁRIAS</span></h2>
         </div>
-        <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
+        <div className="flex items-center gap-3">
+          <button onClick={handlePrintReport} className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm flex items-center gap-2 active:scale-95 transition-all">
+            <FileText size={18} className="text-sky-500" /> <span className="hidden sm:inline">RELATÓRIO</span>
+          </button>
+          <button onClick={() => setIsMobileFormOpen(true)} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
