@@ -176,7 +176,6 @@ export interface AppSettings {
   address?: string;
   pixKey?: string;
   systemPixKey?: string;
-  primaryColor: string;
   logoId: string;
   loginHeader: string;
   supportPhone: string;
@@ -185,8 +184,6 @@ export interface AppSettings {
   hiddenViews: string[]; 
   menuOrder: string[]; 
   dashboardNotice?: string;
-  salesGoalDaily?: number;
-  salesGoalMonthly?: number;
   adminEmail?: string;
   adminPassword?: string;
 }

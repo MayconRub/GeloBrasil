@@ -39,7 +39,6 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     address: settings?.endereco?.toUpperCase() || '',
     pixKey: settings?.pix_key || '',
     systemPixKey: settings?.mensalidade_pix || '',
-    primaryColor: settings?.cor_primaria || '#5ecce3',
     logoId: settings?.logo_id || 'Snowflake',
     loginHeader: settings?.login_header?.toUpperCase() || 'ADMIN',
     supportPhone: settings?.support_phone || '',
@@ -48,8 +47,6 @@ export const fetchSettings = async (): Promise<AppSettings> => {
     hiddenViews: settings?.paginas_ocultas || [],
     menuOrder: settings?.menu_order || defaultOrder,
     dashboardNotice: settings?.aviso_dashboard?.toUpperCase() || '',
-    salesGoalDaily: Number(settings?.meta_vendas_diaria) || 2000,
-    salesGoalMonthly: Number(settings?.meta_vendas_mensal) || 60000,
     adminEmail: settings?.admin_email || 'root@adm.app',
     adminPassword: settings?.admin_password || '123456'
   };
@@ -93,14 +90,14 @@ export const fetchAllData = async (): Promise<AppData> => {
       date: s.data, 
       description: (s.descricao || '').toUpperCase(), 
       clientId: s.cliente_id,
-      items: s.itens || [],
+      items: s.items || [],
       created_at: s.created_at
     })),
     production: (prod.data || []).map(p => ({ id: p.id, quantityKg: Number(p.quantityKg), date: p.data, observation: (p.observacao || '').toUpperCase() })),
     monthlyGoals: (goals.data || []).map(g => ({ type: g.type, month: g.mes, year: g.ano, value: Number(g.valor) })),
     expenses: (expenses.data || []).map(e => ({
       id: e.id, 
-      description: (e.descricao || e.description || '').toUpperCase(), 
+      description: (e.description || e.description || '').toUpperCase(), 
       value: Number(e.valor), 
       dueDate: e.data_vencimento,
       status: (e.status || '').toUpperCase() === 'PAGO' ? ExpenseStatus.PAGO : (e.data_vencimento < today ? ExpenseStatus.VENCIDO : ExpenseStatus.A_VENCER),
@@ -127,7 +124,7 @@ export const fetchAllData = async (): Promise<AppData> => {
       vehicleId: d.veiculo_id, 
       status: d.status as DeliveryStatus, 
       scheduledDate: d.scheduled_date, 
-      scheduledTime: d.scheduled_time, 
+      scheduled_time: d.scheduled_time, 
       deliveredAt: d.delivered_at, 
       notes: d.notes, 
       items: d.items, 
@@ -145,7 +142,23 @@ export const deleteProductBase = (id: string) => supabase.from('produtos_base').
 export const syncEmployee = (e: Employee) => supabase.from('funcionarios').upsert({ id: e.id, nome: (e.name || '').toUpperCase(), cargo: (e.role || '').toUpperCase(), salario: Number(e.salary), data_admissao: e.joinedAt, status: e.status });
 
 export const syncSettings = async (s: AppSettings) => {
-  const payload: any = { id: 1, nome_empresa: (s.companyName || '').toUpperCase(), cnpj: s.cnpj, endereco: s.address?.toUpperCase(), pix_key: s.pixKey, mensalidade_pix: s.systemPixKey, cor_primaria: s.primaryColor, meta_vendas_mensal: s.salesGoalMonthly, data_expiracao: s.expirationDate, paginas_ocultas: s.hiddenViews, support_phone: s.supportPhone, footer_text: s.footerText?.toUpperCase(), aviso_dashboard: s.dashboardNotice?.toUpperCase(), meta_vendas_diaria: s.salesGoalDaily, admin_email: s.adminEmail, admin_password: s.adminPassword };
+  const payload: any = { 
+    id: 1, 
+    // Fix: nome_empresa is mapped from s.companyName
+    nome_empresa: (s.companyName || '').toUpperCase(), 
+    cnpj: s.cnpj, 
+    endereco: s.address?.toUpperCase(), 
+    pix_key: s.pixKey, 
+    mensalidade_pix: s.systemPixKey, 
+    data_expiracao: s.expirationDate, 
+    paginas_ocultas: s.hiddenViews, 
+    support_phone: s.supportPhone, 
+    // Fix: Property 'footer_text' does not exist on type 'AppSettings'. Corrected to s.footerText
+    footer_text: s.footerText?.toUpperCase(), 
+    aviso_dashboard: s.dashboardNotice?.toUpperCase(), 
+    admin_email: s.adminEmail, 
+    admin_password: s.adminPassword 
+  };
   const { error } = await supabase.from('configuracoes').upsert({ ...payload, menu_order: s.menuOrder }, { onConflict: 'id' });
   if (error && (error.message.includes('menu_order') || error.code === '42703')) { return supabase.from('configuracoes').upsert(payload, { onConflict: 'id' }); }
   return { error };
@@ -205,6 +218,7 @@ export const syncDelivery = (d: Delivery) => {
     status: d.status, 
     scheduled_date: d.scheduledDate, 
     scheduled_time: d.scheduledTime, 
+    // Fix: Property 'delivered_at' does not exist on type 'Delivery'. Corrected to d.deliveredAt
     delivered_at: d.deliveredAt, 
     notes: d.notes?.toUpperCase(), 
     items: d.items, 
@@ -235,7 +249,10 @@ export const syncMaintenance = async (m: MaintenanceLog) => {
   const { error: maintError } = await supabase.from('frota_manutencoes').upsert(maintPayload);
   if (!maintError) {
     if (maintPayload.servico.includes('ÓLEO')) { await supabase.from('veiculos').update({ km_ultima_troca: maintPayload.km_registro }).eq('id', maintPayload.veiculo_id); }
-    if (maintPayload.custo > 0) { await supabase.from('despesas').insert({ id: crypto.randomUUID(), description: `OFICINA: ${maintPayload.servico}`.toUpperCase(), valor: maintPayload.custo, data_vencimento: maintPayload.data, status: m.pago ? 'Pago' : 'A Vencer', categoria: 'MANUTENÇÃO', veiculo_id: maintPayload.veiculo_id, funcionario_id: m.funcionario_id, km_reading: maintPayload.km_registro }); }
+    if (maintPayload.custo > 0) { 
+      // Fix: changed maintPayload.km_reading to maintPayload.km_registro as km_reading does not exist on maintPayload
+      await supabase.from('despesas').insert({ id: crypto.randomUUID(), description: `OFICINA: ${maintPayload.servico}`.toUpperCase(), valor: maintPayload.custo, data_vencimento: maintPayload.data, status: m.pago ? 'Pago' : 'A Vencer', categoria: 'MANUTENÇÃO', veiculo_id: maintPayload.veiculo_id, funcionario_id: m.funcionario_id, km_reading: maintPayload.km_registro }); 
+    }
   }
   return { error: maintError };
 };

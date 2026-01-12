@@ -45,7 +45,7 @@ const App: React.FC = () => {
 
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [], products: [],
-    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', pixKey: '', systemPixKey: '', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], menuOrder: [], adminEmail: 'root@adm.app' }
+    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', pixKey: '', systemPixKey: '', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], menuOrder: [], adminEmail: 'root@adm.app' }
   });
 
   const getLocalISODate = () => {

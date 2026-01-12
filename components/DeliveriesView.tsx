@@ -314,10 +314,10 @@ ________________________________________
     }
   };
 
-  const filtered = useMemo(() => {
-    const results = deliveries.filter(d => {
+  // Filtro base que considera apenas Data e Termo de Pesquisa (usado para as contagens das abas)
+  const baseFiltered = useMemo(() => {
+    return deliveries.filter(d => {
       const client = getClient(d.clientId);
-      const matchesStatus = activeFilter === 'TODOS' || d.status === activeFilter;
       const matchesDate = d.scheduledDate >= startDate && d.scheduledDate <= endDate;
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
@@ -325,8 +325,13 @@ ________________________________________
         client?.street.toLowerCase().includes(searchLower) ||
         d.sequenceNumber?.toString().includes(searchTerm) ||
         d.notes?.toLowerCase().includes(searchLower);
-      return matchesStatus && matchesDate && matchesSearch;
+      return matchesDate && matchesSearch;
     });
+  }, [deliveries, startDate, endDate, searchTerm, clients]);
+
+  const filtered = useMemo(() => {
+    // Aplica o filtro de status sobre o filtro base
+    const results = baseFiltered.filter(d => activeFilter === 'TODOS' || d.status === activeFilter);
 
     if (activeFilter === 'TODOS') {
       const statusPriority: Record<DeliveryStatus, number> = {
@@ -346,7 +351,7 @@ ________________________________________
     }
 
     return results.sort((a, b) => (a.scheduledDate + (a.scheduledTime || '')).localeCompare(b.scheduledDate + (b.scheduledTime || '')));
-  }, [deliveries, activeFilter, startDate, endDate, searchTerm, clients]);
+  }, [baseFiltered, activeFilter]);
 
   const closingStats = useMemo(() => {
     const rangeDeliveries = deliveries.filter(d => d.scheduledDate >= startDate && d.scheduledDate <= endDate);
@@ -682,7 +687,7 @@ ________________________________________
               <config.icon size={14} strokeWidth={3} className={isActive ? 'animate-pulse' : ''} />
               {config.label}
               <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${isActive ? 'bg-white/20' : 'bg-slate-200/50 text-slate-500'}`}>
-                {status === 'TODOS' ? deliveries.length : deliveries.filter(d => d.status === status).length}
+                {status === 'TODOS' ? baseFiltered.length : baseFiltered.filter(d => d.status === status).length}
               </span>
             </button>
           );

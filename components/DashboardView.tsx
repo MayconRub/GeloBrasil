@@ -90,8 +90,13 @@ const DashboardView: React.FC<Props> = ({
     const prodToday = production.filter(p => isToday(p.date)).reduce((acc, p) => acc + p.quantityKg, 0);
     const prodYesterday = production.filter(p => p.date === yesterdayStr).reduce((acc, p) => acc + p.quantityKg, 0);
     const fleetAlerts = vehicles.filter(v => (v.km_atual - v.km_ultima_troca) >= 1000).length;
-    const goalValue = totalExpensesMonth > 0 ? totalExpensesMonth : (settings.salesGoalMonthly || 1);
-    const goalPercent = Math.min(Math.round((salesMonth / goalValue) * 100), 100);
+    
+    // A meta agora é estritamente o total de despesas do mês
+    const goalValue = totalExpensesMonth;
+    const goalPercent = goalValue > 0 
+      ? Math.min(Math.round((salesMonth / goalValue) * 100), 100) 
+      : (salesMonth > 0 ? 100 : 0);
+      
     const restamParaMeta = Math.max(0, goalValue - salesMonth);
     const salesTodayCount = sales.filter(s => isToday(s.date)).length || 1;
     const ticketMedioHoje = salesToday / salesTodayCount;
@@ -121,7 +126,7 @@ const DashboardView: React.FC<Props> = ({
   return (
     <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 max-w-[1600px] mx-auto pb-24 lg:pb-12 animate-in fade-in duration-700 transition-colors uppercase overflow-x-hidden">
       
-      {/* Camada 1: Alertas Críticos - Ajustados para Mobile */}
+      {/* Camada 1: Alertas Críticos */}
       {(metrics.pendingExpensesCount > 0 || metrics.pendingBillingCount > 0 || metrics.fleetAlerts > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           {metrics.pendingExpensesCount > 0 && (
@@ -136,7 +141,7 @@ const DashboardView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Seletor de Visão Principal - Reduzido no Mobile */}
+      {/* Seletor de Visão Principal */}
       <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 lg:p-6 rounded-[1.5rem] lg:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-sky-100/10 dark:shadow-none">
         <div className="flex items-center gap-3 w-full lg:w-auto">
           <div className="w-10 h-10 lg:w-12 lg:h-12 bg-slate-900 dark:bg-slate-800 rounded-xl lg:rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
@@ -161,7 +166,7 @@ const DashboardView: React.FC<Props> = ({
       {viewTab === 'finance' ? (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-            {/* Velocímetro de Meta - Ajustado Altura Mobile */}
+            {/* Velocímetro de Meta */}
             <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] border border-slate-50 dark:border-slate-800 flex flex-col items-center justify-center text-center relative overflow-hidden group">
                <div className="absolute top-4 left-6 flex items-center gap-2">
                  <Target size={12} className="text-sky-500" />
@@ -185,13 +190,13 @@ const DashboardView: React.FC<Props> = ({
                
                <div className="mt-3 lg:mt-4">
                   <p className={`text-[10px] lg:text-xs font-black ${metrics.restamParaMeta > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                    {metrics.restamParaMeta > 0 ? `FALTAM ${formatBRL(metrics.restamParaMeta)}` : 'LUCRO ATINGIDO!'}
+                    {metrics.restamParaMeta > 0 ? `FALTAM ${formatBRL(metrics.restamParaMeta)}` : (metrics.totalExpensesMonth > 0 ? 'LUCRO ATINGIDO!' : 'AGUARDANDO DESPESAS')}
                   </p>
-                  <p className="text-[7px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 mt-1 uppercase">Meta (Custos): {formatBRL(metrics.totalExpensesMonth)}</p>
+                  <p className="text-[7px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 mt-1 uppercase">Meta (Custos Totais): {formatBRL(metrics.totalExpensesMonth)}</p>
                </div>
             </div>
 
-            {/* Cards Financeiros - Ajustados Grid no Mobile */}
+            {/* Cards Financeiros */}
             <div className="lg:col-span-8 grid grid-cols-2 gap-3 lg:gap-6">
               <FinanceCard label="Venda Hoje" value={formatBRL(metrics.salesToday)} icon={TrendingUp} color="emerald" subValue={`Mês: ${formatBRL(metrics.salesMonth)}`} />
               <FinanceCard label="Custos Hoje" value={formatBRL(metrics.expensesToday)} icon={ArrowDownCircle} color="rose" subValue={`Mês: ${formatBRL(metrics.expensesMonthPaid)}`} />
@@ -200,7 +205,7 @@ const DashboardView: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Gráfico de Tendência - Altura Otimizada */}
+          {/* Gráfico de Tendência */}
           <div className="bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] border border-slate-50 dark:border-slate-800 overflow-hidden">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 lg:mb-10">
                <div className="min-w-0">
@@ -232,7 +237,7 @@ const DashboardView: React.FC<Props> = ({
         </>
       ) : (
         <>
-          {/* Camada Operacional - Cards Compactos */}
+          {/* Camada Operacional */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-8">
             <OperationalCard title="Em Rota" icon={Truck} color="sky" mainValue={deliveries.filter(d => d.status === DeliveryStatus.EM_ROTA).length} unit="Pedidos" detail={`${deliveries.filter(d => d.status === DeliveryStatus.PENDENTE).length} Aguardando`} />
             <OperationalCard title="Produção" icon={Snowflake} color="indigo" mainValue={metrics.prodToday} unit="KG" detail={`Ontem: ${metrics.prodYesterday} KG`} trend={metrics.prodToday >= metrics.prodYesterday ? 'up' : 'down'} />

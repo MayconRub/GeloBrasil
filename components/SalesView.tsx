@@ -298,13 +298,14 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] lg:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[500px] lg:min-w-0">
+            {/* Versão Desktop - Tabela Original */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
                   <tr className="text-slate-300 text-[8px] lg:text-[9px] font-black uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                    <th className="px-4 lg:px-10 py-4 lg:py-6">DETALHES</th>
-                    <th className="px-4 lg:px-10 py-4 lg:py-6 text-right">VALOR</th>
-                    <th className="px-4 lg:px-10 py-4 lg:py-6 text-center">AÇÕES</th>
+                    <th className="px-10 py-6">DETALHES</th>
+                    <th className="px-10 py-6 text-right">VALOR</th>
+                    <th className="px-10 py-6 text-center">AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -312,24 +313,24 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                     const isFromDelivery = s.description.includes('ENTREGA CONCLUÍDA');
                     return (
                       <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-4 lg:px-10 py-4 lg:py-6">
-                           <p className="text-[9px] lg:text-[11px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none mb-1 truncate max-w-[120px] lg:max-w-none">{s.description}</p>
-                           <div className="flex items-center gap-1.5 text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                              <span className="truncate max-w-[60px] lg:max-w-none">{getClientName(s.clientId)}</span>
+                        <td className="px-10 py-6">
+                           <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none mb-1">{s.description}</p>
+                           <div className="flex items-center gap-1.5 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              <span>{getClientName(s.clientId)}</span>
                               <span className="text-slate-200">|</span>
                               <span>{new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</span>
                            </div>
                         </td>
-                        <td className="px-4 lg:px-10 py-4 lg:py-6 text-right">
-                           <span className="text-xs lg:text-sm font-black text-emerald-500 whitespace-nowrap">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <td className="px-10 py-6 text-right">
+                           <span className="text-sm font-black text-emerald-500 whitespace-nowrap">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </td>
-                        <td className="px-4 lg:px-10 py-4 lg:py-6 text-center">
-                           <div className="flex justify-center gap-1.5 lg:gap-3">
+                        <td className="px-10 py-6 text-center">
+                           <div className="flex justify-center gap-3">
                               {!isFromDelivery && (
                                 <>
-                                  <button onClick={() => handlePrintSaleReceipt(s)} className="p-2 lg:p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900 rounded-lg lg:rounded-xl active:scale-95"><Printer size={14}/></button>
-                                  <button onClick={() => handleEdit(s)} className="p-2 lg:p-2.5 bg-sky-500 text-white rounded-lg lg:rounded-xl active:scale-95"><Pencil size={14}/></button>
-                                  <button onClick={() => { if(confirm('EXCLUIR?')) onDelete(s.id); }} className="p-2 lg:p-2.5 bg-rose-500 text-white rounded-lg lg:rounded-xl active:scale-95"><Trash2 size={14}/></button>
+                                  <button onClick={() => handlePrintSaleReceipt(s)} className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900 rounded-xl active:scale-95"><Printer size={14}/></button>
+                                  <button onClick={() => handleEdit(s)} className="p-2.5 bg-sky-500 text-white rounded-xl active:scale-95"><Pencil size={14}/></button>
+                                  <button onClick={() => { if(confirm('EXCLUIR?')) onDelete(s.id); }} className="p-2.5 bg-rose-500 text-white rounded-xl active:scale-95"><Trash2 size={14}/></button>
                                 </>
                               )}
                               {isFromDelivery && <Lock size={14} className="text-slate-200" />}
@@ -338,12 +339,47 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
                       </tr>
                     );
                   })}
-                  {filteredSales.length === 0 && (
-                    <tr><td colSpan={3} className="py-20 text-center opacity-20 uppercase font-black text-[8px] tracking-[0.3em]">Sem vendas no período</td></tr>
-                  )}
                 </tbody>
               </table>
             </div>
+
+            {/* Versão Mobile - Cards Verticais */}
+            <div className="lg:hidden divide-y divide-slate-50 dark:divide-slate-800">
+               {filteredSales.map(s => {
+                 const isFromDelivery = s.description.includes('ENTREGA CONCLUÍDA');
+                 return (
+                   <div key={s.id} className="p-4 bg-white dark:bg-slate-900">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase leading-tight truncate">{s.description}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                             <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[120px]">{getClientName(s.clientId)}</span>
+                             <span className="text-slate-200 text-[8px]">•</span>
+                             <span className="text-[7px] font-bold text-slate-400 uppercase">{new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-black text-emerald-500 whitespace-nowrap">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-3">
+                        {!isFromDelivery ? (
+                          <>
+                            <button onClick={() => handlePrintSaleReceipt(s)} className="w-9 h-9 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg flex items-center justify-center active:scale-95 border border-slate-100 dark:border-slate-700"><Printer size={14}/></button>
+                            <button onClick={() => handleEdit(s)} className="w-9 h-9 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-lg flex items-center justify-center active:scale-95 border border-sky-100 dark:border-sky-900/50"><Pencil size={14}/></button>
+                            <button onClick={() => { if(confirm('EXCLUIR?')) onDelete(s.id); }} className="w-9 h-9 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-lg flex items-center justify-center active:scale-95 border border-rose-100 dark:border-rose-900/50"><Trash2 size={14}/></button>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1 text-[7px] font-black text-slate-300 uppercase"><Lock size={10}/> GERADA POR LOGÍSTICA</div>
+                        )}
+                      </div>
+                   </div>
+                 );
+               })}
+            </div>
+
+            {filteredSales.length === 0 && (
+               <div className="py-20 text-center opacity-20 uppercase font-black text-[8px] tracking-[0.3em]">Sem vendas no período</div>
+            )}
           </div>
         </div>
       </div>

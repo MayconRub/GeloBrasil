@@ -72,7 +72,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
     setEndDate(getLastDayOfMonth());
   };
 
-  // Máscara de Moeda Brasileira
   const maskCurrency = (val: string) => {
     const digits = val.replace(/\D/g, "");
     if (!digits) return "";
@@ -167,7 +166,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-24 lg:pb-20 max-w-[1600px] mx-auto transition-colors uppercase bg-[#f8fafc] dark:bg-slate-950 min-h-screen">
       
-      {/* Header Panel */}
       <header className="flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="w-12 h-12 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg shrink-0">
@@ -188,7 +186,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
         </div>
       </header>
 
-      {/* Modern Compact Filter Bar Padronizada */}
       <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
@@ -221,7 +218,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
         </div>
       </div>
 
-      {/* Financial Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
         <SummaryCard label="ENTRADAS (Faturamento)" value={dreData.rangeSales} color="sky" />
         <SummaryCard label="CONTAS TOTAIS" value={dreData.totalExpenses} color="slate" />
@@ -229,9 +225,9 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
         <SummaryCard label="LUCRO PROJETADO" value={dreData.netProfit} color="emerald" />
       </div>
 
-      {/* Spreadsheet Table View */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[500px]">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] lg:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
+        {/* Versão Desktop - Tabela Planilha */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-600 text-[8px] font-black uppercase tracking-widest border-b">
               <tr>
@@ -281,26 +277,65 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
                   </td>
                 </tr>
               ))}
-              {filteredExpenses.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-24 text-center opacity-20">
-                    <div className="flex flex-col items-center">
-                      <Receipt size={48} className="mb-4 text-slate-300" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhum lançamento no filtro aplicado</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+
+        {/* Versão Mobile - Cards Verticais */}
+        <div className="lg:hidden divide-y divide-slate-50 dark:divide-slate-800">
+           {filteredExpenses.map((e) => (
+             <div key={e.id} className="p-4 bg-white dark:bg-slate-900 flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                   <div className="min-w-0 flex-1 pr-2">
+                      <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase leading-tight truncate">{e.description}</h4>
+                      <div className="flex items-center gap-2 mt-1.5">
+                         <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[7px] font-black text-slate-500 uppercase">{e.category}</span>
+                         <span className="text-[7px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                           <Calendar size={10} /> {new Date(e.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                         </span>
+                      </div>
+                   </div>
+                   <span className="text-xs font-black text-rose-500 whitespace-nowrap">R$ {e.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                
+                <div className="flex items-center justify-between mt-1">
+                   <button 
+                     onClick={() => toggleExpenseStatus(e)} 
+                     className={`flex-1 h-9 rounded-xl text-[7px] font-black uppercase transition-all flex items-center justify-center gap-2 ${
+                       e.status === ExpenseStatus.PAGO 
+                         ? 'bg-emerald-500 text-white shadow-lg' 
+                         : e.status === ExpenseStatus.VENCIDO 
+                           ? 'bg-rose-50 text-rose-500 border border-rose-100 animate-pulse' 
+                           : 'bg-amber-50 text-amber-500 border border-amber-100'
+                     }`}
+                   >
+                     {e.status === ExpenseStatus.PAGO ? <CheckCircle size={14} /> : <Clock size={14} />}
+                     {e.status}
+                   </button>
+                   
+                   <div className="flex gap-2 ml-4">
+                      <button onClick={() => handleEdit(e)} className="w-9 h-9 bg-sky-50 dark:bg-sky-900/30 text-sky-500 rounded-lg flex items-center justify-center active:scale-90 border border-sky-100 dark:border-sky-900/50"><Pencil size={16}/></button>
+                      <button onClick={() => { if(confirm('EXCLUIR?')) onDelete(e.id); }} className="w-9 h-9 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-lg flex items-center justify-center active:scale-90 border border-rose-100 dark:border-rose-900/50"><Trash2 size={16}/></button>
+                   </div>
+                </div>
+             </div>
+           ))}
+        </div>
+
+        {filteredExpenses.length === 0 && (
+          <div className="py-24 text-center opacity-20 w-full">
+            <div className="flex flex-col items-center">
+              <Receipt size={48} className="mb-4 text-slate-300" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhum lançamento no filtro aplicado</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Quick Entry Form (Mobile Sheet or Center Modal) */}
       {isMobileFormOpen && (
         <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/70 dark:bg-black/90 backdrop-blur-sm" onClick={resetForm} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[3rem] p-8 sm:p-10 shadow-2xl relative border-t sm:border border-slate-100 dark:border-slate-800 animate-in slide-in-from-bottom duration-500">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[3rem] p-8 sm:p-10 shadow-2xl relative border-t sm:border border-slate-100 dark:border-slate-800 animate-in slide-in-from-bottom duration-500 max-h-[95vh] overflow-y-auto">
              <div className="flex items-center justify-between mb-8">
                 <div>
                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{editingId ? 'Editar' : 'Lançar'} Despesa</h3>
@@ -341,7 +376,6 @@ const ExpensesView: React.FC<Props> = ({ expenses, vehicles, employees, sales, o
         </div>
       )}
 
-      {/* Biweekly Closing Analysis */}
       {isBiweeklyModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-slate-900/80 dark:bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsBiweeklyModalOpen(false)} />
