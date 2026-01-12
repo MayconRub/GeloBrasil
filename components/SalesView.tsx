@@ -55,7 +55,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const handleShortcutToday = () => { setStartDate(getTodayString()); setEndDate(getTodayString()); };
   const handleShortcutMonth = () => { setStartDate(getFirstDayOfMonth()); setEndDate(getLastDayOfMonth()); };
 
-  // MÁSCARA DE MOEDA E RECALCULO AUTOMÁTICO
   const maskCurrency = (val: string) => {
     const digits = val.replace(/\D/g, "");
     if (!digits) return "";
@@ -66,7 +65,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     }).format(amount);
   };
 
-  // RECALCULO AUTOMÁTICO DO VALOR TOTAL SEMPRE QUE A CESTA MUDAR
   useEffect(() => {
     if (items.length > 0) {
       const total = items.reduce((acc, item) => acc + (item.quantity * (item.unitPrice || 0)), 0);
@@ -76,7 +74,6 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     }
   }, [items]);
 
-  // Ao selecionar um produto, busca o preço personalizado do cliente
   useEffect(() => {
     if (selectedProductId && clientId) {
       const client = clients.find(c => c.id === clientId);
@@ -116,10 +113,8 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
     setValue(sale.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     setDate(sale.date);
     setClientId(sale.clientId || '');
-    
     const savedItems = sale.items || [];
     setItems([...savedItems]);
-    
     setShowCatalog(savedItems.length > 0);
     setIsMobileFormOpen(true);
   };
@@ -137,10 +132,7 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
       })
       .sort((a, b) => {
         if (a.date !== b.date) return b.date.localeCompare(a.date);
-        if (a.created_at && b.created_at) {
-          return b.created_at.localeCompare(a.created_at);
-        }
-        return b.id.localeCompare(a.id);
+        return (a.created_at || '').localeCompare(b.created_at || '');
       });
   }, [sales, startDate, endDate, searchTerm, clients]);
 
@@ -150,23 +142,15 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
   const handleAddItem = () => {
     const qty = parseInt(itemQuantity);
     const uPrice = parseFloat(itemUnitPrice.replace(/\./g, '').replace(',', '.'));
-    
     if (!selectedProductId || isNaN(qty) || qty <= 0) return;
-    
     const newItems = [...items];
     const existingIdx = newItems.findIndex(i => i.productId === selectedProductId);
-    
     if (existingIdx > -1) {
       newItems[existingIdx].quantity += qty;
       if (!isNaN(uPrice)) newItems[existingIdx].unitPrice = uPrice;
     } else {
-      newItems.push({ 
-        productId: selectedProductId, 
-        quantity: qty, 
-        unitPrice: isNaN(uPrice) ? undefined : uPrice 
-      });
+      newItems.push({ productId: selectedProductId, quantity: qty, unitPrice: isNaN(uPrice) ? undefined : uPrice });
     }
-    
     setItems(newItems);
     setSelectedProductId('');
     setItemQuantity('1');
@@ -179,118 +163,14 @@ const SalesView: React.FC<Props> = ({ sales, onUpdate, onDelete, settings, clien
       const p = products.find(prod => prod.id === item.productId);
       return `${String(item.quantity).padStart(3, ' ')} UN - ${p?.nome || 'PRODUTO'}`;
     }).join('\n');
-
     const qrUrl = settings?.pixKey ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(settings.pixKey)}` : '';
-
-    if (qrUrl) {
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.src = qrUrl;
-        img.onload = resolve;
-        img.onerror = resolve; 
-      });
-    }
-
+    if (qrUrl) await new Promise((resolve) => { const img = new Image(); img.src = qrUrl; img.onload = resolve; img.onerror = resolve; });
     const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-
-    const receiptText = `
-========================================
-             ${settings?.companyName || 'GELO BRASIL'}
-========================================
-         COMPROVANTE DE VENDA
-----------------------------------------
-CLIENTE: ${client?.name || 'CONSUMIDOR AVULSO'}
-${client ? `ENDERECO: ${client.street || ''}, ${client.number || ''}\nBAIRRO: ${client.neighborhood || ''}\n` : ''}
-----------------------------------------
-DATA: ${new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}
-HORA: ${timeStr}
-----------------------------------------
-DESCRIÇÃO: ${s.description}
-----------------------------------------
-${saleItemsList ? `ITENS:\n${saleItemsList}\n----------------------------------------` : ''}
-VALOR TOTAL: R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-----------------------------------------
-
-________________________________________
-           ASSINATURA / VISTO
-
-`.trim();
-
+    const receiptText = `\n========================================\n             ${settings?.companyName || 'GELO BRASIL'}\n========================================\n         COMPROVANTE DE VENDA\n----------------------------------------\nCLIENTE: ${client?.name || 'CONSUMIDOR AVULSO'}\n${client ? `ENDERECO: ${client.street || ''}, ${client.number || ''}\nBAIRRO: ${client.neighborhood || ''}\n` : ''}\n----------------------------------------\nDATA: ${new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}\nHORA: ${timeStr}\n----------------------------------------\nDESCRIÇÃO: ${s.description}\n----------------------------------------\n${saleItemsList ? `ITENS:\n${saleItemsList}\n----------------------------------------` : ''}\nVALOR TOTAL: R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n----------------------------------------\n\n________________________________________\n           ASSINATURA / VISTO\n\n`.trim();
     const printWindow = window.open('', '_blank', 'width=400,height=800');
     if (printWindow) {
-      const pixContent = settings?.pixKey ? `
-            <div class="qrcode-container">
-              <img src="${qrUrl}" />
-            </div>` : '';
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>VENDA - ${settings?.companyName}</title>
-            <style>
-              @font-face {
-                font-family: 'ReceiptFont';
-                src: local('Courier New'), local('Courier');
-              }
-              body { 
-                font-family: 'ReceiptFont', monospace; 
-                font-size: 13px; 
-                width: 80mm; 
-                margin: 0; 
-                padding: 5px;
-                white-space: pre-wrap;
-                text-transform: uppercase;
-                color: black;
-                background: white;
-              }
-              .centered { text-align: center; display: block; width: 100%; }
-              .qrcode-container { 
-                width: 100%; 
-                text-align: center; 
-                margin: 15px 0;
-              }
-              .qrcode-container img {
-                width: 150px;
-                height: 150px;
-                image-rendering: pixelated;
-              }
-              .disclaimer {
-                text-align: center;
-                font-weight: bold;
-                font-size: 10px;
-                margin-top: 15px;
-                padding: 5px;
-                border-top: 1px dashed #ccc;
-                white-space: nowrap; /* Garante que fique em uma linha */
-              }
-              @media print {
-                body { margin: 0; padding: 0; width: 80mm; }
-                @page { margin: 0; size: 80mm auto; }
-              }
-            </style>
-          </head>
-          <body>
-            ${receiptText}
-            ${pixContent}
-            <div class="centered">
-========================================
-        OBRIGADO PELA PREFERENCIA
-            </div>
-            <div class="disclaimer">
-              ESTE DOCUMENTO NÃO É UM COMPROVANTE FISCAL
-            </div>
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.focus();
-                  window.print();
-                  window.close();
-                }, 300);
-              };
-            </script>
-          </body>
-        </html>
-      `);
+      const pixContent = settings?.pixKey ? `<div class="qrcode-container"><img src="${qrUrl}" /></div>` : '';
+      printWindow.document.write(`<html><head><title>VENDA - ${settings?.companyName}</title><style>@font-face { font-family: 'ReceiptFont'; src: local('Courier New'), local('Courier'); } body { font-family: 'ReceiptFont', monospace; font-size: 13px; width: 80mm; margin: 0; padding: 5px; white-space: pre-wrap; text-transform: uppercase; color: black; background: white; } .centered { text-align: center; display: block; width: 100%; } .qrcode-container { width: 100%; text-align: center; margin: 15px 0; } .qrcode-container img { width: 150px; height: 150px; image-rendering: pixelated; } .disclaimer { text-align: center; font-weight: bold; font-size: 10px; margin-top: 15px; padding: 5px; border-top: 1px dashed #ccc; white-space: nowrap; } @media print { body { margin: 0; padding: 0; width: 80mm; } @page { margin: 0; size: 80mm auto; } }</style></head><body>${receiptText}${pixContent}<div class="centered">========================================<br/>OBRIGADO PELA PREFERENCIA</div><div class="disclaimer">ESTE DOCUMENTO NÃO É UM COMPROVANTE FISCAL</div><script>window.onload = function() { setTimeout(function() { window.focus(); window.print(); window.close(); }, 300); };</script></body></html>`);
       printWindow.document.close();
     }
   };
@@ -299,248 +179,132 @@ ________________________________________
     const totalValue = filteredSales.reduce((acc, sale) => acc + sale.value, 0);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
-    const rows = filteredSales.map(s => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: 800;">${s.description}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee;">${getClientName(s.clientId)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-      </tr>
-    `).join('');
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>RELATÓRIO DE VENDAS - ${settings?.companyName}</title>
-          <style>
-            body { font-family: 'Plus Jakarta Sans', sans-serif; text-transform: uppercase; padding: 40px; color: #1e293b; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px; }
-            h1 { margin: 0; font-size: 24px; font-weight: 900; }
-            .period { font-size: 12px; color: #64748b; margin-top: 5px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
-            th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #64748b; font-size: 10px; }
-            .total-container { margin-top: 40px; text-align: right; border-top: 2px solid #000; padding-top: 20px; }
-            .total-label { font-size: 12px; font-weight: 800; color: #64748b; }
-            .total-value { font-size: 24px; font-weight: 900; color: #10b981; margin-top: 5px; }
-            @media print { .no-print { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>RELATÓRIO DE VENDAS</h1>
-            <div class="period">${settings?.companyName}</div>
-            <div class="period">PERÍODO: ${new Date(startDate + 'T00:00:00').toLocaleDateString()} ATÉ ${new Date(endDate + 'T00:00:00').toLocaleDateString()}</div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>DATA</th>
-                <th>DESCRIÇÃO</th>
-                <th>CLIENTE</th>
-                <th style="text-align: right;">VALOR</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-          <div class="total-container">
-            <div class="total-label">VALOR TOTAL DO PERÍODO</div>
-            <div class="total-value">R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          </div>
-          <div class="no-print" style="margin-top: 40px; text-align: center;">
-            <button onclick="window.print()" style="padding: 12px 30px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 900; cursor: pointer;">IMPRIMIR RELATÓRIO</button>
-          </div>
-        </body>
-      </html>
-    `);
+    const rows = filteredSales.map(s => `<tr><td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: 800;">${s.description}</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${getClientName(s.clientId)}</td><td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R$ ${s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td></tr>`).join('');
+    printWindow.document.write(`<html><head><title>RELATÓRIO DE VENDAS - ${settings?.companyName}</title><style>body { font-family: 'Plus Jakarta Sans', sans-serif; text-transform: uppercase; padding: 40px; color: #1e293b; } .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px; } h1 { margin: 0; font-size: 24px; font-weight: 900; } .period { font-size: 12px; color: #64748b; margin-top: 5px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; } th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #64748b; font-size: 10px; } .total-container { margin-top: 40px; text-align: right; border-top: 2px solid #000; padding-top: 20px; } .total-label { font-size: 12px; font-weight: 800; color: #64748b; } .total-value { font-size: 24px; font-weight: 900; color: #10b981; margin-top: 5px; } @media print { .no-print { display: none; } }</style></head><body><div class="header"><h1>RELATÓRIO DE VENDAS</h1><div class="period">${settings?.companyName}</div><div class="period">PERÍODO: ${new Date(startDate + 'T00:00:00').toLocaleDateString()} ATÉ ${new Date(endDate + 'T00:00:00').toLocaleDateString()}</div></div><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>CLIENTE</th><th style="text-align: right;">VALOR</th></tr></thead><tbody>${rows}</tbody></table><div class="total-container"><div class="total-label">VALOR TOTAL DO PERÍODO</div><div class="total-value">R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div><div class="no-print" style="margin-top: 40px; text-align: center;"><button onclick="window.print()" style="padding: 12px 30px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 900; cursor: pointer;">IMPRIMIR RELATÓRIO</button></div></body></html>`);
     printWindow.document.close();
   };
 
   const renderFormContent = () => (
-    <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm transition-all h-fit">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner">
-          <DollarSign size={24} />
+    <div className="bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm transition-all h-fit">
+      <div className="flex items-center gap-3 mb-6 lg:mb-8">
+        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-xl lg:rounded-2xl flex items-center justify-center shrink-0">
+          <DollarSign size={20} />
         </div>
-        <div>
-           <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none flex items-center gap-2">
+        <div className="min-w-0">
+           <h3 className="text-lg lg:text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none truncate">
              {editingId ? 'EDITAR' : 'LANÇAR'} <span className="text-emerald-500">VENDA</span>
            </h3>
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Registro de Faturamento</p>
+           <p className="text-[8px] lg:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Registro de Faturamento</p>
         </div>
       </div>
       
-      <form onSubmit={handleAdd} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleAdd} className="space-y-4 lg:space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
            <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Cliente</label>
-              <select 
-                value={clientId} 
-                onChange={e => setClientId(e.target.value)} 
-                className="w-full h-14 px-4 bg-slate-50 dark:bg-slate-950 border-none rounded-2xl text-[10px] font-black uppercase outline-none dark:text-white shadow-inner"
-              >
+              <label className="text-[8px] lg:text-[9px] font-black text-slate-400 uppercase ml-2">Cliente</label>
+              <select value={clientId} onChange={e => setClientId(e.target.value)} className="w-full h-12 lg:h-14 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase outline-none dark:text-white">
                 <option value="">BALCÃO (AVULSO)</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
            </div>
            <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Data</label>
-              <input 
-                type="date" 
-                value={date} 
-                onChange={e => setDate(e.target.value)} 
-                className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 border-none rounded-2xl font-bold text-xs dark:text-white shadow-inner" 
-                required 
-              />
+              <label className="text-[8px] lg:text-[9px] font-black text-slate-400 uppercase ml-2">Data</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full h-12 lg:h-14 px-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl lg:rounded-2xl font-bold text-xs dark:text-white" required />
            </div>
         </div>
 
         <div className="space-y-1.5">
-           <label className="text-[10px] font-black text-slate-400 uppercase ml-3 tracking-widest">Valor do Faturamento R$</label>
+           <label className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase ml-3 tracking-widest">Valor R$</label>
            <div className="relative">
-              <input 
-                placeholder="R$ 0,00" 
-                value={value ? `R$ ${value}` : ''} 
-                onChange={e => setValue(maskCurrency(e.target.value))} 
-                className="w-full h-20 px-8 bg-emerald-50/20 dark:bg-slate-950 border-2 border-emerald-100 dark:border-emerald-900/30 rounded-[2rem] text-3xl font-black text-emerald-600 outline-none placeholder:text-emerald-100" 
-                required 
-              />
+              <input placeholder="R$ 0,00" value={value ? `R$ ${value}` : ''} onChange={e => setValue(maskCurrency(e.target.value))} className="w-full h-16 lg:h-20 px-6 lg:px-8 bg-emerald-50/20 dark:bg-slate-950 border-2 border-emerald-100 dark:border-emerald-900/30 rounded-2xl lg:rounded-[2rem] text-2xl lg:text-3xl font-black text-emerald-600 outline-none" required />
            </div>
         </div>
 
-        <button 
-          type="button"
-          onClick={() => setShowCatalog(!showCatalog)}
-          className={`w-full py-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-3 transition-all ${showCatalog ? 'bg-sky-50 border-sky-200 text-sky-600 dark:bg-sky-900/20 dark:border-sky-800' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-sky-200 hover:text-sky-500 dark:bg-slate-950 dark:border-slate-800'}`}
-        >
-          <Package size={18} />
-          <span className="text-[10px] font-black uppercase tracking-widest">
-            {showCatalog ? 'RECOLHER DETALHES' : 'DETALHAR PRODUTOS (OPCIONAL)'}
-          </span>
-          {showCatalog ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <button type="button" onClick={() => setShowCatalog(!showCatalog)} className={`w-full py-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 transition-all ${showCatalog ? 'bg-sky-50 border-sky-200 text-sky-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+          <Package size={16} /><span className="text-[8px] lg:text-[10px] font-black uppercase tracking-widest">{showCatalog ? 'RECOLHER' : 'DETALHAR ITENS'}</span>
         </button>
 
         {showCatalog && (
-          <div className="bg-slate-50 dark:bg-slate-950/80 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-inner space-y-4 animate-in slide-in-from-top-2 duration-300">
-             <select 
-                className="w-full h-12 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-[10px] uppercase dark:text-white outline-none" 
-                value={selectedProductId} 
-                onChange={e => setSelectedProductId(e.target.value)}
-              >
+          <div className="bg-slate-50 dark:bg-slate-950/80 p-4 lg:p-6 rounded-2xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 space-y-3">
+             <select className="w-full h-10 px-3 bg-white dark:bg-slate-900 border rounded-lg font-black text-[9px] uppercase dark:text-white" value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}>
                 <option value="">PRODUTO...</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="number" 
-                    placeholder="QTD"
-                    className="w-full h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center font-black text-sm dark:text-white outline-none shadow-sm" 
-                    value={itemQuantity} 
-                    onChange={e => setItemQuantity(e.target.value)} 
-                    min="1"
-                  />
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-[8px]">R$</span>
-                  <input 
-                    placeholder="PREÇO UN." 
-                    value={itemUnitPrice} 
-                    onChange={e => setItemUnitPrice(maskCurrency(e.target.value))}
-                    className="w-full h-12 pl-8 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-xs text-emerald-600 outline-none shadow-sm"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-2">
+                  <input type="number" placeholder="QTD" className="w-full h-10 bg-white dark:bg-slate-900 border rounded-lg text-center font-black text-xs dark:text-white" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} min="1"/>
+                  <input placeholder="PREÇO" value={itemUnitPrice} onChange={e => setItemUnitPrice(maskCurrency(e.target.value))} className="w-full h-10 px-3 bg-white dark:bg-slate-900 border rounded-lg font-black text-xs text-emerald-600" />
               </div>
-
-              <button 
-                type="button" 
-                onClick={handleAddItem} 
-                disabled={!selectedProductId} 
-                className="w-full h-12 bg-sky-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 disabled:opacity-30 transition-all"
-              >
-                ADICIONAR ITEM
-              </button>
-
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button type="button" onClick={handleAddItem} className="w-full h-10 bg-sky-500 text-white rounded-lg font-black text-[9px] uppercase">Adicionar</button>
+              <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
                 {items.map((it, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase truncate">{getProductName(it.productId)}</p>
-                      <p className="text-[9px] font-bold text-slate-400 dark:text-slate-700 uppercase">{it.quantity} un x R$ {it.unitPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-300 hover:text-rose-500 p-2"><Trash2 size={16}/></button>
+                  <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-lg border text-[9px] uppercase">
+                    <span className="truncate flex-1 font-black mr-2">{getProductName(it.productId)}</span>
+                    <button type="button" onClick={() => setItems(items.filter((_,i)=>i!==idx))} className="text-rose-400 p-1"><Trash2 size={14}/></button>
                   </div>
                 ))}
               </div>
           </div>
         )}
 
-        <button 
-          type="submit" 
-          className="w-full h-20 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[2.2rem] font-black uppercase text-xs tracking-widest shadow-2xl active:scale-95 transition-all"
-        >
-          {editingId ? 'SALVAR ALTERAÇÕES' : 'CONCLUIR LANÇAMENTO'}
+        <button type="submit" className="w-full h-16 lg:h-20 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl lg:rounded-[2.2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">
+          {editingId ? 'SALVAR ALTERAÇÕES' : 'CONCLUIR VENDA'}
         </button>
       </form>
     </div>
   );
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto transition-colors uppercase bg-[#f8fafc] dark:bg-slate-950 min-h-screen">
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-4">
-           <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center shadow-lg"><TrendingUp size={28} /></div>
-           <h2 className="text-3xl font-black text-slate-800 dark:text-white leading-none uppercase tracking-tighter flex items-center gap-2">VENDAS <span className="text-sky-500">DIÁRIAS</span></h2>
+    <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto transition-colors uppercase bg-[#f8fafc] dark:bg-slate-950 min-h-screen overflow-x-hidden">
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-4 lg:gap-6">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+           <div className="w-12 h-12 lg:w-14 lg:h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-xl lg:rounded-2xl flex items-center justify-center shadow-lg shrink-0"><TrendingUp size={24} /></div>
+           <h2 className="text-xl lg:text-3xl font-black text-slate-800 dark:text-white leading-none uppercase tracking-tighter">VENDAS <span className="text-sky-500">DIÁRIAS</span></h2>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handlePrintReport} className="px-6 h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
-            <FileText size={18} className="text-sky-500" /> <span className="hidden sm:inline">RELATÓRIO</span>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button onClick={handlePrintReport} className="flex-1 sm:flex-none px-4 lg:px-6 h-12 lg:h-14 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl lg:rounded-2xl font-black text-[9px] lg:text-[10px] uppercase shadow-sm flex items-center justify-center gap-2 active:scale-95">
+            <FileText size={16} className="text-sky-500" /> <span>RELATÓRIO</span>
           </button>
-          <button onClick={() => { resetForm(); setIsMobileFormOpen(true); }} className="lg:hidden w-14 h-14 bg-sky-500 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90"><Plus size={24} /></button>
+          <button onClick={() => { resetForm(); setIsMobileFormOpen(true); }} className="lg:hidden flex-1 h-12 bg-sky-500 text-white rounded-xl flex items-center justify-center gap-2 font-black text-[9px] shadow-xl active:scale-90"><Plus size={16} /> NOVA VENDA</button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
         <div className="hidden lg:block">
            {renderFormContent()}
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm no-print">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
-                <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">DE</span>
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+          {/* Filtros Padronizados para Mobile */}
+          <div className="flex flex-col gap-2 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm no-print">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-lg px-2 h-10 border border-slate-100 dark:border-slate-800">
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-[9px] font-bold text-slate-700 dark:text-slate-200 w-full" />
               </div>
-              <ArrowRight size={14} className="text-slate-300 shrink-0" />
-              <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-xl px-3 h-11 border border-slate-100 dark:border-slate-800">
-                <span className="text-[8px] font-black text-slate-400 mr-2 uppercase">ATÉ</span>
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-bold text-slate-700 dark:text-slate-200 w-full" />
+              <ArrowRight size={12} className="text-slate-300 shrink-0" />
+              <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-950 rounded-lg px-2 h-10 border border-slate-100 dark:border-slate-800">
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-[9px] font-bold text-slate-700 dark:text-slate-200 w-full" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                <button onClick={handleShortcutToday} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Hoje</button>
-                <button onClick={handleShortcutMonth} className="px-3 h-9 rounded-lg text-[8px] font-black uppercase hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-all">Mês</button>
-              </div>
-              <div className="relative flex-1 md:w-64">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                <input type="text" placeholder="PESQUISAR VENDAS..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-11 pl-9 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-sky-50/20 dark:text-white" />
-              </div>
+                <div className="flex-1 relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input type="text" placeholder="PESQUISAR..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-10 pl-9 pr-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-lg text-[9px] font-black uppercase outline-none dark:text-white" />
+                </div>
+                <div className="flex gap-1">
+                   <button onClick={handleShortcutToday} className="px-3 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg text-[8px] font-black uppercase text-slate-500">Hoje</button>
+                   <button onClick={handleShortcutMonth} className="px-3 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg text-[8px] font-black uppercase text-slate-500">Mês</button>
+                </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[600px]">
+          <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] lg:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[500px] lg:min-w-0">
                 <thead>
-                  <tr className="text-slate-300 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800">
-                    <th className="px-10 py-6">DETALHES</th>
-                    <th className="px-10 py-6 text-right">VALOR</th>
-                    <th className="px-10 py-6 text-center">AÇÕES</th>
+                  <tr className="text-slate-300 text-[8px] lg:text-[9px] font-black uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                    <th className="px-4 lg:px-10 py-4 lg:py-6">DETALHES</th>
+                    <th className="px-4 lg:px-10 py-4 lg:py-6 text-right">VALOR</th>
+                    <th className="px-4 lg:px-10 py-4 lg:py-6 text-center">AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -548,50 +312,34 @@ ________________________________________
                     const isFromDelivery = s.description.includes('ENTREGA CONCLUÍDA');
                     return (
                       <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-10 py-6">
-                           <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none mb-1">{s.description}</p>
-                           <div className="flex items-center gap-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                              <span><User size={8} className="inline mr-1"/> {getClientName(s.clientId)}</span>
+                        <td className="px-4 lg:px-10 py-4 lg:py-6">
+                           <p className="text-[9px] lg:text-[11px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none mb-1 truncate max-w-[120px] lg:max-w-none">{s.description}</p>
+                           <div className="flex items-center gap-1.5 text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              <span className="truncate max-w-[60px] lg:max-w-none">{getClientName(s.clientId)}</span>
                               <span className="text-slate-200">|</span>
-                              <span>{new Date(s.date + 'T00:00:00').toLocaleDateString()}</span>
+                              <span>{new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</span>
                            </div>
                         </td>
-                        <td className="px-10 py-6 text-right">
-                           <span className="text-sm font-black text-emerald-500">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <td className="px-4 lg:px-10 py-4 lg:py-6 text-right">
+                           <span className="text-xs lg:text-sm font-black text-emerald-500 whitespace-nowrap">R$ {s.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </td>
-                        <td className="px-10 py-6 text-center">
-                           <div className="flex justify-center gap-3 transition-all">
+                        <td className="px-4 lg:px-10 py-4 lg:py-6 text-center">
+                           <div className="flex justify-center gap-1.5 lg:gap-3">
                               {!isFromDelivery && (
                                 <>
-                                  <button onClick={() => handlePrintSaleReceipt(s)} title="Imprimir Comprovante" className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition-colors shadow-sm active:scale-95"><Printer size={18}/></button>
-                                  <button onClick={() => handleEdit(s)} title="Editar Venda" className="p-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors shadow-lg active:scale-95"><Pencil size={18}/></button>
-                                  <button onClick={() => { if(confirm('EXCLUIR ESTA VENDA?')) onDelete(s.id); }} title="Excluir Venda" className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-lg active:scale-95"><Trash2 size={18}/></button>
+                                  <button onClick={() => handlePrintSaleReceipt(s)} className="p-2 lg:p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900 rounded-lg lg:rounded-xl active:scale-95"><Printer size={14}/></button>
+                                  <button onClick={() => handleEdit(s)} className="p-2 lg:p-2.5 bg-sky-500 text-white rounded-lg lg:rounded-xl active:scale-95"><Pencil size={14}/></button>
+                                  <button onClick={() => { if(confirm('EXCLUIR?')) onDelete(s.id); }} className="p-2 lg:p-2.5 bg-rose-500 text-white rounded-lg lg:rounded-xl active:scale-95"><Trash2 size={14}/></button>
                                 </>
                               )}
-                              {isFromDelivery && (
-                                <div className="flex justify-center gap-3">
-                                   <button 
-                                      onClick={() => alert('ESTA VENDA FOI GERADA AUTOMATICAMENTE PELO PAINEL DE ENTREGAS. PARA ALTERAR OU CANCELAR, UTILIZE O MÓDULO DE ENTREGAS.')} 
-                                      className="p-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-slate-400 hover:text-sky-500 transition-colors cursor-help"
-                                    >
-                                      <Lock size={18} />
-                                    </button>
-                                </div>
-                              )}
+                              {isFromDelivery && <Lock size={14} className="text-slate-200" />}
                            </div>
                         </td>
                       </tr>
                     );
                   })}
                   {filteredSales.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="py-24 text-center opacity-20">
-                        <div className="flex flex-col items-center">
-                          <DollarSign size={48} className="mb-4 text-slate-300" />
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhuma venda encontrada no intervalo</p>
-                        </div>
-                      </td>
-                    </tr>
+                    <tr><td colSpan={3} className="py-20 text-center opacity-20 uppercase font-black text-[8px] tracking-[0.3em]">Sem vendas no período</td></tr>
                   )}
                 </tbody>
               </table>
@@ -601,10 +349,10 @@ ________________________________________
       </div>
 
       {isMobileFormOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4">
            <div className="absolute inset-0 bg-slate-900/90 dark:bg-black/98 backdrop-blur-xl" onClick={resetForm} />
-           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3.5rem] p-8 shadow-2xl relative border dark:border-slate-800 overflow-y-auto max-h-[90vh]">
-              <button onClick={resetForm} className="absolute top-8 right-8 text-slate-300 hover:text-rose-500"><X size={32}/></button>
+           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2rem] sm:rounded-[3.5rem] p-5 sm:p-8 shadow-2xl relative border dark:border-slate-800 overflow-y-auto max-h-[90vh] custom-scrollbar">
+              <button onClick={resetForm} className="absolute top-6 right-6 text-slate-300 hover:text-rose-500"><X size={28}/></button>
               {renderFormContent()}
            </div>
         </div>
