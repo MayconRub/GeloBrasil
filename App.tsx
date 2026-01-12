@@ -45,10 +45,8 @@ const App: React.FC = () => {
 
   const [data, setData] = useState<AppData>({
     sales: [], expenses: [], employees: [], vehicles: [], fuelLogs: [], maintenanceLogs: [], fineLogs: [], production: [], monthlyGoals: [], categories: [], users: [], clients: [], deliveries: [], products: [],
-    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', pixKey: '', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], menuOrder: [], adminEmail: 'root@adm.app' }
+    settings: { companyName: 'GELO BRASIL LTDA', cnpj: '42.996.710/0001-63', pixKey: '', systemPixKey: '', primaryColor: '#5ecce3', logoId: 'Snowflake', loginHeader: 'ADMIN', supportPhone: '', footerText: '', expirationDate: '2099-12-31', hiddenViews: [], menuOrder: [], adminEmail: 'root@adm.app' }
   });
-
-  const SYSTEM_EXPIRATION_PIX = "00020126590014BR.GOV.BCB.PIX0111135244986200222Mensalidade do Sistema5204000053039865406100.005802BR5925MAYCON RUBEM DOS SANTOS P6013MONTES CLAROS622605226rZoYS25kQugjDLBWRKJVs63045E25";
 
   const getLocalISODate = () => {
     const now = new Date();
@@ -140,7 +138,12 @@ const App: React.FC = () => {
   };
 
   const handleCopyPix = () => {
-    navigator.clipboard.writeText(SYSTEM_EXPIRATION_PIX);
+    const pixKey = data.settings.systemPixKey || '';
+    if (!pixKey) {
+      alert("CHAVE PIX NÃO CONFIGURADA PELO ADMINISTRADOR.");
+      return;
+    }
+    navigator.clipboard.writeText(pixKey);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 3000);
   };
@@ -266,11 +269,21 @@ const App: React.FC = () => {
       <p className="text-[9px] font-bold text-rose-700/60 dark:text-rose-300/60 max-w-sm mb-8 uppercase tracking-widest leading-relaxed">Expirou em: <span className="text-rose-600 dark:text-rose-400 underline">{new Date(data.settings.expirationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span>.</p>
       <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] shadow-xl border border-rose-100 dark:border-rose-900/30 mb-8 flex flex-col items-center">
         <div className="bg-sky-50 dark:bg-slate-800 p-3 sm:p-4 rounded-2xl mb-6">
-          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(SYSTEM_EXPIRATION_PIX)}`} alt="PIX" className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl" />
+          {data.settings.systemPixKey ? (
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(data.settings.systemPixKey)}`} alt="PIX" className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl" />
+          ) : (
+            <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl bg-slate-100 dark:bg-slate-700 flex flex-col items-center justify-center p-4">
+              <QrCode size={40} className="text-slate-300 mb-2" />
+              <p className="text-[8px] font-black text-slate-400 uppercase">PIX Não Configurado</p>
+            </div>
+          )}
         </div>
         <div className="w-full space-y-4">
           <button onClick={handleCopyPix} className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all active:scale-95 ${copiedPix ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}>
-            <div className="flex flex-col items-start overflow-hidden mr-4"><span className={`text-[7px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>{copiedPix ? 'Copiado!' : 'PIX Copia e Cola'}</span><span className="text-[9px] font-black text-slate-700 dark:text-slate-200 truncate w-full text-left">{SYSTEM_EXPIRATION_PIX}</span></div>
+            <div className="flex flex-col items-start overflow-hidden mr-4">
+              <span className={`text-[7px] font-black uppercase tracking-widest ${copiedPix ? 'text-emerald-500' : 'text-slate-400'}`}>{copiedPix ? 'Copiado!' : 'PIX Copia e Cola'}</span>
+              <span className="text-[9px] font-black text-slate-700 dark:text-slate-200 truncate w-full text-left">{data.settings.systemPixKey || 'CHAVE NÃO DISPONÍVEL'}</span>
+            </div>
             {copiedPix ? <Check size={18} className="text-emerald-500 shrink-0" /> : <Copy size={18} className="text-slate-300 shrink-0" />}
           </button>
         </div>
